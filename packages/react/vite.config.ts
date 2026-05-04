@@ -14,4 +14,9 @@ export default defineConfig({
       external: ["react", "@f1/core"],
     },
   },
+  test: {
+    environment: "jsdom",
+    globals: true,
+    setupFiles: ["./src/test/setup.ts"],
+  },
 });
