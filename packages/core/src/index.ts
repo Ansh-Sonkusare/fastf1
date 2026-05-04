@@ -89,3 +89,5 @@ export {
   getStartingGrid,
   getIntervals,
 } from "./api/openf1";
+
+export type { CarData } from "./schemas/openf1";
