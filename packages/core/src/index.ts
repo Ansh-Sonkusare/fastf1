@@ -69,3 +69,4 @@ export { getSchedule } from "./api/schedule";
 export { getRaceResults } from "./api/results";
 export type { ResultType } from "./api/results";
 export { getDriverStandings, getConstructorStandings } from "./api/standings";
+export { getLaps } from "./api/laps";
