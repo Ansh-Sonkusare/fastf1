@@ -70,3 +70,22 @@ export { getRaceResults } from "./api/results";
 export type { ResultType } from "./api/results";
 export { getDriverStandings, getConstructorStandings } from "./api/standings";
 export { getLaps } from "./api/laps";
+
+export {
+  getMeetings,
+  getSessions,
+  getDrivers,
+  getLaps as getOpenF1Laps,
+  getStints,
+  getPitStops as getOpenF1PitStops,
+  getPosition,
+  getCarData,
+  getLocation,
+  getWeather,
+  getRaceControl,
+  getTeamRadio,
+  getOvertakes,
+  getSessionResult,
+  getStartingGrid,
+  getIntervals,
+} from "./api/openf1";
