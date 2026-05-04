@@ -14,7 +14,7 @@ import {
   getCarData,
 } from "@f1/core";
 
-const YEAR = 2024;
+const YEAR = 2026;
 
 async function main() {
   console.log(`🏎️  F1 CLI Demo - ${YEAR} Season\n`);
@@ -92,14 +92,14 @@ async function main() {
   console.log("-".repeat(50));
   if (meetings.length > 0) {
     const gps = meetings.filter(m => m.meeting_name.includes("Grand Prix"));
-    const meeting = gps[0] || meetings[0];
+    const meeting = gps.find(m => m.meeting_name === "Miami Grand Prix") || gps[0] || meetings[0];
     const sessions = await getSessions(meeting.meeting_key);
     console.log(`Sessions for ${meeting.meeting_name}:`);
     sessions.forEach((s, i) => {
       console.log(`  ${i + 1}. ${s.session_name} (${s.session_type})`);
     });
 
-    const raceSession = sessions.find(s => s.session_type === "Race");
+    const raceSession = sessions.find(s => s.session_name === "Race");
     if (raceSession) {
       const drivers = await getDrivers(raceSession.session_key);
       console.log(`\nDrivers in race: ${drivers.length}`);

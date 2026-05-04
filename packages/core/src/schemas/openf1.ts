@@ -61,7 +61,7 @@ export const OpenF1LapSchema = z.object({
   meeting_key: z.number(),
   driver_number: z.number(),
   lap_number: z.number(),
-  date_start: z.string(),
+  date_start: z.string().nullish(),
   lap_duration: z.number().nullish(),
   duration_sector_1: z.number().nullish(),
   duration_sector_2: z.number().nullish(),
