@@ -66,3 +66,5 @@ export type {
 } from "./schemas/results";
 
 export { getSchedule } from "./api/schedule";
+export { getRaceResults } from "./api/results";
+export type { ResultType } from "./api/results";
