@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { F1Client, F1ClientError, RateLimitError, TimeoutError } from "./client";
+import { F1Client } from "./client";
+import { F1ClientError, RateLimitError, TimeoutError } from "./errors";
 
 describe("F1Client", () => {
   let client: F1Client;

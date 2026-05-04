@@ -45,7 +45,7 @@ function cleanNulls<T>(obj: T): T {
 }
 
 export async function getMeetings(year: number): Promise<z.infer<typeof MeetingSchema>[]> {
-  const response = await client.fetch<MeetingSchema[]>(
+  const response = await client.fetch<z.infer<typeof MeetingSchema>[]>(
     `/meetings?year=${year}`,
     {},
     { method: "GET" },
@@ -54,7 +54,7 @@ export async function getMeetings(year: number): Promise<z.infer<typeof MeetingS
 }
 
 export async function getSessions(meetingKey: number): Promise<z.infer<typeof SessionSchema>[]> {
-  const response = await client.fetch<SessionSchema[]>(
+  const response = await client.fetch<z.infer<typeof SessionSchema>[]>(
     `/sessions?meeting_key=${meetingKey}`,
     {},
     { method: "GET" },
@@ -65,7 +65,7 @@ export async function getSessions(meetingKey: number): Promise<z.infer<typeof Se
 export async function getDrivers(
   sessionKey: number,
 ): Promise<z.infer<typeof OpenF1DriverSchema>[]> {
-  const response = await client.fetch<OpenF1DriverSchema[]>(
+  const response = await client.fetch<z.infer<typeof OpenF1DriverSchema>[]>(
     `/drivers?session_key=${sessionKey}`,
     {},
     { method: "GET" },
@@ -83,7 +83,9 @@ export async function getOpenF1Laps(
   if (lapNumber) params.lap_number = lapNumber;
   // Note: Do NOT add limit param - causes "No results found" on some sessions
 
-  const response = await client.fetch<OpenF1LapSchema[]>("/laps", params, { method: "GET" });
+  const response = await client.fetch<z.infer<typeof OpenF1LapSchema>[]>("/laps", params, {
+    method: "GET",
+  });
   return z.array(OpenF1LapSchema).parse(cleanNulls(response));
 }
 
@@ -94,7 +96,9 @@ export async function getStints(
   const params: Record<string, string | number> = { session_key: sessionKey };
   if (driverNumber) params.driver_number = driverNumber;
 
-  const response = await client.fetch<StintSchema[]>("/stints", params, { method: "GET" });
+  const response = await client.fetch<z.infer<typeof StintSchema>[]>("/stints", params, {
+    method: "GET",
+  });
   return z.array(StintSchema).parse(cleanNulls(response));
 }
 
@@ -105,7 +109,9 @@ export async function getPitStops(
   const params: Record<string, string | number> = { session_key: sessionKey };
   if (driverNumber) params.driver_number = driverNumber;
 
-  const response = await client.fetch<OpenF1PitSchema[]>("/pit", params, { method: "GET" });
+  const response = await client.fetch<z.infer<typeof OpenF1PitSchema>[]>("/pit", params, {
+    method: "GET",
+  });
   return z.array(OpenF1PitSchema).parse(cleanNulls(response));
 }
 
@@ -116,7 +122,9 @@ export async function getPosition(
   const params: Record<string, string | number> = { session_key: sessionKey };
   if (driverNumber) params.driver_number = driverNumber;
 
-  const response = await client.fetch<PositionSchema[]>("/position", params, { method: "GET" });
+  const response = await client.fetch<z.infer<typeof PositionSchema>[]>("/position", params, {
+    method: "GET",
+  });
   return z.array(PositionSchema).parse(cleanNulls(response));
 }
 
@@ -127,7 +135,9 @@ export async function getCarData(
   const params: Record<string, string | number> = { session_key: sessionKey };
   if (driverNumber) params.driver_number = driverNumber;
 
-  const response = await client.fetch<CarDataSchema[]>("/car_data", params, { method: "GET" });
+  const response = await client.fetch<z.infer<typeof CarDataSchema>[]>("/car_data", params, {
+    method: "GET",
+  });
   return z.array(CarDataSchema).parse(cleanNulls(response));
 }
 
@@ -138,12 +148,14 @@ export async function getLocation(
   const params: Record<string, string | number> = { session_key: sessionKey };
   if (driverNumber) params.driver_number = driverNumber;
 
-  const response = await client.fetch<LocationSchema[]>("/location", params, { method: "GET" });
+  const response = await client.fetch<z.infer<typeof LocationSchema>[]>("/location", params, {
+    method: "GET",
+  });
   return z.array(LocationSchema).parse(cleanNulls(response));
 }
 
 export async function getWeather(sessionKey: number): Promise<z.infer<typeof WeatherSchema>[]> {
-  const response = await client.fetch<WeatherSchema[]>(
+  const response = await client.fetch<z.infer<typeof WeatherSchema>[]>(
     `/weather?session_key=${sessionKey}`,
     {},
     { method: "GET" },
@@ -154,7 +166,7 @@ export async function getWeather(sessionKey: number): Promise<z.infer<typeof Wea
 export async function getRaceControl(
   sessionKey: number,
 ): Promise<z.infer<typeof RaceControlSchema>[]> {
-  const response = await client.fetch<RaceControlSchema[]>(
+  const response = await client.fetch<z.infer<typeof RaceControlSchema>[]>(
     `/race_control?session_key=${sessionKey}`,
     {},
     { method: "GET" },
@@ -163,7 +175,7 @@ export async function getRaceControl(
 }
 
 export async function getTeamRadio(sessionKey: number): Promise<z.infer<typeof TeamRadioSchema>[]> {
-  const response = await client.fetch<TeamRadioSchema[]>(
+  const response = await client.fetch<z.infer<typeof TeamRadioSchema>[]>(
     `/team_radio?session_key=${sessionKey}`,
     {},
     { method: "GET" },
@@ -172,7 +184,7 @@ export async function getTeamRadio(sessionKey: number): Promise<z.infer<typeof T
 }
 
 export async function getOvertakes(sessionKey: number): Promise<z.infer<typeof OvertakeSchema>[]> {
-  const response = await client.fetch<OvertakeSchema[]>(
+  const response = await client.fetch<z.infer<typeof OvertakeSchema>[]>(
     `/overtakes?session_key=${sessionKey}`,
     {},
     { method: "GET" },
@@ -183,7 +195,7 @@ export async function getOvertakes(sessionKey: number): Promise<z.infer<typeof O
 export async function getSessionResult(
   sessionKey: number,
 ): Promise<z.infer<typeof SessionResultSchema>[]> {
-  const response = await client.fetch<SessionResultSchema[]>(
+  const response = await client.fetch<z.infer<typeof SessionResultSchema>[]>(
     `/session_result?session_key=${sessionKey}`,
     {},
     { method: "GET" },
@@ -194,7 +206,7 @@ export async function getSessionResult(
 export async function getStartingGrid(
   sessionKey: number,
 ): Promise<z.infer<typeof StartingGridSchema>[]> {
-  const response = await client.fetch<StartingGridSchema[]>(
+  const response = await client.fetch<z.infer<typeof StartingGridSchema>[]>(
     `/starting_grid?session_key=${sessionKey}`,
     {},
     { method: "GET" },
@@ -203,7 +215,7 @@ export async function getStartingGrid(
 }
 
 export async function getIntervals(sessionKey: number): Promise<z.infer<typeof IntervalSchema>[]> {
-  const response = await client.fetch<IntervalSchema[]>(
+  const response = await client.fetch<z.infer<typeof IntervalSchema>[]>(
     `/intervals?session_key=${sessionKey}`,
     {},
     { method: "GET" },

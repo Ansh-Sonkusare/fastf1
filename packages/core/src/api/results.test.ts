@@ -44,9 +44,13 @@ describe("getRaceResults", () => {
     });
 
     const result = await getRaceResults(2024, 1);
+    const firstRace = result[0];
 
     expect(result).toBeDefined();
-    expect(result[0].Results[0].driverId).toBe("hamilton");
+    expect(result).toHaveLength(1);
+    expect(firstRace).toBeDefined();
+    expect(firstRace?.Results).toHaveLength(1);
+    expect(firstRace?.Results?.[0]?.driverId).toBe("hamilton");
   });
 
   it("should return qualifying results when type is 'qualifying'", async () => {
