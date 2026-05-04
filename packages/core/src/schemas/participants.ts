@@ -1,23 +1,23 @@
 import { z } from "zod";
 
 export const DriverSchema = z.object({
-  driverId: z.string().min(1),
+  driverId: z.string().min(1).optional(),
   permanentNumber: z.string().optional(),
   code: z.string().optional(),
-  firstName: z.string().min(1),
-  lastName: z.string().min(1),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
   nationality: z.string().optional(),
   dateOfBirth: z.string().optional(),
-  url: z.string().url().optional(),
+  url: z.string().optional(),
 });
 
 export type Driver = z.infer<typeof DriverSchema>;
 
 export const ConstructorSchema = z.object({
-  constructorId: z.string().min(1),
-  name: z.string().min(1),
+  constructorId: z.string().optional(),
+  name: z.string().optional(),
   nationality: z.string().optional(),
-  url: z.string().url().optional(),
+  url: z.string().optional(),
 });
 
 export type Constructor = z.infer<typeof ConstructorSchema>;

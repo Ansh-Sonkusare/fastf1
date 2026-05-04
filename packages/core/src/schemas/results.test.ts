@@ -18,12 +18,28 @@ describe("QualifyingResultSchema", () => {
     expect(result.q1).toBe("1:20.123");
   });
 
-  it("should reject invalid qualifying result", () => {
-    const invalid = {
-      driverId: "",
+  it("should parse valid qualifying result", () => {
+    const valid = {
+      driverId: "hamilton",
       constructorId: "mercedes",
+      position: "1",
+      q1: "1:20.123",
+      q2: "1:19.456",
+      q3: "1:18.789",
     };
-    expect(() => QualifyingResultSchema.parse(invalid)).toThrow();
+    const result = QualifyingResultSchema.parse(valid);
+    expect(result.position).toBe("1");
+    expect(result.q1).toBe("1:20.123");
+  });
+
+  it("should parse with nested Driver/Constructor", () => {
+    const valid = {
+      Driver: { driverId: "hamilton" },
+      Constructor: { constructorId: "mercedes" },
+      position: "1",
+    };
+    const result = QualifyingResultSchema.parse(valid);
+    expect(result.Driver?.driverId).toBe("hamilton");
   });
 
   it("should infer correct types", () => {
@@ -54,12 +70,16 @@ describe("RaceResultSchema", () => {
     expect(result.points).toBe("25");
   });
 
-  it("should reject invalid race result", () => {
-    const invalid = {
-      driverId: "",
-      constructorId: "mercedes",
+  it("should parse race result with nested Driver/Constructor", () => {
+    const valid = {
+      Driver: { driverId: "hamilton", code: "HAM" },
+      Constructor: { constructorId: "mercedes", name: "Mercedes" },
+      position: "1",
+      points: "25",
     };
-    expect(() => RaceResultSchema.parse(invalid)).toThrow();
+    const result = RaceResultSchema.parse(valid);
+    expect(result.Driver?.driverId).toBe("hamilton");
+    expect(result.Constructor?.name).toBe("Mercedes");
   });
 });
 

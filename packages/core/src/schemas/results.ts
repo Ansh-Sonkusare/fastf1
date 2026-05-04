@@ -1,8 +1,11 @@
 import { z } from "zod";
+import { DriverSchema, ConstructorSchema } from "./participants";
 
 export const QualifyingResultSchema = z.object({
-  driverId: z.string().min(1),
-  constructorId: z.string().min(1),
+  Driver: DriverSchema.optional(),
+  Constructor: ConstructorSchema.optional(),
+  driverId: z.string().optional(),
+  constructorId: z.string().optional(),
   position: z.string().optional(),
   positionText: z.string().optional(),
   q1: z.string().optional(),
@@ -13,8 +16,10 @@ export const QualifyingResultSchema = z.object({
 export type QualifyingResult = z.infer<typeof QualifyingResultSchema>;
 
 export const RaceResultSchema = z.object({
-  driverId: z.string().min(1),
-  constructorId: z.string().min(1),
+  Driver: DriverSchema.optional(),
+  Constructor: ConstructorSchema.optional(),
+  driverId: z.string().optional(),
+  constructorId: z.string().optional(),
   position: z.string().optional(),
   positionText: z.string().optional(),
   points: z.string().optional(),
@@ -39,8 +44,10 @@ export const RaceResultSchema = z.object({
 export type RaceResult = z.infer<typeof RaceResultSchema>;
 
 export const SprintResultSchema = z.object({
-  driverId: z.string().min(1),
-  constructorId: z.string().min(1),
+  Driver: DriverSchema.optional(),
+  Constructor: ConstructorSchema.optional(),
+  driverId: z.string().optional(),
+  constructorId: z.string().optional(),
   position: z.string().optional(),
   positionText: z.string().optional(),
   points: z.string().optional(),

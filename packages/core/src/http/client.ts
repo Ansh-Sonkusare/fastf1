@@ -25,7 +25,7 @@ export class F1Client {
   private abortControllers: Map<string, AbortController> = new Map();
 
   constructor(options: ClientOptions = {}) {
-    this.baseUrl = options.baseUrl ?? "http://api.jolpi.ca/ergast/f1";
+    this.baseUrl = options.baseUrl ?? "https://api.jolpi.ca/ergast/f1";
     this.timeout = options.timeout ?? 10000;
     this.cacheTtlMs = options.cacheTtlMs ?? 3600000;
     this.rateLimitMs = options.rateLimitMs ?? 200;

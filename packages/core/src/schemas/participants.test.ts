@@ -56,12 +56,24 @@ describe("ConstructorSchema", () => {
     expect(result.name).toBe("Mercedes");
   });
 
-  it("should reject invalid constructor", () => {
-    const invalid = {
-      constructorId: "",
+  it("should parse valid constructor", () => {
+    const valid = {
+      constructorId: "mercedes",
       name: "Mercedes",
+      nationality: "German",
+      url: "http://en.wikipedia.org/wiki/Mercedes-Benz_in_Formula_One",
     };
-    expect(() => ConstructorSchema.parse(invalid)).toThrow();
+    const result = ConstructorSchema.parse(valid);
+    expect(result.constructorId).toBe("mercedes");
+    expect(result.name).toBe("Mercedes");
+  });
+
+  it("should parse partial constructor", () => {
+    const valid = {
+      constructorId: "mercedes",
+    };
+    const result = ConstructorSchema.parse(valid);
+    expect(result.constructorId).toBe("mercedes");
   });
 });
 
