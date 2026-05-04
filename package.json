@@ -9,6 +9,10 @@
     "lint:fix": "turbo lint:fix",
     "demo": "tsx examples/cli.ts"
   },
+  "dependencies": {
+    "@f1/core": "workspace:*",
+    "@f1/react": "workspace:*"
+  },
   "devDependencies": {
     "@biomejs/biome": "^1.9.0",
     "@types/node": "^22.19.17",

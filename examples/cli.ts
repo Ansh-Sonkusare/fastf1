@@ -1,4 +1,4 @@
-import { getSchedule, getRaceResults, getDriverStandings } from "../packages/core/src/index";
+import { getSchedule, getRaceResults, getDriverStandings } from "@f1/core";
 
 async function main() {
   console.log("Fetching 2024 F1 Schedule...\n");
