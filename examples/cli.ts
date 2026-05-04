@@ -9,7 +9,7 @@ import {
   getDrivers,
   getOpenF1Laps,
   getStints,
-  getPitStops as getOpenF1PitStops,
+  getOpenF1PitStops,
   getWeather,
   getCarData,
 } from "@f1/core";
@@ -59,20 +59,6 @@ async function main() {
     console.log(`  ${i + 1}. ${s.Constructor?.name} - ${s.points} pts${wins}`);
   });
 
-  console.log("\n⏱️  ERGAST LAP TIMES (Sample)");
-  console.log("-".repeat(50));
-  const ergastLaps = await getErgastLaps(YEAR, 1);
-  if (ergastLaps.length > 0) {
-    console.log(`Total laps in race 1: ${ergastLaps.length}`);
-    const firstLap = ergastLaps[0];
-    if (firstLap.Timings && firstLap.Timings.length > 0) {
-      console.log("Lap 1 positions (basic timing):");
-      firstLap.Timings.slice(0, 5).forEach((t, i) => {
-        console.log(`  ${i + 1}. ${t.driverId} - ${t.time}`);
-      });
-    }
-  }
-
   console.log("\n" + "=".repeat(50));
   console.log("🚀 OPENF1 DATA (2023+)\n");
 
@@ -80,87 +66,110 @@ async function main() {
   console.log("-".repeat(50));
   const meetings = await getMeetings(YEAR);
   console.log(`Total meetings in ${YEAR}: ${meetings.length}`);
-  if (meetings.length > 0) {
-    const gps = meetings.filter(m => m.meeting_name.includes("Grand Prix"));
-    console.log("Recent GP meetings:");
-    gps.slice(0, 3).forEach((m, i) => {
-      console.log(`  ${i + 1}. ${m.meeting_name} - ${m.location}`);
-    });
-  }
+  const gps = meetings.filter(m => m.meeting_name.includes("Grand Prix"));
+  console.log("Recent GP meetings:");
+  gps.slice(0, 3).forEach((m, i) => {
+    console.log(`  ${i + 1}. ${m.meeting_name} - ${m.location}`);
+  });
 
   console.log("\n🏎️  SESSIONS & DRIVERS");
   console.log("-".repeat(50));
-  if (meetings.length > 0) {
-    const gps = meetings.filter(m => m.meeting_name.includes("Grand Prix"));
-    const meeting = gps.find(m => m.meeting_name === "Miami Grand Prix") || gps[0] || meetings[0];
-    const sessions = await getSessions(meeting.meeting_key);
-    console.log(`Sessions for ${meeting.meeting_name}:`);
-    sessions.forEach((s, i) => {
-      console.log(`  ${i + 1}. ${s.session_name} (${s.session_type})`);
-    });
+  const meeting = gps.find(m => m.meeting_name === "Miami Grand Prix") || gps[0];
+  if (!meeting) return;
+  
+  const sessions = await getSessions(meeting.meeting_key);
+  console.log(`Sessions for ${meeting.meeting_name}:`);
+  sessions.forEach((s, i) => {
+    console.log(`  ${i + 1}. ${s.session_name} (${s.session_type})`);
+  });
 
-    const raceSession = sessions.find(s => s.session_name === "Race");
-    if (raceSession) {
-      const drivers = await getDrivers(raceSession.session_key);
-      console.log(`\nDrivers in race: ${drivers.length}`);
-      console.log("Top 5:");
-      drivers.slice(0, 5).forEach((d, i) => {
-        console.log(`  ${i + 1}. #${d.driver_number} ${d.full_name} (${d.team_name})`);
-      });
+  const raceSession = sessions.find(s => s.session_name === "Race");
+  if (!raceSession) return;
+  
+  console.log("\n📋 RACE DATA");
+  console.log("-".repeat(50));
+  console.log(`Session: ${raceSession.session_name} (key: ${raceSession.session_key})`);
 
-      console.log("\n⏱️  OPENF1 LAP DATA (Sector Times + Speed)");
-      console.log("-".repeat(50));
-      console.log(`Session: ${raceSession.session_name} (key: ${raceSession.session_key})`);
-      try {
-        const laps = await getOpenF1Laps(raceSession.session_key);
-        console.log(`Total laps recorded: ${laps.length}`);
-        
-        const fastestLap = laps.reduce((best, lap) => {
-          if (!lap.lap_duration) return best;
-          if (!best || lap.lap_duration < best.lap_duration) return lap;
-          return best;
-        }, laps[0]);
+  console.log("\n🏎️  DRIVERS");
+  const drivers = await getDrivers(raceSession.session_key);
+  console.log(`Total drivers: ${drivers.length}`);
+  console.log("Top 5:");
+  drivers.slice(0, 5).forEach((d, i) => {
+    console.log(`  ${i + 1}. #${d.driver_number} ${d.full_name} (${d.team_name})`);
+  });
 
-        if (fastestLap) {
-          console.log(`\nFastest lap: Lap ${fastestLap.lap_number}`);
-          console.log(`  Driver: #${fastestLap.driver_number}`);
-          console.log(`  Time: ${fastestLap.lap_duration?.toFixed(3)}s`);
-          console.log(`  Sector 1: ${fastestLap.duration_sector_1?.toFixed(3)}s`);
-          console.log(`  Sector 2: ${fastestLap.duration_sector_2?.toFixed(3)}s`);
-          console.log(`  Sector 3: ${fastestLap.duration_sector_3?.toFixed(3)}s`);
-          console.log(`  Speed Trap: ${fastestLap.st_speed} km/h`);
-        }
-      } catch (err) {
-        console.log(`  Lap data unavailable: ${err instanceof Error ? err.message : 'Unknown error'}`);
-      }
+  console.log("\n⏱️  LAP TIMES");
+  try {
+    const laps = await getOpenF1Laps(raceSession.session_key);
+    console.log(`Total laps: ${laps.length}`);
+    const fastest = laps.reduce((best, lap) => {
+      if (!lap.lap_duration) return best;
+      if (!best || lap.lap_duration < best.lap_duration) return lap;
+      return best;
+    }, laps[0]);
+    if (fastest) {
+      console.log(`\nFastest lap: ${fastest.lap_duration?.toFixed(3)}s (Lap ${fastest.lap_number}, Driver #${fastest.driver_number})`);
+      console.log(`  S1: ${fastest.duration_sector_1?.toFixed(3)}s, S2: ${fastest.duration_sector_2?.toFixed(3)}s, S3: ${fastest.duration_sector_3?.toFixed(3)}s`);
+      console.log(`  Speed trap: ${fastest.st_speed} km/h`);
     }
+  } catch (err) {
+    console.log(`  Error: ${err instanceof Error ? err.message : 'Unknown'}`);
   }
 
-  console.log("\n🛞 TYRE STRATEGY (OpenF1)");
-  console.log("-".repeat(50));
-  console.log("  Use: getStints(sessionKey) - tyre compound, stint numbers, lap ranges");
-  console.log("  API available, rate limited in demo");
+  console.log("\n🛞 TYRE STRATEGY");
+  try {
+    const stints = await getStints(raceSession.session_key);
+    console.log(`Total stints: ${stints.length}`);
+    const driverStints = stints.filter(s => s.driver_number === drivers[0]?.driver_number);
+    console.log(`Driver #${drivers[0]?.driver_number} strategy:`);
+    driverStints.slice(0, 4).forEach((s) => {
+      console.log(`  Stint ${s.stint_number}: ${s.compound} (Laps ${s.lap_start}-${s.lap_end})`);
+    });
+  } catch (err) {
+    console.log(`  Error: ${err instanceof Error ? err.message : 'Unknown'}`);
+  }
 
-  console.log("\n🔧 PIT STOPS (OpenF1)");
-  console.log("-".repeat(50));
-  console.log("  Use: getOpenF1PitStops(sessionKey) - pit duration, lane time");
-  console.log("  API available, rate limited in demo");
+  console.log("\n🔧 PIT STOPS");
+  try {
+    const pits = await getOpenF1PitStops(raceSession.session_key);
+    console.log(`Total pit stops: ${pits.length}`);
+    if (pits.length > 0) {
+      const fastest = pits.reduce((best, p) => !p.pit_duration ? best : (!best || p.pit_duration < best.pit_duration) ? p : best, pits[0]);
+      console.log(`  Fastest: ${fastest.pit_duration?.toFixed(3)}s (Lap ${fastest.lap_number})`);
+    }
+  } catch (err) {
+    console.log(`  Error: ${err instanceof Error ? err.message : 'Unknown'}`);
+  }
 
-  console.log("\n🌡️  WEATHER (OpenF1)");
-  console.log("-".repeat(50));
-  console.log("  Use: getWeather(sessionKey) - air/track temp, humidity, wind");
-  console.log("  API available, rate limited in demo");
+  console.log("\n🌡️  WEATHER");
+  try {
+    const weather = await getWeather(raceSession.session_key);
+    console.log(`Samples: ${weather.length}`);
+    if (weather.length > 0) {
+      const latest = weather[weather.length - 1];
+      console.log(`  Air: ${latest.air_temperature}°C, Track: ${latest.track_temperature}°C`);
+      console.log(`  Humidity: ${latest.humidity}%, Wind: ${latest.wind_speed} km/h`);
+    }
+  } catch (err) {
+    console.log(`  Error: ${err instanceof Error ? err.message : 'Unknown'}`);
+  }
 
-  console.log("\n📊 CAR TELEMETRY (OpenF1)");
-  console.log("-".repeat(50));
-  console.log("  Use: getCarData(sessionKey, driverNumber) - speed, rpm, gear, throttle");
-  console.log("  API available, rate limited in demo");
+  console.log("\n📊 CAR TELEMETRY");
+  try {
+    const telemetry = await getCarData(raceSession.session_key, drivers[0]?.driver_number);
+    console.log(`Points: ${telemetry.length}`);
+    if (telemetry.length > 0) {
+      const maxSpeed = telemetry.reduce((max, t) => !t.speed ? max : Math.max(max, t.speed), 0);
+      console.log(`  Max speed: ${maxSpeed} km/h`);
+      const sample = telemetry[Math.floor(telemetry.length / 2)];
+      console.log(`  Sample: ${sample.speed} km/h, ${sample.rpm} RPM, Gear ${sample.n_gear}`);
+    }
+  } catch (err) {
+    console.log(`  Error: ${err instanceof Error ? err.message : 'Unknown'}`);
+  }
 
   console.log("\n" + "=".repeat(50));
-  console.log("✅ Demo complete! OpenF1 integration working.");
-  console.log("   - getMeetings, getSessions, getDrivers all functional");
-  console.log("   - Additional data (laps, stints, pits, weather, telemetry) available via API");
-  console.log("   - Rate limits apply - use caching in production");
+  console.log("✅ Demo complete!");
 }
 
 main().catch(console.error);

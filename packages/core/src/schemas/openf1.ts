@@ -94,12 +94,12 @@ export const OpenF1PitSchema = z.object({
   session_key: z.number(),
   meeting_key: z.number(),
   driver_number: z.number(),
-  lap_number: z.number(),
-  stop_number: z.number(),
-  pit_duration: z.number().optional(),
-  lane_duration: z.number().optional(),
-  stop_duration: z.number().optional(),
-  date: z.string(),
+  lap_number: z.number().nullish(),
+  stop_number: z.number().nullish(),
+  pit_duration: z.number().nullish(),
+  lane_duration: z.number().nullish(),
+  stop_duration: z.number().nullish(),
+  date: z.string().nullish(),
 });
 
 export type OpenF1Pit = z.infer<typeof OpenF1PitSchema>;
