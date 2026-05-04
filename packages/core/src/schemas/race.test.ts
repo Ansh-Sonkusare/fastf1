@@ -1,10 +1,10 @@
-import { describe, it, expect } from "vitest";
-import { z } from "zod";
+import { describe, expect, it } from "vitest";
+import type { z } from "zod";
 import {
-  SeasonSchema,
-  RaceSchema,
   CircuitSchema,
   LocationSchema,
+  RaceSchema,
+  SeasonSchema,
   SessionDateTimeSchema,
 } from "./race";
 

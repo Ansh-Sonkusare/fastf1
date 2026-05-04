@@ -25,3 +25,18 @@ export type {
   RaceTable,
   ScheduleResponse,
 } from "./schemas/race";
+
+export {
+  DriverSchema,
+  ConstructorSchema,
+  TeamSchema,
+  DriverStandingSchema,
+  ConstructorStandingSchema,
+} from "./schemas/participants";
+export type {
+  Driver,
+  Constructor,
+  Team,
+  DriverStanding,
+  ConstructorStanding,
+} from "./schemas/participants";
