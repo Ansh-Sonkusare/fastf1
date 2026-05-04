@@ -45,7 +45,7 @@ export async function getDrivers(sessionKey: number): Promise<z.infer<typeof Ope
   return z.array(OpenF1DriverSchema).parse(response);
 }
 
-export async function getLaps(
+export async function getOpenF1Laps(
   sessionKey: number,
   driverNumber?: number,
   lapNumber?: number,

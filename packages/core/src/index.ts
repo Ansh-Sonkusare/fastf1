@@ -75,7 +75,7 @@ export {
   getMeetings,
   getSessions,
   getDrivers,
-  getLaps as getOpenF1Laps,
+  getOpenF1Laps,
   getStints,
   getPitStops as getOpenF1PitStops,
   getPosition,

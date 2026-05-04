@@ -23,7 +23,13 @@
 - jolpica-f1 API: `https://api.jolpi.ca/ergast/f1/`
 - Live timing: deferred (Phase 2)
 
-## Dependencies
+## Agent Communication Preferences
+
+- Concise responses, no unnecessary preamble/postamble
+- Avoid adding comments in code unless explicitly requested
+- Minimize console.logs and debugging output
+- No emojis
+- Short and professional tone
 
 - `zod` — runtime validation
 - `quick-lru` or `lru-cache` — caching
