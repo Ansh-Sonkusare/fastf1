@@ -53,3 +53,14 @@ export type {
   Timing,
   FastestLap,
 } from "./schemas/timing";
+
+export {
+  QualifyingResultSchema,
+  RaceResultSchema,
+  SprintResultSchema,
+} from "./schemas/results";
+export type {
+  QualifyingResult,
+  RaceResult,
+  SprintResult,
+} from "./schemas/results";
