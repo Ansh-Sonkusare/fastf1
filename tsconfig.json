@@ -11,5 +11,9 @@
     "sourceMap": true,
     "resolveJsonModule": true,
     "isolatedModules": true
-  }
+  },
+  "references": [
+    { "path": "./packages/core" },
+    { "path": "./packages/react" }
+  ]
 }

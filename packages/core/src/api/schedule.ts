@@ -10,7 +10,7 @@ export async function getSchedule(year: number): Promise<RaceTable> {
     );
   }
 
-  const response = await client.fetch<ScheduleResponseSchema>(
+  const response = await client.fetch<typeof ScheduleResponseSchema>(
     `/${year}.json`,
     {},
     { method: "GET" },

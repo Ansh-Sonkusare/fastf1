@@ -1,8 +1,12 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
+    "composite": true,
     "outDir": "./dist",
     "jsx": "react-jsx"
   },
+  "references": [
+    { "path": "../core" }
+  ],
   "include": ["src/**/*"]
 }
