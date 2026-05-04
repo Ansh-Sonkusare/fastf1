@@ -40,3 +40,16 @@ export type {
   DriverStanding,
   ConstructorStanding,
 } from "./schemas/participants";
+
+export {
+  LapSchema,
+  PitStopSchema,
+  TimingSchema,
+  FastestLapSchema,
+} from "./schemas/timing";
+export type {
+  Lap,
+  PitStop,
+  Timing,
+  FastestLap,
+} from "./schemas/timing";
