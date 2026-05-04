@@ -62,17 +62,17 @@ export const OpenF1LapSchema = z.object({
   driver_number: z.number(),
   lap_number: z.number(),
   date_start: z.string(),
-  lap_duration: z.number().nullable(),
-  duration_sector_1: z.number().nullable(),
-  duration_sector_2: z.number().nullable(),
-  duration_sector_3: z.number().nullable(),
-  i1_speed: z.number().nullable(),
-  i2_speed: z.number().nullable(),
-  st_speed: z.number().nullable(),
+  lap_duration: z.number().nullish(),
+  duration_sector_1: z.number().nullish(),
+  duration_sector_2: z.number().nullish(),
+  duration_sector_3: z.number().nullish(),
+  i1_speed: z.number().nullish(),
+  i2_speed: z.number().nullish(),
+  st_speed: z.number().nullish(),
   is_pit_out_lap: z.boolean().optional(),
-  segments_sector_1: z.array(z.number()).optional(),
-  segments_sector_2: z.array(z.number()).optional(),
-  segments_sector_3: z.array(z.number()).optional(),
+  segments_sector_1: z.array(z.number()).nullish(),
+  segments_sector_2: z.array(z.number()).nullish(),
+  segments_sector_3: z.array(z.number()).nullish(),
 });
 
 export type OpenF1Lap = z.infer<typeof OpenF1LapSchema>;
@@ -85,7 +85,7 @@ export const StintSchema = z.object({
   lap_start: z.number(),
   lap_end: z.number(),
   compound: z.string(),
-  tyre_age_at_start: z.number().nullable(),
+  tyre_age_at_start: z.number().optional(),
 });
 
 export type Stint = z.infer<typeof StintSchema>;
@@ -96,9 +96,9 @@ export const OpenF1PitSchema = z.object({
   driver_number: z.number(),
   lap_number: z.number(),
   stop_number: z.number(),
-  pit_duration: z.number().nullable(),
-  lane_duration: z.number().nullable(),
-  stop_duration: z.number().nullable(),
+  pit_duration: z.number().optional(),
+  lane_duration: z.number().optional(),
+  stop_duration: z.number().optional(),
   date: z.string(),
 });
 
@@ -119,12 +119,12 @@ export const CarDataSchema = z.object({
   meeting_key: z.number(),
   driver_number: z.number(),
   date: z.string(),
-  speed: z.number().nullable(),
-  rpm: z.number().nullable(),
-  n_gear: z.number().nullable(),
-  throttle: z.number().nullable(),
-  brake: z.number().nullable(),
-  drs: z.number().nullable(),
+  speed: z.number().optional(),
+  rpm: z.number().optional(),
+  n_gear: z.number().optional(),
+  throttle: z.number().optional(),
+  brake: z.number().optional(),
+  drs: z.number().optional(),
 });
 
 export type CarData = z.infer<typeof CarDataSchema>;
@@ -136,7 +136,7 @@ export const LocationSchema = z.object({
   date: z.string(),
   x: z.number(),
   y: z.number(),
-  z: z.number().nullable(),
+  z: z.number().optional(),
 });
 
 export type Location = z.infer<typeof LocationSchema>;
@@ -145,14 +145,14 @@ export const WeatherSchema = z.object({
   session_key: z.number(),
   meeting_key: z.number(),
   date: z.string(),
-  air_temperature: z.number().nullable(),
-  track_temperature: z.number().nullable(),
-  humidity: z.number().nullable(),
-  pressure: z.number().nullable(),
-  wind_speed: z.number().nullable(),
-  wind_direction: z.number().nullable(),
-  precipitation: z.number().nullable(),
-  track_surface_temperature: z.number().nullable(),
+  air_temperature: z.number().optional(),
+  track_temperature: z.number().optional(),
+  humidity: z.number().optional(),
+  pressure: z.number().optional(),
+  wind_speed: z.number().optional(),
+  wind_direction: z.number().optional(),
+  precipitation: z.number().optional(),
+  track_surface_temperature: z.number().optional(),
 });
 
 export type Weather = z.infer<typeof WeatherSchema>;
@@ -162,13 +162,13 @@ export const RaceControlSchema = z.object({
   meeting_key: z.number(),
   date: z.string(),
   category: z.string(),
-  flag: z.string().nullable(),
-  scope: z.string().nullable(),
-  sector: z.number().nullable(),
-  lap_number: z.number().nullable(),
-  driver_number: z.number().nullable(),
+  flag: z.string().optional(),
+  scope: z.string().optional(),
+  sector: z.number().optional(),
+  lap_number: z.number().optional(),
+  driver_number: z.number().optional(),
   message: z.string(),
-  qualifying_phase: z.string().nullable(),
+  qualifying_phase: z.string().optional(),
 });
 
 export type RaceControl = z.infer<typeof RaceControlSchema>;
@@ -200,8 +200,8 @@ export const SessionResultSchema = z.object({
   meeting_key: z.number(),
   driver_number: z.number(),
   position: z.number(),
-  duration: z.number().nullable(),
-  gap_to_leader: z.number().nullable(),
+  duration: z.number().optional(),
+  gap_to_leader: z.number().optional(),
   number_of_laps: z.number(),
   dnf: z.boolean(),
   dns: z.boolean(),
@@ -215,7 +215,7 @@ export const StartingGridSchema = z.object({
   meeting_key: z.number(),
   driver_number: z.number(),
   position: z.number(),
-  lap_duration: z.number().nullable(),
+  lap_duration: z.number().optional(),
 });
 
 export type StartingGrid = z.infer<typeof StartingGridSchema>;
@@ -225,8 +225,8 @@ export const IntervalSchema = z.object({
   meeting_key: z.number(),
   driver_number: z.number(),
   date: z.string(),
-  gap_to_leader: z.number().nullable(),
-  interval: z.number().nullable(),
+  gap_to_leader: z.number().optional(),
+  interval: z.number().optional(),
 });
 
 export type Interval = z.infer<typeof IntervalSchema>;
