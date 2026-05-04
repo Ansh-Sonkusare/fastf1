@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { DriverSchema, ConstructorSchema } from "./participants";
+import { ConstructorSchema, DriverSchema } from "./participants";
 
 export const QualifyingResultSchema = z.object({
   Driver: DriverSchema.optional(),
