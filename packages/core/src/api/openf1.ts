@@ -66,6 +66,7 @@ export async function getOpenF1Laps(
   const params: Record<string, string | number> = { session_key: sessionKey };
   if (driverNumber) params.driver_number = driverNumber;
   if (lapNumber) params.lap_number = lapNumber;
+  // Note: Do NOT add limit param - causes "No results found" on some sessions
 
   const response = await client.fetch<OpenF1LapSchema[]>(`/laps`, params, { method: "GET" });
   return z.array(OpenF1LapSchema).parse(cleanNulls(response));
