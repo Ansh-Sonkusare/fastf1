@@ -50,6 +50,8 @@ export const SeasonSchema = z.object({
 export type Season = z.infer<typeof SeasonSchema>;
 
 export const RaceTableSchema = z.object({
+  season: z.string().min(1),
+  round: z.string().optional(),
   Races: z.array(RaceSchema),
 });
 
