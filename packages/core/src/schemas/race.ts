@@ -1,8 +1,8 @@
 import { z } from "zod";
 
 export const LocationSchema = z.object({
-  lat: z.string().transform(Number),
-  long: z.string().transform(Number),
+  lat: z.string(),
+  long: z.string(),
   locality: z.string(),
   country: z.string(),
 });
@@ -10,56 +10,55 @@ export const LocationSchema = z.object({
 export type Location = z.infer<typeof LocationSchema>;
 
 export const CircuitSchema = z.object({
-  circuitId: z.string(),
-  circuitName: z.string(),
-  url: z.string().optional(),
+  circuitId: z.string().min(1),
+  url: z.string().url(),
+  circuitName: z.string().min(1),
   Location: LocationSchema,
 });
 
 export type Circuit = z.infer<typeof CircuitSchema>;
 
 export const SessionDateTimeSchema = z.object({
-  date: z.string().transform((d) => new Date(d)),
+  date: z.string(),
   time: z.string().optional(),
 });
 
 export type SessionDateTime = z.infer<typeof SessionDateTimeSchema>;
 
 export const RaceSchema = z.object({
-  season: z.string(),
+  season: z.string().min(1),
   round: z.string(),
-  url: z.string().optional(),
-  raceName: z.string(),
+  url: z.string().url(),
+  raceName: z.string().min(1),
   Circuit: CircuitSchema,
   date: z.string(),
   time: z.string().optional(),
+  FirstPractice: SessionDateTimeSchema.optional(),
+  SecondPractice: SessionDateTimeSchema.optional(),
+  ThirdPractice: SessionDateTimeSchema.optional(),
+  Qualifying: SessionDateTimeSchema.optional(),
+  Sprint: SessionDateTimeSchema.optional(),
 });
 
 export type Race = z.infer<typeof RaceSchema>;
 
+export const SeasonSchema = z.object({
+  season: z.string().min(1),
+  url: z.string().url(),
+});
+
+export type Season = z.infer<typeof SeasonSchema>;
+
 export const RaceTableSchema = z.object({
-  season: z.string(),
-  round: z.string().optional(),
   Races: z.array(RaceSchema),
 });
 
 export type RaceTable = z.infer<typeof RaceTableSchema>;
 
-export const MRDataSchema = z.object({
-  xmlns: z.string(),
-  series: z.string(),
-  url: z.string(),
-  limit: z.string(),
-  offset: z.string(),
-  total: z.string(),
-  RaceTable: RaceTableSchema,
+export const ScheduleResponseSchema = z.object({
+  MRData: z.object({
+    RaceTable: RaceTableSchema,
+  }),
 });
 
-export type MRData = z.infer<typeof MRDataSchema>;
-
-export const SeasonSchema = z.object({
-  season: z.string(),
-  url: z.string().optional(),
-});
-
-export type Season = z.infer<typeof SeasonSchema>;
+export type ScheduleResponse = z.infer<typeof ScheduleResponseSchema>;

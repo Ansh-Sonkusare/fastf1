@@ -14,7 +14,7 @@ export {
   LocationSchema,
   SessionDateTimeSchema,
   RaceTableSchema,
-  MRDataSchema,
+  ScheduleResponseSchema,
 } from "./schemas/race";
 export type {
   Season,
@@ -23,5 +23,5 @@ export type {
   Location,
   SessionDateTime,
   RaceTable,
-  MRData,
+  ScheduleResponse,
 } from "./schemas/race";
