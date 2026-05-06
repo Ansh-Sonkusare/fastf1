@@ -1,15 +1,17 @@
-import type { z } from "zod";
 import { F1Client } from "../http/client";
 import type {
-  MeetingSchema,
-  OpenF1DriverSchema,
-  OpenF1LapSchema,
-  PositionSchema,
-  SessionSchema,
-  StintSchema,
+  Meeting,
+  MeetingArray,
+  Session,
+  SessionArray,
+  OpenF1Lap,
+  OpenF1LapArray,
+  Stint,
+  StintArray,
+  Position,
+  PositionArray,
+  OpenF1DriverArray,
 } from "../schemas/openf1";
-import type { Meeting, OpenF1Lap, Position, Session, Stint } from "../schemas/openf1";
-import { cleanNulls } from "../utils";
 
 const OPENF1_BASE = "https://api.openf1.org/v1";
 
@@ -43,6 +45,18 @@ const DRIVER_CODES: Record<string, number> = {
 
 const client = new F1Client({ baseUrl: OPENF1_BASE });
 
+function cleanNulls(obj: Record<string, unknown>): Record<string, string | number> {
+  const result: Record<string, string | number> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value != null) {
+      if (typeof value === "string" || typeof value === "number") {
+        result[key] = value;
+      }
+    }
+  }
+  return result;
+}
+
 export interface GetRaceParams {
   year: number;
   name?: string;
@@ -50,21 +64,20 @@ export interface GetRaceParams {
 }
 
 export async function getRace(params: GetRaceParams): Promise<Meeting | null> {
-  const meetings = await client.get<z.infer<typeof MeetingSchema>>("meetings", {
-    year: params.year,
-  });
+  const meetings = await client.get<MeetingArray>("meetings", { year: params.year });
 
-  if (!meetings || meetings.length === 0) return null;
+  if (!meetings || !Array.isArray(meetings) || meetings.length === 0) return null;
 
+  const list = meetings;
   const filtered = params.name
-    ? meetings.filter(
-        (m) =>
-          m.meeting_name?.toLowerCase().includes(params.name?.toLowerCase()) ||
-          m.meeting_official_name?.toLowerCase().includes(params.name?.toLowerCase()),
+    ? list.filter(
+        (m: Meeting) =>
+          (params.name && m.meeting_name?.toLowerCase().includes(params.name.toLowerCase())) ||
+          (params.name && m.meeting_official_name?.toLowerCase().includes(params.name.toLowerCase())),
       )
     : params.round
-      ? meetings.filter((m) => m.meeting_round === params.round)
-      : meetings;
+      ? list.filter((m: Meeting) => (m as Meeting & { meeting_round?: number }).meeting_round === params.round)
+      : list;
 
   return filtered[0] ?? null;
 }
@@ -80,11 +93,9 @@ export async function getSession(params: GetSessionParams): Promise<Session | nu
   const race = await getRace({ year: params.year, name: params.raceName, round: params.round });
   if (!race) return null;
 
-  const sessions = await client.get<z.infer<typeof SessionSchema>>("sessions", {
-    meeting_key: race.meeting_key,
-  });
+  const sessions = await client.get<SessionArray>("sessions", { meeting_key: race.meeting_key });
 
-  if (!sessions || sessions.length === 0) return null;
+  if (!sessions || !Array.isArray(sessions) || sessions.length === 0) return null;
 
   if (!params.session) return sessions[0];
 
@@ -97,7 +108,7 @@ export async function getSession(params: GetSessionParams): Promise<Session | nu
 
   const targetTypes = sessionTypes[params.session.toLowerCase()] ?? [params.session];
 
-  const filtered = sessions.filter((s) =>
+  const filtered = sessions.filter((s: Session) =>
     targetTypes.some((t) => s.session_name?.toLowerCase().includes(t.toLowerCase())),
   );
 
@@ -137,19 +148,19 @@ export async function getLaps(params: GetLapsParams): Promise<OpenF1Lap[]> {
 
   if (params.lap) query.lap_number = params.lap;
 
-  return client.get<z.infer<typeof OpenF1LapSchema>>("laps", cleanNulls(query));
+  return client.get<OpenF1LapArray>("laps", cleanNulls(query));
 }
 
 export async function getDrivers(
   sessionKey: number,
 ): Promise<{ driver_number: number; full_name: string; team_name: string }[]> {
-  return client.get<z.infer<typeof OpenF1DriverSchema>>("drivers", { session_key: sessionKey });
+  return client.get<OpenF1DriverArray>("drivers", { session_key: sessionKey });
 }
 
 export async function getStints(sessionKey: number): Promise<Stint[]> {
-  return client.get<z.infer<typeof StintSchema>>("stints", { session_key: sessionKey });
+  return client.get<StintArray>("stints", { session_key: sessionKey });
 }
 
 export async function getPositions(sessionKey: number): Promise<Position[]> {
-  return client.get<z.infer<typeof PositionSchema>>("positions", { session_key: sessionKey });
+  return client.get<PositionArray>("positions", { session_key: sessionKey });
 }
