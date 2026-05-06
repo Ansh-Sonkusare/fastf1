@@ -9,30 +9,49 @@ pnpm install
 pnpm build
 ```
 
-## Usage
+## Quick Start (Friendly API)
+
+Use year + race name + driver code - no session keys needed:
 
 ```typescript
 import { 
-  getOpenF1Laps, 
-  getCarData, 
-  getStints, 
-  getPitStops 
+  getRace,
+  getSession,
+  getLaps,
+  getRaceStints,
+  getRacePitStops,
+  getRaceWeather,
+  getRaceTelemetry,
 } from "@f1/core";
 
-const sessionKey = 11280; // Miami 2026
-const driverNumber = 3;    // Max Verstappen
+// Get race by name
+const race = await getRace({ year: 2026, name: "Miami" });
 
-// Get fastest lap telemetry
-const laps = await getOpenF1Laps(sessionKey, driverNumber);
-const telemetry = await getCarData(sessionKey, driverNumber);
+// Get session (defaults to first session)
+const session = await getSession({ year: 2026, raceName: "Miami" });
 
-// Get race stints and pit stops
-const stints = await getStints(sessionKey, driverNumber);
-const pits = await getPitStops(sessionKey, driverNumber);
+// Get laps for a driver
+const laps = await getLaps({ year: 2026, raceName: "Miami", driver: "VER" });
+
+// Get stints, pit stops, weather, telemetry
+const stints = await getRaceStints({ year: 2026, raceName: "Miami", driver: "VER" });
+const pits = await getRacePitStops({ year: 2026, raceName: "Miami", driver: "VER" });
+const weather = await getRaceWeather({ year: 2026, raceName: "Miami" });
+const telemetry = await getRaceTelemetry({ year: 2026, raceName: "Miami", driver: "VER" });
 ```
 
 ## Available APIs
 
+### Friendly API (Recommended)
+- `getRace({ year, name?, round? })` - Find race by year + name or round
+- `getSession({ year, raceName?, round?, session? })` - Find session (practice/qualifying/sprint/race)
+- `getLaps({ year, raceName?, driver?, lap? })` - Lap times
+- `getRaceStints({ year, raceName?, driver? })` - Tyre stint data
+- `getRacePitStops({ year, raceName?, driver? })` - Pit stop data
+- `getRaceWeather({ year, raceName? })` - Weather conditions
+- `getRaceTelemetry({ year, raceName?, driver? })` - Speed, throttle, brake, RPM, gear
+
+### Low-level API (requires session key)
 - `getMeetings(year)` - List all meetings for a year
 - `getSessions(meetingKey)` - Sessions in a meeting
 - `getDrivers(sessionKey)` - Drivers in a session
@@ -50,33 +69,29 @@ const pits = await getPitStops(sessionKey, driverNumber);
 - `getStartingGrid(sessionKey)` - Starting grid
 - `getIntervals(sessionKey)` - Interval data
 
-## Examples
+## React Hooks
 
-Run examples with bun:
+```typescript
+import { 
+  useRaceStints,
+  useRacePitStops,
+  useRaceWeather,
+  useRaceTelemetry,
+} from "@f1/react";
 
-```bash
-# Interactive speed telemetry (btop-style)
-bun run examples/speed-interactive.ts
-
-# Static speed chart
-bun run examples/speed-telemetry.ts
-
-# CLI demo
-bun run examples/cli.ts
-
-# Race pace analysis
-bun run examples/race-pace.ts
+// Friendly hooks - no session keys needed
+const { data: stints, isLoading } = useRaceStints(2026, "Miami", "VER");
+const { data: pits } = useRacePitStops(2026, "Miami", "VER");
+const { data: weather } = useRaceWeather(2026, "Miami");
+const { data: telemetry } = useRaceTelemetry(2026, "Miami", "VER");
 ```
 
-## Session Keys
+## Examples
 
-Common session keys:
-- `11280` - Miami 2026 (Race)
-- `1108` - Japan 2025 (Race)
-- `1107` - China 2025 (Race)
-- `1068` - Abu Dhabi 2024 (Race)
-
-Find more at https://openf1.org/
+```bash
+# Race pace analysis
+pnpm demo
+```
 
 ## Architecture
 
