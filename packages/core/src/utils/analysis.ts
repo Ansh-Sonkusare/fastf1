@@ -1,4 +1,4 @@
-import type { OpenF1Lap, OpenF1Stint } from "../schemas/openf1";
+import type { OpenF1Lap, Stint } from "../schemas/openf1";
 
 export function filterByDriver(laps: OpenF1Lap[], driverNum: number): OpenF1Lap[] {
   return laps.filter((l) => l.driver_number === driverNum);
@@ -6,14 +6,15 @@ export function filterByDriver(laps: OpenF1Lap[], driverNum: number): OpenF1Lap[
 
 export function filterRaceLaps(laps: OpenF1Lap[]): OpenF1Lap[] {
   return laps.filter(
-    (l) => l.lap_duration != null && l.pit_out_lap === false && l.pit_in_lap === false,
+    (l) => l.lap_duration != null && l.is_pit_out_lap !== true,
   );
 }
 
 export function getFastestLap(laps: OpenF1Lap[]): OpenF1Lap | null {
   return laps.reduce(
     (best, lap) =>
-      lap.lap_duration != null && (best == null || lap.lap_duration < best.lap_duration)
+      lap.lap_duration != null &&
+      (best == null || (lap.lap_duration ?? 0) < (best.lap_duration ?? 0))
         ? lap
         : best,
     null as OpenF1Lap | null,
@@ -38,12 +39,12 @@ export function getSectorBest(sector: number, laps: OpenF1Lap[]): SectorBest | n
     (best, lap) => {
       const time =
         sector === 1
-          ? l.duration_sector_1
+          ? lap.duration_sector_1
           : sector === 2
-            ? l.duration_sector_2
-            : l.duration_sector_3;
+            ? lap.duration_sector_2
+            : lap.duration_sector_3;
       return time != null && (best == null || time < best.time)
-        ? { sector, time, driver: l.driver_number }
+        ? { sector, time, driver: lap.driver_number }
         : best;
     },
     null as SectorBest | null,
@@ -57,7 +58,7 @@ export interface DegradationResult {
 }
 
 export function getTyreDegradation(
-  stints: OpenF1Stint[],
+  stints: Stint[],
   laps: OpenF1Lap[],
   fuelCorrection = true,
   trackEvolution = true,
@@ -88,16 +89,11 @@ export function getTyreDegradation(
       }
     }
     if (trackEvolution && stintLaps.length > 2) {
-      const firstHalf = stintLaps
-        .slice(0, Math.floor(stintLaps.length / 2))
-        .reduce((s, l) => s + (l.lap_duration ?? 0), 0 / Math.floor(stintLaps.length / 2));
-      const secondHalf = stintLaps
-        .slice(Math.floor(stintLaps.length / 2))
-        .reduce(
-          (s, l) => s + (l.lap_duration ?? 0),
-          0 / (stintLaps.length - Math.floor(stintLaps.length / 2)),
-        );
-      degradation -= secondHalf - firstHalf;
+      const firstHalf = stintLaps.slice(0, Math.floor(stintLaps.length / 2));
+      const secondHalf = stintLaps.slice(Math.floor(stintLaps.length / 2));
+      const firstAvg = firstHalf.reduce((s, l) => s + (l.lap_duration ?? 0), 0) / firstHalf.length;
+      const secondAvg = secondHalf.reduce((s, l) => s + (l.lap_duration ?? 0), 0) / secondHalf.length;
+      degradation -= secondAvg - firstAvg;
     }
 
     results.push({
@@ -117,7 +113,7 @@ export interface StintPaceResult {
   laps: number;
 }
 
-export function getStintPace(stints: OpenF1Stint[], laps: OpenF1Lap[]): StintPaceResult[] {
+export function getStintPace(stints: Stint[], laps: OpenF1Lap[]): StintPaceResult[] {
   if (stints.length === 0) return [];
 
   return stints.map((stint) => {
@@ -169,7 +165,9 @@ export interface Delta {
 }
 
 export function getRaceDeltas(referenceDriver: number, laps: OpenF1Lap[]): Delta[] {
-  const refLaps = filterRaceLaps(laps).filter((l) => l.driver_number === referenceDriver);
+  const refLaps = filterRaceLaps(laps).filter(
+    (l) => l.driver_number === referenceDriver,
+  );
   const refBest = getFastestLap(refLaps);
   if (!refBest) return [];
 
@@ -197,7 +195,7 @@ export function getPitStopAnalysis(laps: OpenF1Lap[]): PitStop[] {
 
   for (const lap of sorted) {
     const existing = byDriver.get(lap.driver_number);
-    if (lap.pit_in_lap === true) {
+    if (lap.is_pit_out_lap === true) {
       if (existing) {
         pitStops.push({
           driver: lap.driver_number,
@@ -207,13 +205,13 @@ export function getPitStopAnalysis(laps: OpenF1Lap[]): PitStop[] {
         });
         byDriver.set(lap.driver_number, { ...existing, inTime: null });
       }
-    } else if (lap.pit_out_lap === true) {
-      const current = existing ?? { stop: 0, lap: 0, inTime: null };
+    } else if (existing && !lap.is_pit_out_lap) {
+      const current = existing;
       byDriver.set(lap.driver_number, {
         ...current,
         stop: current.stop + 1,
         lap: lap.lap_number,
-        inTime: lap.date_start.getTime(),
+        inTime: lap.date_start ? new Date(lap.date_start).getTime() : null,
       });
     }
   }
@@ -226,13 +224,6 @@ export interface PositionChange {
   fromPosition: number;
   toPosition: number;
   driverNumber: number;
-}
-
-export interface StintData {
-  driver_number: number;
-  lap_start: number;
-  lap_end: number;
-  stint_number: number;
 }
 
 export function getPositionChanges(
@@ -327,6 +318,13 @@ export interface StintComparison {
   stintB: number;
   paceDiff: number;
   lapCountDiff: number;
+}
+
+export interface StintData {
+  driver_number: number;
+  lap_start: number;
+  lap_end: number;
+  stint_number: number;
 }
 
 export function compareStints(

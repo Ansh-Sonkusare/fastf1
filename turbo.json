@@ -9,6 +9,7 @@
       "inputs": ["biome.json"]
     },
     "test": {
+      "dependsOn": ["build"],
       "inputs": ["vitest.config.ts", "**/*.test.ts"]
     }
   }

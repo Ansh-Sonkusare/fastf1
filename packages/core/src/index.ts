@@ -109,4 +109,4 @@ export {
   type StintData,
 } from "./utils/analysis";
 
-export { getRace, getSession, getLaps, getDrivers, getStints, getPositions } from "./api/friendly";
+export { getRace, getSession, getLaps as getSessionLaps, getDrivers as getSessionDrivers, getStints as sessionStints, getPositions } from "./api/friendly";

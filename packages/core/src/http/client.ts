@@ -136,4 +136,11 @@ export class F1Client {
   clearCache(): void {
     this.cache.clear();
   }
+
+  async get<T = unknown>(
+    endpoint: string,
+    params: Record<string, string | number> = {},
+  ): Promise<T> {
+    return this.fetch<T>(endpoint, params);
+  }
 }
