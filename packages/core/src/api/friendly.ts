@@ -1,16 +1,14 @@
 import { F1Client } from "../http/client";
 import type {
+  CarData,
   Meeting,
-  MeetingArray,
-  OpenF1DriverArray,
+  OpenF1Driver,
   OpenF1Lap,
-  OpenF1LapArray,
+  OpenF1Pit,
   Position,
-  PositionArray,
   Session,
-  SessionArray,
   Stint,
-  StintArray,
+  Weather,
 } from "../schemas/openf1";
 
 const OPENF1_BASE = "https://api.openf1.org/v1";
@@ -64,7 +62,7 @@ export interface GetRaceParams {
 }
 
 export async function getRace(params: GetRaceParams): Promise<Meeting | null> {
-  const meetings = await client.get<MeetingArray>("meetings", { year: params.year });
+  const meetings = await client.get<Meeting[]>("meetings", { year: params.year });
 
   if (!meetings || !Array.isArray(meetings) || meetings.length === 0) return null;
 
@@ -97,7 +95,7 @@ export async function getSession(params: GetSessionParams): Promise<Session | nu
   const race = await getRace({ year: params.year, name: params.raceName, round: params.round });
   if (!race) return null;
 
-  const sessions = await client.get<SessionArray>("sessions", { meeting_key: race.meeting_key });
+  const sessions = await client.get<Session[]>("sessions", { meeting_key: race.meeting_key });
 
   if (!sessions || !Array.isArray(sessions) || sessions.length === 0) return null;
 
@@ -152,19 +150,159 @@ export async function getLaps(params: GetLapsParams): Promise<OpenF1Lap[]> {
 
   if (params.lap) query.lap_number = params.lap;
 
-  return client.get<OpenF1LapArray>("laps", cleanNulls(query));
+  return client.get<OpenF1Lap[]>("laps", cleanNulls(query));
 }
 
 export async function getDrivers(
   sessionKey: number,
 ): Promise<{ driver_number: number; full_name: string; team_name: string }[]> {
-  return client.get<OpenF1DriverArray>("drivers", { session_key: sessionKey });
+  return client.get<OpenF1Driver[]>("drivers", { session_key: sessionKey });
 }
 
 export async function getStints(sessionKey: number): Promise<Stint[]> {
-  return client.get<StintArray>("stints", { session_key: sessionKey });
+  return client.get<Stint[]>("stints", { session_key: sessionKey });
 }
 
 export async function getPositions(sessionKey: number): Promise<Position[]> {
-  return client.get<PositionArray>("positions", { session_key: sessionKey });
+  return client.get<Position[]>("positions", { session_key: sessionKey });
+}
+
+export interface GetRaceStintsParams {
+  year: number;
+  raceName?: string;
+  round?: number;
+  driver?: string | number;
+  sessionKey?: number;
+}
+
+export async function getRaceStints(params: GetRaceStintsParams): Promise<Stint[]> {
+  let sessionKey = params.sessionKey;
+
+  if (!sessionKey) {
+    const session = await getSession({
+      year: params.year,
+      raceName: params.raceName,
+      round: params.round,
+    });
+    if (!session) return [];
+    sessionKey = session.session_key;
+  }
+
+  const stints = await getStints(sessionKey);
+
+  if (params.driver) {
+    const driverNum =
+      typeof params.driver === "number"
+        ? params.driver
+        : (DRIVER_CODES[params.driver.toUpperCase()] ?? Number(params.driver));
+    return stints.filter((s) => Number(s.driver_number) === driverNum);
+  }
+
+  return stints;
+}
+
+export async function getPitStops(sessionKey: number, driverNumber?: number): Promise<OpenF1Pit[]> {
+  const params: Record<string, unknown> = { session_key: sessionKey };
+  if (driverNumber) params.driver_number = driverNumber;
+
+  const response = await client.fetch<OpenF1Pit[]>("/pit", cleanNulls(params), {
+    method: "GET",
+  });
+  return response;
+}
+
+export async function getWeather(sessionKey: number): Promise<Weather[]> {
+  return client.get<Weather[]>("weather", { session_key: sessionKey });
+}
+
+export async function getCarData(sessionKey: number, driverNumber?: number): Promise<CarData[]> {
+  const params: Record<string, unknown> = { session_key: sessionKey };
+  if (driverNumber) params.driver_number = driverNumber;
+
+  return client.get<CarData[]>("car_data", cleanNulls(params));
+}
+
+export interface GetRacePitStopsParams {
+  year: number;
+  raceName?: string;
+  round?: number;
+  driver?: string | number;
+  sessionKey?: number;
+}
+
+export async function getRacePitStops(params: GetRacePitStopsParams): Promise<OpenF1Pit[]> {
+  let sessionKey = params.sessionKey;
+
+  if (!sessionKey) {
+    const session = await getSession({
+      year: params.year,
+      raceName: params.raceName,
+      round: params.round,
+    });
+    if (!session) return [];
+    sessionKey = session.session_key;
+  }
+
+  const pits = params.driver
+    ? await getPitStops(
+        sessionKey,
+        typeof params.driver === "number"
+          ? params.driver
+          : (DRIVER_CODES[params.driver.toUpperCase()] ?? Number(params.driver)),
+      )
+    : await getPitStops(sessionKey);
+
+  return pits;
+}
+
+export interface GetRaceWeatherParams {
+  year: number;
+  raceName?: string;
+  round?: number;
+  sessionKey?: number;
+}
+
+export async function getRaceWeather(params: GetRaceWeatherParams): Promise<Weather[]> {
+  let sessionKey = params.sessionKey;
+
+  if (!sessionKey) {
+    const session = await getSession({
+      year: params.year,
+      raceName: params.raceName,
+      round: params.round,
+    });
+    if (!session) return [];
+    sessionKey = session.session_key;
+  }
+
+  return getWeather(sessionKey);
+}
+
+export interface GetRaceTelemetryParams {
+  year: number;
+  raceName?: string;
+  round?: number;
+  driver: string | number;
+  sessionKey?: number;
+}
+
+export async function getRaceTelemetry(params: GetRaceTelemetryParams): Promise<CarData[]> {
+  let sessionKey = params.sessionKey;
+
+  if (!sessionKey) {
+    const session = await getSession({
+      year: params.year,
+      raceName: params.raceName,
+      round: params.round,
+    });
+    if (!session) return [];
+    sessionKey = session.session_key;
+  }
+
+  const driverNum =
+    typeof params.driver === "number"
+      ? params.driver
+      : (DRIVER_CODES[params.driver.toUpperCase()] ?? params.driver);
+
+  return getCarData(sessionKey, driverNum);
 }

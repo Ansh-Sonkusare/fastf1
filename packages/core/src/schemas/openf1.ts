@@ -22,9 +22,6 @@ export const MeetingSchema = z.object({
 
 export type Meeting = z.infer<typeof MeetingSchema>;
 
-export const MeetingArraySchema = z.array(MeetingSchema);
-export type MeetingArray = z.infer<typeof MeetingArraySchema>;
-
 export const SessionSchema = z.object({
   session_key: z.number(),
   meeting_key: z.number(),
@@ -43,9 +40,6 @@ export const SessionSchema = z.object({
 });
 
 export type Session = z.infer<typeof SessionSchema>;
-
-export const SessionArraySchema = z.array(SessionSchema);
-export type SessionArray = z.infer<typeof SessionArraySchema>;
 
 export const OpenF1DriverSchema = z.object({
   session_key: z.number(),
@@ -84,9 +78,6 @@ export const OpenF1LapSchema = z.object({
 
 export type OpenF1Lap = z.infer<typeof OpenF1LapSchema>;
 
-export const OpenF1LapArraySchema = z.array(OpenF1LapSchema);
-export type OpenF1LapArray = z.infer<typeof OpenF1LapArraySchema>;
-
 export const StintSchema = z.object({
   session_key: z.number(),
   meeting_key: z.number(),
@@ -99,9 +90,6 @@ export const StintSchema = z.object({
 });
 
 export type Stint = z.infer<typeof StintSchema>;
-
-export const StintArraySchema = z.array(StintSchema);
-export type StintArray = z.infer<typeof StintArraySchema>;
 
 export const OpenF1PitSchema = z.object({
   session_key: z.number(),
@@ -126,12 +114,6 @@ export const PositionSchema = z.object({
 });
 
 export type Position = z.infer<typeof PositionSchema>;
-
-export const PositionArraySchema = z.array(PositionSchema);
-export type PositionArray = z.infer<typeof PositionArraySchema>;
-
-export const OpenF1DriverArraySchema = z.array(OpenF1DriverSchema);
-export type OpenF1DriverArray = z.infer<typeof OpenF1DriverArraySchema>;
 
 export const CarDataSchema = z.object({
   session_key: z.number(),

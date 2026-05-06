@@ -90,7 +90,7 @@ export {
   getIntervals,
 } from "./api/openf1";
 
-export type { CarData } from "./schemas/openf1";
+export type { CarData, Stint, OpenF1Pit, Weather } from "./schemas/openf1";
 export { cleanNulls } from "./utils";
 
 export {
@@ -116,4 +116,18 @@ export {
   getDrivers as getSessionDrivers,
   getStints as sessionStints,
   getPositions,
+  getRaceStints,
+  getRacePitStops,
+  getRaceWeather,
+  getRaceTelemetry,
+} from "./api/friendly";
+
+export type {
+  GetRaceParams,
+  GetSessionParams,
+  GetLapsParams,
+  GetRaceStintsParams,
+  GetRacePitStopsParams,
+  GetRaceWeatherParams,
+  GetRaceTelemetryParams,
 } from "./api/friendly";

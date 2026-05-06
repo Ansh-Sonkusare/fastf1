@@ -1,8 +1,8 @@
 import {
-  getMeetings,
-  getSessions,
+  getRace,
+  getSession,
+  getLaps,
   getDrivers,
-  getOpenF1Laps,
   getStints,
   getOpenF1PitStops as getPitStops,
   getWeather,
@@ -10,52 +10,45 @@ import {
 } from "@f1/core";
 
 const YEAR = 2026;
-const DRIVER_NUMBER = 3; // Max Verstappen
+const RACE_NAME = "Miami";
+const DRIVER_CODE = "VER"; // Max Verstappen
 
 async function main() {
-  console.log(`🏎️  Miami 2026 Race Pace Analysis - Driver #${DRIVER_NUMBER}\n`);
+  console.log(`🏎️  ${RACE_NAME} ${YEAR} Race Pace Analysis - ${DRIVER_CODE}\n`);
   console.log("=".repeat(50));
 
-  // Step 1: Find Miami GP meeting
-  console.log("\n📍 Finding Miami Grand Prix...");
-  const meetings = await getMeetings(YEAR);
-  const miami = meetings.find(m => m.meeting_name === "Miami Grand Prix");
-  if (!miami) {
-    console.log("Miami GP not found!");
+  // Step 1: Find race by name
+  console.log(`\n📍 Finding ${RACE_NAME}...`);
+  const race = await getRace({ year: YEAR, name: RACE_NAME });
+  if (!race) {
+    console.log(`${RACE_NAME} not found!`);
     return;
   }
-  console.log(`Meeting: ${miami.meeting_name} (key: ${miami.meeting_key})`);
+  console.log(`Race: ${race.meeting_name}`);
 
   // Step 2: Find Race session
   console.log("\n🏁 Finding Race session...");
-  const sessions = await getSessions(miami.meeting_key);
-  const raceSession = sessions.find(s => s.session_name === "Race");
-  if (!raceSession) {
+  const session = await getSession({ year: YEAR, raceName: RACE_NAME, session: "race" });
+  if (!session) {
     console.log("Race session not found!");
     return;
   }
-  console.log(`Race session: ${raceSession.session_type} (key: ${raceSession.session_key})`);
+  console.log(`Session: ${session.session_name} (key: ${session.session_key})`);
 
-  // Step 3: Find driver
-  console.log("\n👤 Finding driver #${DRIVER_NUMBER}...");
-  const drivers = await getDrivers(raceSession.session_key);
-  const targetDriver = drivers.find(d => d.driver_number === DRIVER_NUMBER);
-  if (!targetDriver) {
-    console.log(`Driver #${DRIVER_NUMBER} not found in session!`);
-    return;
-  }
-  console.log(`Driver: ${targetDriver.full_name} (${targetDriver.team_name})`);
-
-  // Step 4: Get lap data
-  console.log("\n⏱️  Fetching lap data...");
-  const allLaps = await getOpenF1Laps(raceSession.session_key);
-  const driverLaps = allLaps.filter(l => l.driver_number === DRIVER_NUMBER && l.lap_duration);
+  // Step 3: Get driver laps using friendly API
+  console.log(`\n⏱️  Fetching laps for ${DRIVER_CODE}...`);
+  const allLaps = await getLaps({ year: YEAR, raceName: RACE_NAME, driver: DRIVER_CODE });
+  const driverLaps = allLaps.filter(l => l.driver_number && l.lap_duration);
   console.log(`Total laps: ${driverLaps.length}`);
 
   if (driverLaps.length === 0) {
-    console.log("No lap times found for this driver!");
+    console.log("No lap times found!");
     return;
   }
+
+  const drivers = await getDrivers(session.session_key);
+  const targetDriver = drivers.find(d => d.driver_number === 1); // VER
+  console.log(`Driver: ${targetDriver?.full_name ?? DRIVER_CODE} (${targetDriver?.team_name})`);
 
   // Race pace analysis
   console.log("\n📊 RACE PACE ANALYSIS");
@@ -94,16 +87,16 @@ async function main() {
 
   // Tyre strategy
   console.log("\n🛞 Tyre Strategy:");
-  const stints = await getStints(raceSession.session_key);
-  const driverStints = stints.filter(s => s.driver_number === DRIVER_NUMBER);
+  const stints = await getStints(session.session_key);
+  const driverStints = stints.filter(s => s.driver_number === 1);
   driverStints.forEach(s => {
     console.log(`  Stint ${s.stint_number}: ${s.compound} (Laps ${s.lap_start}-${s.lap_end})`);
   });
 
   // Pit stops
   console.log("\n🔧 Pit Stops:");
-  const pits = await getPitStops(raceSession.session_key);
-  const driverPits = pits.filter(p => p.driver_number === DRIVER_NUMBER);
+  const pits = await getPitStops(session.session_key);
+  const driverPits = pits.filter(p => p.driver_number === 1);
   if (driverPits.length === 0) {
     console.log("  No pit stops");
   } else {
@@ -114,7 +107,7 @@ async function main() {
 
   // Weather
   console.log("\n🌡️  Weather:");
-  const weather = await getWeather(raceSession.session_key);
+  const weather = await getWeather(session.session_key);
   if (weather.length > 0) {
     const start = weather[0];
     const end = weather[weather.length - 1];
@@ -124,7 +117,7 @@ async function main() {
 
   // Telemetry sample
   console.log("\n📊 Telemetry Sample:");
-  const telemetry = await getCarData(raceSession.session_key, DRIVER_NUMBER);
+  const telemetry = await getCarData(session.session_key, 1);
   if (telemetry.length > 0) {
     const maxSpeed = telemetry.reduce((max, t) => !t.speed ? max : Math.max(max, t.speed), 0);
     const avgRPM = telemetry.reduce((sum, t) => sum + (t.rpm || 0), 0) / telemetry.length;
