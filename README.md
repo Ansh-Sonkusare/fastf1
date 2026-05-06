@@ -43,13 +43,16 @@ const telemetry = await getRaceTelemetry({ year: 2026, raceName: "Miami", driver
 ## Available APIs
 
 ### Friendly API (Recommended)
+
+Pass year + one of (raceName OR round) OR sessionKey:
+
 - `getRace({ year, name?, round? })` - Find race by year + name or round
-- `getSession({ year, raceName?, round?, session? })` - Find session (practice/qualifying/sprint/race)
-- `getLaps({ year, raceName?, driver?, lap? })` - Lap times
-- `getRaceStints({ year, raceName?, driver? })` - Tyre stint data
-- `getRacePitStops({ year, raceName?, driver? })` - Pit stop data
-- `getRaceWeather({ year, raceName? })` - Weather conditions
-- `getRaceTelemetry({ year, raceName?, driver? })` - Speed, throttle, brake, RPM, gear
+- `getSession({ year, raceName?, round?, session? })` - Find session (pass sessionKey to skip lookup)
+- `getLaps({ year, raceName?, sessionKey?, driver?, lap? })` - Lap times
+- `getRaceStints({ year, raceName?, sessionKey?, driver? })` - Tyre stint data
+- `getRacePitStops({ year, raceName?, sessionKey?, driver? })` - Pit stop data
+- `getRaceWeather({ year, raceName?, sessionKey? })` - Weather conditions
+- `getRaceTelemetry({ year, raceName?, sessionKey?, driver? })` - Speed, throttle, brake, RPM, gear
 
 ### Low-level API (requires session key)
 - `getMeetings(year)` - List all meetings for a year
