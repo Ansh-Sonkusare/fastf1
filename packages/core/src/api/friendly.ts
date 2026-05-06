@@ -2,15 +2,15 @@ import { F1Client } from "../http/client";
 import type {
   Meeting,
   MeetingArray,
-  Session,
-  SessionArray,
+  OpenF1DriverArray,
   OpenF1Lap,
   OpenF1LapArray,
-  Stint,
-  StintArray,
   Position,
   PositionArray,
-  OpenF1DriverArray,
+  Session,
+  SessionArray,
+  Stint,
+  StintArray,
 } from "../schemas/openf1";
 
 const OPENF1_BASE = "https://api.openf1.org/v1";
@@ -73,10 +73,14 @@ export async function getRace(params: GetRaceParams): Promise<Meeting | null> {
     ? list.filter(
         (m: Meeting) =>
           (params.name && m.meeting_name?.toLowerCase().includes(params.name.toLowerCase())) ||
-          (params.name && m.meeting_official_name?.toLowerCase().includes(params.name.toLowerCase())),
+          (params.name &&
+            m.meeting_official_name?.toLowerCase().includes(params.name.toLowerCase())),
       )
     : params.round
-      ? list.filter((m: Meeting) => (m as Meeting & { meeting_round?: number }).meeting_round === params.round)
+      ? list.filter(
+          (m: Meeting) =>
+            (m as Meeting & { meeting_round?: number }).meeting_round === params.round,
+        )
       : list;
 
   return filtered[0] ?? null;
