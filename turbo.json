@@ -3,7 +3,8 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**"]
+      "outputs": ["dist/**"],
+      "inputs": ["package.json", "vite.config.ts", "src/**"]
     },
     "lint": {
       "inputs": ["biome.json"]

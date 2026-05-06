@@ -7,7 +7,8 @@
     "test": "turbo test",
     "lint": "turbo lint",
     "lint:fix": "turbo lint:fix",
-    "demo": "tsx examples/cli.ts"
+    "demo": "tsx examples/cli.ts",
+    "demo:web": "pnpm --filter @f1/demo dev"
   },
   "dependencies": {
     "@f1/core": "workspace:*",
@@ -23,7 +24,5 @@
     "vite": "^5.4.0",
     "vitest": "^2.0.0"
   },
-  "workspaces": [
-    "packages/*"
-  ]
+  "workspaces": ["packages/*"]
 }
