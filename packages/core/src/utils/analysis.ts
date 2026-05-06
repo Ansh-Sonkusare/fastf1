@@ -5,9 +5,7 @@ export function filterByDriver(laps: OpenF1Lap[], driverNum: number): OpenF1Lap[
 }
 
 export function filterRaceLaps(laps: OpenF1Lap[]): OpenF1Lap[] {
-  return laps.filter(
-    (l) => l.lap_duration != null && l.is_pit_out_lap !== true,
-  );
+  return laps.filter((l) => l.lap_duration != null && l.is_pit_out_lap !== true);
 }
 
 export function getFastestLap(laps: OpenF1Lap[]): OpenF1Lap | null {
@@ -92,7 +90,8 @@ export function getTyreDegradation(
       const firstHalf = stintLaps.slice(0, Math.floor(stintLaps.length / 2));
       const secondHalf = stintLaps.slice(Math.floor(stintLaps.length / 2));
       const firstAvg = firstHalf.reduce((s, l) => s + (l.lap_duration ?? 0), 0) / firstHalf.length;
-      const secondAvg = secondHalf.reduce((s, l) => s + (l.lap_duration ?? 0), 0) / secondHalf.length;
+      const secondAvg =
+        secondHalf.reduce((s, l) => s + (l.lap_duration ?? 0), 0) / secondHalf.length;
       degradation -= secondAvg - firstAvg;
     }
 
@@ -165,9 +164,7 @@ export interface Delta {
 }
 
 export function getRaceDeltas(referenceDriver: number, laps: OpenF1Lap[]): Delta[] {
-  const refLaps = filterRaceLaps(laps).filter(
-    (l) => l.driver_number === referenceDriver,
-  );
+  const refLaps = filterRaceLaps(laps).filter((l) => l.driver_number === referenceDriver);
   const refBest = getFastestLap(refLaps);
   if (!refBest) return [];
 
