@@ -1,8 +1,17 @@
 {
   "name": "@f1/core",
   "version": "0.0.1",
-  "private": true,
   "type": "module",
+  "description": "F1 data client with OpenF1 API integration",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ansh-Sonkusare/fastf1.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Ansh-Sonkusare/fastf1/issues"
+  },
+  "homepage": "https://github.com/Ansh-Sonkusare/fastf1#readme",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {

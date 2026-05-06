@@ -91,3 +91,22 @@ export {
 } from "./api/openf1";
 
 export type { CarData } from "./schemas/openf1";
+export { cleanNulls } from "./utils";
+
+export {
+  filterByDriver,
+  filterRaceLaps,
+  getFastestLap,
+  getSectorBest,
+  getTyreDegradation,
+  getStintPace,
+  getDriverConsistency,
+  getRaceDeltas,
+  getPitStopAnalysis,
+  getPositionChanges,
+  compareDrivers,
+  compareStints,
+  type StintData,
+} from "./utils/analysis";
+
+export { getRace, getSession, getLaps, getDrivers, getStints, getPositions } from "./api/friendly";
