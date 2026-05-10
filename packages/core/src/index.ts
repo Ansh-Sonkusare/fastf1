@@ -96,7 +96,7 @@ export { cleanNulls } from "./utils";
 export {
   filterByDriver,
   filterRaceLaps,
-  getFastestLap,
+  getFastestLap as getAnalysisFastestLap,
   getSectorBest,
   getTyreDegradation,
   getStintPace,
@@ -120,6 +120,7 @@ export {
   getRacePitStops,
   getRaceWeather,
   getRaceTelemetry,
+  getFastestLap,
 } from "./api/friendly";
 
 export type {
@@ -130,4 +131,5 @@ export type {
   GetRacePitStopsParams,
   GetRaceWeatherParams,
   GetRaceTelemetryParams,
+  GetFastestLapParams,
 } from "./api/friendly";

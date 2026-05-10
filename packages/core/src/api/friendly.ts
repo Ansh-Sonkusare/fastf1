@@ -15,30 +15,25 @@ const OPENF1_BASE = "https://api.openf1.org/v1";
 
 const DRIVER_CODES: Record<string, number> = {
   VER: 1,
-  PER: 2,
-  LEC: 4,
+  LEC: 16,
   HAM: 44,
+  NOR: 4,
   RUS: 63,
   ALO: 14,
-  OCO: 18,
-  GAS: 23,
-  ALB: 21,
-  ZHO: 24,
-  BOT: 88,
-  MAG: 47,
-  NOR: 34,
-  KUB: 64,
-  PIA: 81,
-  COL: 87,
+  GAS: 10,
   TSU: 22,
-  RIC: 3,
-  DEV: 16,
-  SAR: 43,
-  BEA: 72,
-  DOO: 76,
-  LAW: 73,
-  HAD: 98,
-  ARA: 89,
+  BOT: 87,
+  MAG: 27,
+  ALB: 23,
+  ZHO: 24,
+  COL: 43,
+  LAW: 30,
+  PIA: 81,
+  ARI: 21,
+  DEV: 99,
+  STR: 11,
+  BEA: 5,
+  DOO: 87,
 };
 
 const client = new F1Client({ baseUrl: OPENF1_BASE });
@@ -171,18 +166,31 @@ export interface GetRaceStintsParams {
   year: number;
   raceName?: string;
   round?: number;
+  meetingKey?: number;
   driver?: string | number;
+  session?: string;
   sessionKey?: number;
 }
 
 export async function getRaceStints(params: GetRaceStintsParams): Promise<Stint[]> {
   let sessionKey = params.sessionKey;
 
+  if (!sessionKey && params.meetingKey) {
+    const sessions = await client.get<Session[]>("sessions", { meeting_key: params.meetingKey });
+    if (!sessions?.length) return [];
+    const target = params.session
+      ? sessions.find((s) => s.session_name?.toLowerCase().includes(params.session!.toLowerCase()))
+      : sessions.find((s) => s.session_type === "Race");
+    sessionKey = target?.session_key;
+    if (!sessionKey) return [];
+  }
+
   if (!sessionKey) {
     const session = await getSession({
       year: params.year,
       raceName: params.raceName,
       round: params.round,
+      session: params.session,
     });
     if (!session) return [];
     sessionKey = session.session_key;
@@ -215,9 +223,16 @@ export async function getWeather(sessionKey: number): Promise<Weather[]> {
   return client.get<Weather[]>("weather", { session_key: sessionKey });
 }
 
-export async function getCarData(sessionKey: number, driverNumber?: number): Promise<CarData[]> {
+export async function getCarData(
+  sessionKey: number,
+  driverNumber?: number,
+  minDate?: string,
+  maxDate?: string,
+): Promise<CarData[]> {
   const params: Record<string, unknown> = { session_key: sessionKey };
   if (driverNumber) params.driver_number = driverNumber;
+  if (minDate) params["date>"] = minDate;
+  if (maxDate) params["date<"] = maxDate;
 
   return client.get<CarData[]>("car_data", cleanNulls(params));
 }
@@ -226,18 +241,31 @@ export interface GetRacePitStopsParams {
   year: number;
   raceName?: string;
   round?: number;
+  meetingKey?: number;
   driver?: string | number;
+  session?: string;
   sessionKey?: number;
 }
 
 export async function getRacePitStops(params: GetRacePitStopsParams): Promise<OpenF1Pit[]> {
   let sessionKey = params.sessionKey;
 
+  if (!sessionKey && params.meetingKey) {
+    const sessions = await client.get<Session[]>("sessions", { meeting_key: params.meetingKey });
+    if (!sessions?.length) return [];
+    const target = params.session
+      ? sessions.find((s) => s.session_name?.toLowerCase().includes(params.session!.toLowerCase()))
+      : sessions.find((s) => s.session_type === "Race");
+    sessionKey = target?.session_key;
+    if (!sessionKey) return [];
+  }
+
   if (!sessionKey) {
     const session = await getSession({
       year: params.year,
       raceName: params.raceName,
       round: params.round,
+      session: params.session,
     });
     if (!session) return [];
     sessionKey = session.session_key;
@@ -259,17 +287,30 @@ export interface GetRaceWeatherParams {
   year: number;
   raceName?: string;
   round?: number;
+  meetingKey?: number;
+  session?: string;
   sessionKey?: number;
 }
 
 export async function getRaceWeather(params: GetRaceWeatherParams): Promise<Weather[]> {
   let sessionKey = params.sessionKey;
 
+  if (!sessionKey && params.meetingKey) {
+    const sessions = await client.get<Session[]>("sessions", { meeting_key: params.meetingKey });
+    if (!sessions?.length) return [];
+    const target = params.session
+      ? sessions.find((s) => s.session_name?.toLowerCase().includes(params.session!.toLowerCase()))
+      : sessions.find((s) => s.session_type === "Race");
+    sessionKey = target?.session_key;
+    if (!sessionKey) return [];
+  }
+
   if (!sessionKey) {
     const session = await getSession({
       year: params.year,
       raceName: params.raceName,
       round: params.round,
+      session: params.session,
     });
     if (!session) return [];
     sessionKey = session.session_key;
@@ -282,18 +323,32 @@ export interface GetRaceTelemetryParams {
   year: number;
   raceName?: string;
   round?: number;
+  meetingKey?: number;
   driver: string | number;
+  session?: string;
   sessionKey?: number;
+  lap?: number;
 }
 
 export async function getRaceTelemetry(params: GetRaceTelemetryParams): Promise<CarData[]> {
   let sessionKey = params.sessionKey;
+
+  if (!sessionKey && params.meetingKey) {
+    const sessions = await client.get<Session[]>("sessions", { meeting_key: params.meetingKey });
+    if (!sessions?.length) return [];
+    const target = params.session
+      ? sessions.find((s) => s.session_name?.toLowerCase().includes(params.session!.toLowerCase()))
+      : sessions.find((s) => s.session_type === "Race");
+    sessionKey = target?.session_key;
+    if (!sessionKey) return [];
+  }
 
   if (!sessionKey) {
     const session = await getSession({
       year: params.year,
       raceName: params.raceName,
       round: params.round,
+      session: params.session,
     });
     if (!session) return [];
     sessionKey = session.session_key;
@@ -304,5 +359,81 @@ export async function getRaceTelemetry(params: GetRaceTelemetryParams): Promise<
       ? params.driver
       : (DRIVER_CODES[params.driver.toUpperCase()] ?? params.driver);
 
-  return getCarData(sessionKey, driverNum);
+  let data: CarData[];
+
+  if (params.lap) {
+    const laps = await client.get<{ lap_number: number; date_start: string }[]>("laps", {
+      session_key: sessionKey,
+      driver_number: driverNum,
+    });
+    const lapNum = params.lap;
+    const targetLap = laps.find((l) => l.lap_number === lapNum);
+    if (targetLap) {
+      const nextLap = laps.find((l) => l.lap_number === lapNum + 1);
+      const allData = await getCarData(sessionKey, driverNum, targetLap.date_start);
+      const start = new Date(targetLap.date_start).getTime();
+      const end = nextLap ? new Date(nextLap.date_start).getTime() : start + 120000;
+      data = allData.filter((d) => {
+        const dTime = new Date(d.date).getTime();
+        return dTime >= start && dTime < end;
+      });
+    } else {
+      data = [];
+    }
+  } else {
+    data = await getCarData(sessionKey, driverNum);
+  }
+
+  return data;
+}
+
+export interface GetFastestLapParams {
+  year: number;
+  raceName?: string;
+  meetingKey?: number;
+  driver?: string | number;
+  session?: string;
+}
+
+export async function getFastestLap(params: GetFastestLapParams): Promise<number | null> {
+  let sessionKey: number | undefined;
+
+  if (params.meetingKey) {
+    const sessions = await client.get<Session[]>("sessions", { meeting_key: params.meetingKey });
+    if (!sessions?.length) return null;
+    const target = params.session
+      ? sessions.find((s) => s.session_name?.toLowerCase().includes(params.session!.toLowerCase()))
+      : sessions.find((s) => s.session_type === "Race");
+    sessionKey = target?.session_key;
+  } else {
+    const session = await getSession({
+      year: params.year,
+      raceName: params.raceName,
+      session: params.session,
+    });
+    sessionKey = session?.session_key;
+  }
+
+  if (!sessionKey) return null;
+
+  const driverNum =
+    typeof params.driver === "number"
+      ? params.driver
+      : (DRIVER_CODES[params.driver?.toUpperCase() ?? ""] ?? params.driver);
+
+  const laps = await client.get<{ lap_number: number; lap_duration: number | null }[]>("laps", {
+    session_key: sessionKey,
+    driver_number: driverNum,
+  });
+
+  let bestDuration: number | null = null;
+  let bestLap: number | null = null;
+  for (const lap of laps) {
+    if (lap.lap_duration != null && (bestDuration == null || lap.lap_duration < bestDuration)) {
+      bestDuration = lap.lap_duration;
+      bestLap = lap.lap_number;
+    }
+  }
+
+  return bestLap;
 }

@@ -54,7 +54,7 @@ export class F1Client {
       }
     }
 
-    const url = new URL(`${this.baseUrl}${endpoint}`);
+    const url = new URL(`${this.baseUrl}/${endpoint}`);
     for (const [key, value] of Object.entries(params)) {
       url.searchParams.append(key, String(value));
     }
