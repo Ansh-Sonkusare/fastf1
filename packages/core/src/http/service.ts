@@ -1,4 +1,4 @@
-import { Context, Duration, Effect, Layer, Schedule, Schema } from "effect";
+import { Context, Duration, Effect, Layer, Schema } from "effect";
 
 export class F1ClientError extends Schema.TaggedError<F1ClientError>()("F1ClientError", {
   message: Schema.String,
@@ -12,9 +12,39 @@ export class TimeoutError extends Schema.TaggedError<TimeoutError>()("TimeoutErr
 
 export class RateLimitError extends Schema.TaggedError<RateLimitError>()("RateLimitError", {
   message: Schema.String,
+  retryAfter: Schema.optional(Schema.Number),
 }) {}
 
 export type ClientError = F1ClientError | TimeoutError | RateLimitError;
+
+const MAX_ATTEMPTS = 4;
+
+function isRetryable(err: ClientError): boolean {
+  if (err instanceof RateLimitError || err instanceof TimeoutError) return true;
+  if (err instanceof F1ClientError) {
+    return err.status !== undefined && err.status >= 500;
+  }
+  return false;
+}
+
+function retryDelay(err: ClientError, attempt: number): Duration.Duration {
+  if (err instanceof RateLimitError && err.retryAfter !== undefined) {
+    return Duration.seconds(Math.min(err.retryAfter, 60));
+  }
+  return Duration.millis(100 * 2 ** (attempt - 1));
+}
+
+function parseRetryAfter(value: string | null): number | undefined {
+  if (!value) return undefined;
+  const seconds = Number(value);
+  if (Number.isFinite(seconds) && seconds >= 0) return seconds;
+  const date = Date.parse(value);
+  if (Number.isFinite(date)) {
+    const diff = Math.ceil((date - Date.now()) / 1000);
+    return diff > 0 ? diff : undefined;
+  }
+  return undefined;
+}
 
 export interface FetchOptions {
   readonly params?: Record<string, string | number>;
@@ -46,7 +76,7 @@ export const F1ClientServiceLive: Layer.Layer<F1ClientService> = Layer.effect(
       const { params, method = "GET" } = options;
       const url = buildUrl(endpoint, params);
 
-      return Effect.gen(function* () {
+      const attempt = Effect.gen(function* () {
         const controller = new AbortController();
         const signal = controller.signal;
 
@@ -75,7 +105,13 @@ export const F1ClientServiceLive: Layer.Layer<F1ClientService> = Layer.effect(
         );
 
         if (response.status === 429) {
-          return yield* Effect.fail(new RateLimitError({ message: "Rate limit exceeded" }));
+          const retryAfter = parseRetryAfter(response.headers.get("retry-after"));
+          const props = { message: "Rate limit exceeded" };
+          return yield* Effect.fail(
+            retryAfter !== undefined
+              ? new RateLimitError({ ...props, retryAfter })
+              : new RateLimitError(props),
+          );
         }
 
         if (!response.ok) {
@@ -93,14 +129,21 @@ export const F1ClientServiceLive: Layer.Layer<F1ClientService> = Layer.effect(
         });
 
         return data;
-      }).pipe(
-        Effect.retry(
-          Schedule.exponential(Duration.seconds(1)).pipe(
-            Schedule.jittered,
-            Schedule.compose(Schedule.recurs(2)),
-          ),
-        ),
-      );
+      });
+
+      return Effect.gen(function* () {
+        let attemptCount = 1;
+        for (;;) {
+          const result = yield* Effect.either(attempt);
+          if (result._tag === "Right") return result.right;
+          const error = result.left;
+          if (!isRetryable(error) || attemptCount >= MAX_ATTEMPTS) {
+            return yield* Effect.fail(error);
+          }
+          yield* Effect.sleep(retryDelay(error, attemptCount));
+          attemptCount += 1;
+        }
+      });
     },
   })),
 );

@@ -67,6 +67,50 @@ describe("F1ClientService", () => {
     );
   }, 10_000);
 
+  it("should fail immediately on non-retryable HTTP errors", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response(null, { status: 404, statusText: "Not Found" }));
+    globalThis.fetch = fetchMock;
+
+    await expect(runEffect(fetchWithClient("http://test.api/test"))).rejects.toThrow("HTTP 404");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  }, 10_000);
+
+  it("should retry 5xx errors up to the max attempts", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response(null, { status: 500, statusText: "Internal Server Error" }));
+    globalThis.fetch = fetchMock;
+
+    await expect(runEffect(fetchWithClient("http://test.api/test"))).rejects.toThrow("HTTP 500");
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+  }, 10_000);
+
+  it("should retry 429 errors up to the max attempts", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response(null, { status: 429, headers: { "retry-after": "0" } }));
+    globalThis.fetch = fetchMock;
+
+    await expect(runEffect(fetchWithClient("http://test.api/test"))).rejects.toThrow(
+      "Rate limit exceeded",
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+  }, 10_000);
+
+  it("should respect Retry-After and succeed on retry", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(null, { status: 429, headers: { "retry-after": "1" } }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ data: "ok" }), { status: 200 }));
+    globalThis.fetch = fetchMock;
+
+    const result = await runEffect(fetchWithClient<{ data: string }>("http://test.api/test"));
+    expect(result).toEqual({ data: "ok" });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  }, 10_000);
+
   it("should throw F1ClientError on 500", async () => {
     globalThis.fetch = vi
       .fn()
