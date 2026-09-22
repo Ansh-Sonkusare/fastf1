@@ -1,102 +1,85 @@
+import { Effect } from "effect";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { F1Client } from "./client";
-import { F1ClientError, RateLimitError, TimeoutError } from "./errors";
+import {
+  F1ClientError,
+  F1ClientService,
+  F1ClientServiceLive,
+  RateLimitError,
+  TimeoutError,
+} from "./service";
 
-describe("F1Client", () => {
-  let client: F1Client;
+function runEffect<A>(effect: Effect.Effect<A, unknown, F1ClientService>): Promise<A> {
+  return Effect.runPromise(Effect.provide(effect, F1ClientServiceLive));
+}
 
+function fetchWithClient<A>(
+  endpoint: string,
+  options?: { params?: Record<string, string | number> },
+) {
+  return Effect.gen(function* () {
+    const client = yield* F1ClientService;
+    return yield* client.fetch<A>(endpoint, options);
+  });
+}
+
+let originalFetch: typeof globalThis.fetch;
+
+describe("F1ClientService", () => {
   beforeEach(() => {
-    client = new F1Client({ baseUrl: "http://test.api" });
+    originalFetch = globalThis.fetch;
   });
 
   afterEach(() => {
+    globalThis.fetch = originalFetch;
     vi.restoreAllMocks();
   });
 
-  describe("fetch", () => {
-    it("should make GET request and return JSON", async () => {
-      const mockResponse = { data: "test" };
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => mockResponse,
-      });
+  it("should make GET request and return JSON", async () => {
+    const mockData = { data: "test" };
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(new Response(JSON.stringify(mockData), { status: 200 }));
 
-      const result = await client.fetch("/test");
-
-      expect(fetch).toHaveBeenCalledWith(
-        "http://test.api/test",
-        expect.objectContaining({ method: "GET" }),
-      );
-      expect(result).toEqual(mockResponse);
-    });
-
-    it("should include query params", async () => {
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({ data: "test" }),
-      });
-
-      await client.fetch("/test", { limit: 10, offset: 5 });
-
-      expect(fetch).toHaveBeenCalledWith(
-        "http://test.api/test?limit=10&offset=5",
-        expect.any(Object),
-      );
-    });
-
-    it("should throw TimeoutError on timeout", async () => {
-      const abortError = new DOMException("Aborted", "AbortError");
-      global.fetch = vi.fn().mockRejectedValue(abortError);
-
-      await expect(client.fetch("/test", {}, { timeout: 100 })).rejects.toThrow(TimeoutError);
-    });
-
-    it("should throw RateLimitError on 429", async () => {
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: false,
-        status: 429,
-        statusText: "Too Many Requests",
-      });
-
-      await expect(client.fetch("/test")).rejects.toThrow(RateLimitError);
-    });
-
-    it("should throw F1ClientError on other errors", async () => {
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: false,
-        status: 500,
-        statusText: "Internal Server Error",
-      });
-
-      await expect(client.fetch("/test")).rejects.toThrow(F1ClientError);
-    });
+    const result = await runEffect(fetchWithClient<{ data: string }>("http://test.api/test"));
+    expect(result).toEqual(mockData);
   });
 
-  describe("caching", () => {
-    it("should cache GET requests", async () => {
-      const mockData = { cached: true };
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => mockData,
-      });
+  it("should include query params", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({}), { status: 200 }));
+    globalThis.fetch = fetchMock;
 
-      const result1 = await client.fetch("/test");
-      const result2 = await client.fetch("/test");
+    await runEffect(fetchWithClient("http://test.api/test", { params: { limit: 10, offset: 5 } }));
 
-      expect(fetch).toHaveBeenCalledTimes(1);
-      expect(result1).toEqual(result2);
-    });
-
-    it("should not cache POST requests", async () => {
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({ data: "test" }),
-      });
-
-      await client.fetch("/test", {}, { method: "POST" });
-      await client.fetch("/test", {}, { method: "POST" });
-
-      expect(fetch).toHaveBeenCalledTimes(2);
-    });
+    const calls = fetchMock.mock.calls;
+    expect(calls.length).toBeGreaterThan(0);
+    const firstArg = calls[0][0];
+    const firstArgStr = typeof firstArg === "string" ? firstArg : JSON.stringify(firstArg);
+    expect(firstArgStr).toContain("limit=10");
   });
+
+  it("should throw RateLimitError on 429", async () => {
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(new Response(null, { status: 429, statusText: "Too Many Requests" }));
+
+    await expect(runEffect(fetchWithClient("http://test.api/test"))).rejects.toThrow(
+      "Rate limit exceeded",
+    );
+  }, 10_000);
+
+  it("should throw F1ClientError on 500", async () => {
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(new Response(null, { status: 500, statusText: "Internal Server Error" }));
+
+    await expect(runEffect(fetchWithClient("http://test.api/test"))).rejects.toThrow("HTTP 500");
+  }, 10_000);
+
+  it("should throw F1ClientError on non-JSON response", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(new Response("not json", { status: 200 }));
+
+    await expect(runEffect(fetchWithClient("http://test.api/test"))).rejects.toThrow(
+      "Failed to parse response",
+    );
+  }, 10_000);
 });

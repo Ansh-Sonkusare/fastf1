@@ -1,21 +1,25 @@
+import { Effect } from "effect";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { type F1ClientService, F1ClientServiceLive } from "../http/service";
 import { getConstructorStandings, getDriverStandings } from "./standings";
 
-global.fetch = vi.fn();
+function run<A, E>(effect: Effect.Effect<A, E, F1ClientService>) {
+  return Effect.runPromise(Effect.provide(effect, F1ClientServiceLive));
+}
 
 describe("getDriverStandings", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.restoreAllMocks();
   });
 
   it("should return driver standings for valid year", async () => {
     const mockResponse = {
       MRData: {
         StandingsTable: {
-          season: "2024",
+          season: "2026",
           StandingsLists: [
             {
-              season: "2024",
+              season: "2026",
               round: "10",
               DriverStandings: [
                 {
@@ -26,8 +30,8 @@ describe("getDriverStandings", () => {
                   Driver: {
                     driverId: "hamilton",
                     code: "HAM",
-                    firstName: "Lewis",
-                    lastName: "Hamilton",
+                    givenName: "Lewis",
+                    familyName: "Hamilton",
                     nationality: "British",
                     dateOfBirth: "1985-01-07",
                   },
@@ -46,12 +50,14 @@ describe("getDriverStandings", () => {
       },
     };
 
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockResponse),
-    });
+    global.fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(mockResponse), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
 
-    const result = await getDriverStandings(2024);
+    const result = await run(getDriverStandings(2026));
 
     expect(result).toHaveLength(1);
     expect(result[0].Driver.driverId).toBe("hamilton");
@@ -59,23 +65,23 @@ describe("getDriverStandings", () => {
   });
 
   it("should throw on invalid year", async () => {
-    await expect(getDriverStandings(1800)).rejects.toThrow();
+    await expect(run(getDriverStandings(1800))).rejects.toThrow();
   });
 });
 
 describe("getConstructorStandings", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.restoreAllMocks();
   });
 
   it("should return constructor standings for valid year", async () => {
     const mockResponse = {
       MRData: {
         StandingsTable: {
-          season: "2024",
+          season: "2026",
           StandingsLists: [
             {
-              season: "2024",
+              season: "2026",
               round: "10",
               ConstructorStandings: [
                 {
@@ -96,12 +102,14 @@ describe("getConstructorStandings", () => {
       },
     };
 
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockResponse),
-    });
+    global.fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(mockResponse), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
 
-    const result = await getConstructorStandings(2024);
+    const result = await run(getConstructorStandings(2026));
 
     expect(result).toHaveLength(1);
     expect(result[0].Constructor.name).toBe("Red Bull");
@@ -109,6 +117,6 @@ describe("getConstructorStandings", () => {
   });
 
   it("should throw on invalid year", async () => {
-    await expect(getConstructorStandings(1800)).rejects.toThrow();
+    await expect(run(getConstructorStandings(1800))).rejects.toThrow();
   });
 });

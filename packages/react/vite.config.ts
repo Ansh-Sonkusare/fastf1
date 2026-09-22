@@ -13,7 +13,7 @@ export default defineConfig({
       formats: ["es"],
     },
     rollupOptions: {
-      external: ["react", "@f1/core"],
+      external: ["react", "@f1/core", "effect", "@effect/platform"],
     },
   },
   test: {

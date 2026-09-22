@@ -1,5 +1,5 @@
+import { Schema } from "effect";
 import { describe, expect, it } from "vitest";
-import type { z } from "zod";
 import {
   CircuitSchema,
   LocationSchema,
@@ -11,19 +11,24 @@ import {
 describe("SeasonSchema", () => {
   it("should parse valid season", () => {
     const valid = { season: "2024", url: "http://example.com" };
-    const result = SeasonSchema.parse(valid);
-    expect(result.season).toBe("2024");
+    const result = Schema.decodeUnknownEither(SeasonSchema)(valid);
+    expect(result._tag === "Right" ? result.right.season : null).toBe("2024");
   });
 
   it("should reject invalid season", () => {
     const invalid = { season: "", url: "http://example.com" };
-    expect(() => SeasonSchema.parse(invalid)).toThrow();
+    const result = Schema.decodeUnknownEither(SeasonSchema)(invalid);
+    expect(result._tag).toBe("Left");
   });
 
   it("should infer correct types", () => {
-    const parsed = SeasonSchema.parse({ season: "2024", url: "http://example.com" });
-    type Season = z.infer<typeof SeasonSchema>;
-    const _typeCheck: Season = parsed;
+    const result = Schema.decodeUnknownEither(SeasonSchema)({
+      season: "2024",
+      url: "http://example.com",
+    });
+    if (result._tag === "Right") {
+      const _typeCheck: import("./race").Season = result.right;
+    }
   });
 });
 
@@ -35,13 +40,17 @@ describe("LocationSchema", () => {
       locality: "New York",
       country: "USA",
     };
-    const result = LocationSchema.parse(valid);
-    expect(result.locality).toBe("New York");
+    const result = Schema.decodeUnknownEither(LocationSchema)(valid);
+    expect(result._tag).toBe("Right");
+    if (result._tag === "Right") {
+      expect(result.right.locality).toBe("New York");
+    }
   });
 
   it("should reject missing required fields", () => {
     const invalid = { lat: "40.1234", long: "-74.1234" };
-    expect(() => LocationSchema.parse(invalid)).toThrow();
+    const result = Schema.decodeUnknownEither(LocationSchema)(invalid);
+    expect(result._tag).toBe("Left");
   });
 });
 
@@ -58,23 +67,32 @@ describe("CircuitSchema", () => {
         country: "UK",
       },
     };
-    const result = CircuitSchema.parse(valid);
-    expect(result.circuitName).toBe("Silverstone Circuit");
-    expect(result.Location.country).toBe("UK");
+    const result = Schema.decodeUnknownEither(CircuitSchema)(valid);
+    expect(result._tag).toBe("Right");
+    if (result._tag === "Right") {
+      expect(result.right.circuitName).toBe("Silverstone Circuit");
+      expect(result.right.Location.country).toBe("UK");
+    }
   });
 });
 
 describe("SessionDateTimeSchema", () => {
   it("should parse session with date and time", () => {
     const valid = { date: "2024-07-14", time: "14:00:00Z" };
-    const result = SessionDateTimeSchema.parse(valid);
-    expect(result.date).toBe("2024-07-14");
+    const result = Schema.decodeUnknownEither(SessionDateTimeSchema)(valid);
+    expect(result._tag).toBe("Right");
+    if (result._tag === "Right") {
+      expect(result.right.date).toBe("2024-07-14");
+    }
   });
 
   it("should handle missing time", () => {
     const valid = { date: "2024-07-14" };
-    const result = SessionDateTimeSchema.parse(valid);
-    expect(result.date).toBe("2024-07-14");
+    const result = Schema.decodeUnknownEither(SessionDateTimeSchema)(valid);
+    expect(result._tag).toBe("Right");
+    if (result._tag === "Right") {
+      expect(result.right.date).toBe("2024-07-14");
+    }
   });
 });
 
@@ -104,17 +122,20 @@ describe("RaceSchema", () => {
       Qualifying: { date: "2024-07-13", time: "15:00:00Z" },
       Sprint: { date: "2024-07-13", time: "18:00:00Z" },
     };
-    const result = RaceSchema.parse(valid);
-    expect(result.raceName).toBe("British Grand Prix");
-    expect(result.Circuit.circuitName).toBe("Silverstone Circuit");
-    expect(result.FirstPractice?.date).toBe("2024-07-12");
+    const result = Schema.decodeUnknownEither(RaceSchema)(valid);
+    expect(result._tag).toBe("Right");
+    if (result._tag === "Right") {
+      expect(result.right.raceName).toBe("British Grand Prix");
+      expect(result.right.Circuit.circuitName).toBe("Silverstone Circuit");
+      expect(result.right.FirstPractice?.date).toBe("2024-07-12");
+    }
   });
 
   it("should reject race with missing required fields", () => {
     const invalid = {
       season: "2024",
-      // missing round, raceName, Circuit
     };
-    expect(() => RaceSchema.parse(invalid)).toThrow();
+    const result = Schema.decodeUnknownEither(RaceSchema)(invalid);
+    expect(result._tag).toBe("Left");
   });
 });

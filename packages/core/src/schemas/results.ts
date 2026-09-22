@@ -1,65 +1,57 @@
-import { z } from "zod";
+import { Schema } from "effect";
 import { ConstructorSchema, DriverSchema } from "./participants";
 
-export const QualifyingResultSchema = z.object({
-  Driver: DriverSchema.optional(),
-  Constructor: ConstructorSchema.optional(),
-  driverId: z.string().optional(),
-  constructorId: z.string().optional(),
-  position: z.string().optional(),
-  positionText: z.string().optional(),
-  q1: z.string().optional(),
-  q2: z.string().optional(),
-  q3: z.string().optional(),
+export const QualifyingResultSchema = Schema.Struct({
+  Driver: Schema.optional(DriverSchema),
+  Constructor: Schema.optional(ConstructorSchema),
+  driverId: Schema.optional(Schema.String),
+  constructorId: Schema.optional(Schema.String),
+  position: Schema.optional(Schema.String),
+  positionText: Schema.optional(Schema.String),
+  q1: Schema.optional(Schema.String),
+  q2: Schema.optional(Schema.String),
+  q3: Schema.optional(Schema.String),
+});
+export type QualifyingResult = Schema.Schema.Type<typeof QualifyingResultSchema>;
+
+const TimeSchema = Schema.Struct({
+  millis: Schema.optional(Schema.String),
+  time: Schema.optional(Schema.String),
 });
 
-export type QualifyingResult = z.infer<typeof QualifyingResultSchema>;
-
-export const RaceResultSchema = z.object({
-  Driver: DriverSchema.optional(),
-  Constructor: ConstructorSchema.optional(),
-  driverId: z.string().optional(),
-  constructorId: z.string().optional(),
-  position: z.string().optional(),
-  positionText: z.string().optional(),
-  points: z.string().optional(),
-  laps: z.string().optional(),
-  grid: z.string().optional(),
-  status: z.string().optional(),
-  Time: z
-    .object({
-      millis: z.string().optional(),
-      time: z.string().optional(),
-    })
-    .optional(),
-  FastestLap: z
-    .object({
-      lap: z.string().optional(),
-      time: z.string().optional(),
-      avgSpeed: z.string().optional(),
-    })
-    .optional(),
+const FastestLapSubSchema = Schema.Struct({
+  lap: Schema.optional(Schema.String),
+  time: Schema.optional(Schema.String),
+  avgSpeed: Schema.optional(Schema.String),
 });
 
-export type RaceResult = z.infer<typeof RaceResultSchema>;
-
-export const SprintResultSchema = z.object({
-  Driver: DriverSchema.optional(),
-  Constructor: ConstructorSchema.optional(),
-  driverId: z.string().optional(),
-  constructorId: z.string().optional(),
-  position: z.string().optional(),
-  positionText: z.string().optional(),
-  points: z.string().optional(),
-  laps: z.string().optional(),
-  grid: z.string().optional(),
-  status: z.string().optional(),
-  Time: z
-    .object({
-      millis: z.string().optional(),
-      time: z.string().optional(),
-    })
-    .optional(),
+export const RaceResultSchema = Schema.Struct({
+  Driver: Schema.optional(DriverSchema),
+  Constructor: Schema.optional(ConstructorSchema),
+  driverId: Schema.optional(Schema.String),
+  constructorId: Schema.optional(Schema.String),
+  position: Schema.optional(Schema.String),
+  positionText: Schema.optional(Schema.String),
+  points: Schema.optional(Schema.String),
+  laps: Schema.optional(Schema.String),
+  grid: Schema.optional(Schema.String),
+  status: Schema.optional(Schema.String),
+  Time: Schema.optional(TimeSchema),
+  FastestLap: Schema.optional(FastestLapSubSchema),
 });
+export type RaceResult = Schema.Schema.Type<typeof RaceResultSchema>;
 
-export type SprintResult = z.infer<typeof SprintResultSchema>;
+export const SprintResultSchema = Schema.Struct({
+  Driver: Schema.optional(DriverSchema),
+  Constructor: Schema.optional(ConstructorSchema),
+  driverId: Schema.optional(Schema.String),
+  constructorId: Schema.optional(Schema.String),
+  position: Schema.optional(Schema.String),
+  positionText: Schema.optional(Schema.String),
+  points: Schema.optional(Schema.String),
+  laps: Schema.optional(Schema.String),
+  grid: Schema.optional(Schema.String),
+  status: Schema.optional(Schema.String),
+  Time: Schema.optional(TimeSchema),
+});
+export type SprintResult = Schema.Schema.Type<typeof SprintResultSchema>;

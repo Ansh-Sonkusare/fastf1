@@ -1,13 +1,14 @@
-import { type ResultType, getRaceResults } from "@f1/core";
-import { useEffect, useState } from "react";
+import { type ResultType, getRaceResults, toPromise } from "@f1/core";
+import { useCallback } from "react";
+import { useAsyncResource } from "./hooks";
 
 export interface UseF1ResultsOptions {
-  initialData?: unknown[];
+  initialData?: readonly unknown[];
   type?: ResultType;
 }
 
 export interface UseF1ResultsResult {
-  data: unknown[] | null;
+  data: readonly unknown[] | null;
   isLoading: boolean;
   error: Error | null;
 }
@@ -17,38 +18,11 @@ export function useF1Results(
   round: number,
   options?: UseF1ResultsOptions,
 ): UseF1ResultsResult {
-  const [data, setData] = useState<unknown[] | null>(options?.initialData ?? null);
-  const [isLoading, setIsLoading] = useState(!options?.initialData);
-  const [error, setError] = useState<Error | null>(null);
-
-  useEffect(() => {
-    if (options?.initialData) {
-      return;
-    }
-
-    let cancelled = false;
-
-    setIsLoading(true);
-    setError(null);
-
-    getRaceResults(year, round, options?.type ?? "race")
-      .then((result) => {
-        if (!cancelled) {
-          setData(result);
-          setIsLoading(false);
-        }
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setError(err instanceof Error ? err : new Error(String(err)));
-          setIsLoading(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [year, round, options?.type, options?.initialData]);
-
-  return { data, isLoading, error };
+  return useAsyncResource<readonly unknown[]>(
+    useCallback(
+      () => toPromise(getRaceResults(year, round, options?.type ?? "race")),
+      [year, round, options?.type],
+    ),
+    options?.initialData,
+  );
 }

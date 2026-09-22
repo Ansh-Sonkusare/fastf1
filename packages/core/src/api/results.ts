@@ -1,51 +1,52 @@
-import { z } from "zod";
-import { F1Client } from "../http/client";
-import {
-  type QualifyingResult,
-  QualifyingResultSchema,
-  type RaceResult,
-  RaceResultSchema,
-} from "../schemas/results";
+import { Effect, Either, Schema } from "effect";
+import { F1ClientService } from "../http/service";
+import { QualifyingResultSchema, RaceResultSchema } from "../schemas/results";
 
-const client = new F1Client();
+const BASE_URL = "https://api.jolpi.ca/ergast/f1";
 
-const RaceResultsResponseSchema = z.object({
-  MRData: z.object({
-    RaceTable: z.object({
-      season: z.string(),
-      round: z.string(),
-      Races: z.array(
-        z.object({
-          season: z.string(),
-          round: z.string(),
-          raceName: z.string(),
-          date: z.string().optional(),
-          Results: z.array(RaceResultSchema).optional(),
-          QualifyingResults: z.array(QualifyingResultSchema).optional(),
-          SprintResults: z.array(RaceResultSchema).optional(),
+const RaceResultsResponseSchema = Schema.Struct({
+  MRData: Schema.Struct({
+    RaceTable: Schema.Struct({
+      season: Schema.String,
+      round: Schema.String,
+      Races: Schema.Array(
+        Schema.Struct({
+          season: Schema.String,
+          round: Schema.String,
+          raceName: Schema.String,
+          date: Schema.optional(Schema.String),
+          Results: Schema.optional(Schema.Array(RaceResultSchema)),
+          QualifyingResults: Schema.optional(Schema.Array(QualifyingResultSchema)),
+          SprintResults: Schema.optional(Schema.Array(RaceResultSchema)),
         }),
       ),
     }),
   }),
 });
 
-export type RaceResultsResponse = z.infer<typeof RaceResultsResponseSchema>;
-
+export type RaceResultsResponse = Schema.Schema.Type<typeof RaceResultsResponseSchema>;
 export type ResultType = "race" | "qualifying" | "sprint";
 
-export async function getRaceResults(
+function parseOrDie<A, I>(schema: Schema.Schema<A, I, never>, input: unknown): A {
+  const decoded = Schema.decodeUnknownEither(schema)(input);
+  if (Either.isLeft(decoded)) {
+    throw new Error(String(decoded.left));
+  }
+  return decoded.right;
+}
+
+export const getRaceResults = Effect.fn("getRaceResults")(function* (
   year: number,
   round: number,
   type: ResultType = "race",
-): Promise<RaceResultsResponse["MRData"]["RaceTable"]["Races"]> {
+) {
   if (year < 1950 || year > new Date().getFullYear() + 1) {
-    throw new Error(
-      `Invalid year: ${year}. Must be between 1950 and ${new Date().getFullYear() + 1}`,
+    return yield* Effect.die(
+      new Error(`Invalid year: ${year}. Must be between 1950 and ${new Date().getFullYear() + 1}`),
     );
   }
-
   if (round < 1 || round > 25) {
-    throw new Error(`Invalid round: ${round}. Must be between 1 and 25`);
+    return yield* Effect.die(new Error(`Invalid round: ${round}. Must be between 1 and 25`));
   }
 
   const endpoint =
@@ -55,8 +56,8 @@ export async function getRaceResults(
         ? `/${year}/${round}/sprint.json`
         : `/${year}/${round}/results.json`;
 
-  const response = await client.fetch(endpoint, {}, { method: "GET" });
-  const parsed = RaceResultsResponseSchema.parse(response);
-
+  const client = yield* F1ClientService;
+  const response = yield* client.fetch<unknown>(`${BASE_URL}${endpoint}`);
+  const parsed = parseOrDie(RaceResultsResponseSchema, response);
   return parsed.MRData.RaceTable.Races;
-}
+});

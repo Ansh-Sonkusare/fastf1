@@ -1,66 +1,59 @@
-import { z } from "zod";
+import { Schema } from "effect";
 
-export const LocationSchema = z.object({
-  lat: z.string(),
-  long: z.string(),
-  locality: z.string(),
-  country: z.string(),
+export const LocationSchema = Schema.Struct({
+  lat: Schema.String,
+  long: Schema.String,
+  locality: Schema.String,
+  country: Schema.String,
 });
+export type Location = Schema.Schema.Type<typeof LocationSchema>;
 
-export type Location = z.infer<typeof LocationSchema>;
-
-export const CircuitSchema = z.object({
-  circuitId: z.string().min(1),
-  url: z.string().url(),
-  circuitName: z.string().min(1),
+export const CircuitSchema = Schema.Struct({
+  circuitId: Schema.String.pipe(Schema.minLength(1)),
+  url: Schema.String,
+  circuitName: Schema.String.pipe(Schema.minLength(1)),
   Location: LocationSchema,
 });
+export type Circuit = Schema.Schema.Type<typeof CircuitSchema>;
 
-export type Circuit = z.infer<typeof CircuitSchema>;
-
-export const SessionDateTimeSchema = z.object({
-  date: z.string(),
-  time: z.string().optional(),
+export const SessionDateTimeSchema = Schema.Struct({
+  date: Schema.String,
+  time: Schema.optional(Schema.String),
 });
+export type SessionDateTime = Schema.Schema.Type<typeof SessionDateTimeSchema>;
 
-export type SessionDateTime = z.infer<typeof SessionDateTimeSchema>;
-
-export const RaceSchema = z.object({
-  season: z.string().min(1),
-  round: z.string(),
-  url: z.string().url(),
-  raceName: z.string().min(1),
+export const RaceSchema = Schema.Struct({
+  season: Schema.String.pipe(Schema.minLength(1)),
+  round: Schema.String,
+  url: Schema.String,
+  raceName: Schema.String.pipe(Schema.minLength(1)),
   Circuit: CircuitSchema,
-  date: z.string(),
-  time: z.string().optional(),
-  FirstPractice: SessionDateTimeSchema.optional(),
-  SecondPractice: SessionDateTimeSchema.optional(),
-  ThirdPractice: SessionDateTimeSchema.optional(),
-  Qualifying: SessionDateTimeSchema.optional(),
-  Sprint: SessionDateTimeSchema.optional(),
+  date: Schema.String,
+  time: Schema.optional(Schema.String),
+  FirstPractice: Schema.optional(SessionDateTimeSchema),
+  SecondPractice: Schema.optional(SessionDateTimeSchema),
+  ThirdPractice: Schema.optional(SessionDateTimeSchema),
+  Qualifying: Schema.optional(SessionDateTimeSchema),
+  Sprint: Schema.optional(SessionDateTimeSchema),
 });
+export type Race = Schema.Schema.Type<typeof RaceSchema>;
 
-export type Race = z.infer<typeof RaceSchema>;
-
-export const SeasonSchema = z.object({
-  season: z.string().min(1),
-  url: z.string().url(),
+export const SeasonSchema = Schema.Struct({
+  season: Schema.String.pipe(Schema.minLength(1)),
+  url: Schema.String,
 });
+export type Season = Schema.Schema.Type<typeof SeasonSchema>;
 
-export type Season = z.infer<typeof SeasonSchema>;
-
-export const RaceTableSchema = z.object({
-  season: z.string().min(1),
-  round: z.string().optional(),
-  Races: z.array(RaceSchema),
+export const RaceTableSchema = Schema.Struct({
+  season: Schema.String.pipe(Schema.minLength(1)),
+  round: Schema.optional(Schema.String),
+  Races: Schema.Array(RaceSchema),
 });
+export type RaceTable = Schema.Schema.Type<typeof RaceTableSchema>;
 
-export type RaceTable = z.infer<typeof RaceTableSchema>;
-
-export const ScheduleResponseSchema = z.object({
-  MRData: z.object({
+export const ScheduleResponseSchema = Schema.Struct({
+  MRData: Schema.Struct({
     RaceTable: RaceTableSchema,
   }),
 });
-
-export type ScheduleResponse = z.infer<typeof ScheduleResponseSchema>;
+export type ScheduleResponse = Schema.Schema.Type<typeof ScheduleResponseSchema>;

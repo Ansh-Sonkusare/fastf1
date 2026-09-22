@@ -1,11 +1,8 @@
-export { F1Client } from "./http/client";
 export {
-  F1ClientError,
-  TimeoutError,
-  RateLimitError,
-  AbortError,
-} from "./http/errors";
-export type { ClientOptions } from "./http/client";
+  F1ClientService,
+  F1ClientServiceLive,
+} from "./http/service";
+export type { F1ClientServiceShape, ClientError } from "./http/service";
 
 export {
   SeasonSchema,
@@ -70,6 +67,7 @@ export { getRaceResults } from "./api/results";
 export type { ResultType } from "./api/results";
 export { getDriverStandings, getConstructorStandings } from "./api/standings";
 export { getLaps } from "./api/laps";
+export { toPromise } from "./api/promises";
 
 export {
   getMeetings,
@@ -88,9 +86,28 @@ export {
   getSessionResult,
   getStartingGrid,
   getIntervals,
+  setOpenF1BaseUrl,
+  getOpenF1BaseUrl,
 } from "./api/openf1";
 
-export type { CarData, Stint, OpenF1Pit, Weather } from "./schemas/openf1";
+export type {
+  Meeting,
+  Session,
+  OpenF1Driver,
+  OpenF1Lap,
+  CarData,
+  Stint,
+  OpenF1Pit,
+  Position,
+  OpenF1Location,
+  Weather,
+  RaceControl,
+  TeamRadio,
+  Overtake,
+  SessionResult,
+  StartingGrid,
+  Interval,
+} from "./schemas/openf1";
 export { cleanNulls } from "./utils";
 
 export {
@@ -133,3 +150,19 @@ export type {
   GetRaceTelemetryParams,
   GetFastestLapParams,
 } from "./api/friendly";
+
+export {
+  DRIVER_CODES,
+  resolveMeeting,
+  resolveSession,
+  resolveDriverNumber,
+  resolveTelemetryLapWindow,
+} from "./api/race-session";
+
+export type {
+  ResolveMeetingParams,
+  ResolveSessionParams,
+  ResolvedSession,
+  TelemetryLapWindow,
+  TelemetryLapWindowOptions,
+} from "./api/race-session";

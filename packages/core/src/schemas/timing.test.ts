@@ -1,5 +1,5 @@
+import { Schema } from "effect";
 import { describe, expect, it } from "vitest";
-import type { z } from "zod";
 import { FastestLapSchema, LapSchema, PitStopSchema, TimingSchema } from "./timing";
 
 describe("LapSchema", () => {
@@ -11,10 +11,13 @@ describe("LapSchema", () => {
       time: "1:45.123",
       timestamp: "2024-07-14T12:00:00Z",
     };
-    const result = LapSchema.parse(valid);
-    expect(result.driverId).toBe("hamilton");
-    expect(result.lap).toBe("1");
-    expect(result.position).toBe("1");
+    const result = Schema.decodeUnknownEither(LapSchema)(valid);
+    expect(result._tag).toBe("Right");
+    if (result._tag === "Right") {
+      expect(result.right.driverId).toBe("hamilton");
+      expect(result.right.lap).toBe("1");
+      expect(result.right.position).toBe("1");
+    }
   });
 
   it("should reject invalid lap", () => {
@@ -22,18 +25,20 @@ describe("LapSchema", () => {
       driverId: "",
       lap: "1",
     };
-    expect(() => LapSchema.parse(invalid)).toThrow();
+    const result = Schema.decodeUnknownEither(LapSchema)(invalid);
+    expect(result._tag).toBe("Left");
   });
 
   it("should infer correct types", () => {
-    const parsed = LapSchema.parse({
+    const result = Schema.decodeUnknownEither(LapSchema)({
       driverId: "hamilton",
       lap: "1",
       position: "1",
       time: "1:45.123",
     });
-    type Lap = z.infer<typeof LapSchema>;
-    const _typeCheck: Lap = parsed;
+    if (result._tag === "Right") {
+      const _typeCheck: import("./timing").Lap = result.right;
+    }
   });
 });
 
@@ -46,9 +51,12 @@ describe("PitStopSchema", () => {
       time: "22.456",
       duration: "21.345",
     };
-    const result = PitStopSchema.parse(valid);
-    expect(result.driverId).toBe("hamilton");
-    expect(result.stop).toBe("1");
+    const result = Schema.decodeUnknownEither(PitStopSchema)(valid);
+    expect(result._tag).toBe("Right");
+    if (result._tag === "Right") {
+      expect(result.right.driverId).toBe("hamilton");
+      expect(result.right.stop).toBe("1");
+    }
   });
 
   it("should reject invalid pit stop", () => {
@@ -56,7 +64,8 @@ describe("PitStopSchema", () => {
       driverId: "",
       lap: "20",
     };
-    expect(() => PitStopSchema.parse(invalid)).toThrow();
+    const result = Schema.decodeUnknownEither(PitStopSchema)(invalid);
+    expect(result._tag).toBe("Left");
   });
 });
 
@@ -69,9 +78,12 @@ describe("TimingSchema", () => {
       gap: "+2.345",
       interval: "+1.234",
     };
-    const result = TimingSchema.parse(valid);
-    expect(result.driverId).toBe("hamilton");
-    expect(result.gap).toBe("+2.345");
+    const result = Schema.decodeUnknownEither(TimingSchema)(valid);
+    expect(result._tag).toBe("Right");
+    if (result._tag === "Right") {
+      expect(result.right.driverId).toBe("hamilton");
+      expect(result.right.gap).toBe("+2.345");
+    }
   });
 
   it("should handle missing optional fields", () => {
@@ -80,8 +92,11 @@ describe("TimingSchema", () => {
       position: "1",
       time: "1:45.123",
     };
-    const result = TimingSchema.parse(valid);
-    expect(result.gap).toBeUndefined();
+    const result = Schema.decodeUnknownEither(TimingSchema)(valid);
+    expect(result._tag).toBe("Right");
+    if (result._tag === "Right") {
+      expect(result.right.gap).toBeUndefined();
+    }
   });
 });
 
@@ -94,10 +109,13 @@ describe("FastestLapSchema", () => {
       speed: "320.5",
       timestamp: "2024-07-14T14:30:00Z",
     };
-    const result = FastestLapSchema.parse(valid);
-    expect(result.driverId).toBe("hamilton");
-    expect(result.lap).toBe("45");
-    expect(result.speed).toBe("320.5");
+    const result = Schema.decodeUnknownEither(FastestLapSchema)(valid);
+    expect(result._tag).toBe("Right");
+    if (result._tag === "Right") {
+      expect(result.right.driverId).toBe("hamilton");
+      expect(result.right.lap).toBe("45");
+      expect(result.right.speed).toBe("320.5");
+    }
   });
 
   it("should reject invalid fastest lap", () => {
@@ -105,6 +123,7 @@ describe("FastestLapSchema", () => {
       driverId: "",
       lap: "45",
     };
-    expect(() => FastestLapSchema.parse(invalid)).toThrow();
+    const result = Schema.decodeUnknownEither(FastestLapSchema)(invalid);
+    expect(result._tag).toBe("Left");
   });
 });
