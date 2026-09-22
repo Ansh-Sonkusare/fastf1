@@ -13,7 +13,7 @@ export default defineConfig({
       formats: ["es"],
     },
     rollupOptions: {
-      external: ["zod", "quick-lru"],
+      external: ["effect", "@effect/platform", "@effect/platform-node"],
     },
   },
 });

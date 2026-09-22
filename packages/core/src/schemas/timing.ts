@@ -1,41 +1,37 @@
-import { z } from "zod";
+import { Schema } from "effect";
 
-export const LapSchema = z.object({
-  driverId: z.string().min(1),
-  lap: z.string(),
-  position: z.string().optional(),
-  time: z.string().optional(),
-  timestamp: z.string().optional(),
+export const LapSchema = Schema.Struct({
+  driverId: Schema.String.pipe(Schema.minLength(1)),
+  lap: Schema.String,
+  position: Schema.optional(Schema.String),
+  time: Schema.optional(Schema.String),
+  timestamp: Schema.optional(Schema.String),
 });
+export type Lap = Schema.Schema.Type<typeof LapSchema>;
 
-export type Lap = z.infer<typeof LapSchema>;
-
-export const PitStopSchema = z.object({
-  driverId: z.string().min(1),
-  lap: z.string(),
-  stop: z.string().optional(),
-  time: z.string().optional(),
-  duration: z.string().optional(),
+export const PitStopSchema = Schema.Struct({
+  driverId: Schema.String.pipe(Schema.minLength(1)),
+  lap: Schema.String,
+  stop: Schema.optional(Schema.String),
+  time: Schema.optional(Schema.String),
+  duration: Schema.optional(Schema.String),
 });
+export type PitStop = Schema.Schema.Type<typeof PitStopSchema>;
 
-export type PitStop = z.infer<typeof PitStopSchema>;
-
-export const TimingSchema = z.object({
-  driverId: z.string().min(1),
-  position: z.string().optional(),
-  time: z.string().optional(),
-  gap: z.string().optional(),
-  interval: z.string().optional(),
+export const TimingSchema = Schema.Struct({
+  driverId: Schema.String.pipe(Schema.minLength(1)),
+  position: Schema.optional(Schema.String),
+  time: Schema.optional(Schema.String),
+  gap: Schema.optional(Schema.String),
+  interval: Schema.optional(Schema.String),
 });
+export type Timing = Schema.Schema.Type<typeof TimingSchema>;
 
-export type Timing = z.infer<typeof TimingSchema>;
-
-export const FastestLapSchema = z.object({
-  driverId: z.string().min(1),
-  lap: z.string().optional(),
-  time: z.string().optional(),
-  speed: z.string().optional(),
-  timestamp: z.string().optional(),
+export const FastestLapSchema = Schema.Struct({
+  driverId: Schema.String.pipe(Schema.minLength(1)),
+  lap: Schema.optional(Schema.String),
+  time: Schema.optional(Schema.String),
+  speed: Schema.optional(Schema.String),
+  timestamp: Schema.optional(Schema.String),
 });
-
-export type FastestLap = z.infer<typeof FastestLapSchema>;
+export type FastestLap = Schema.Schema.Type<typeof FastestLapSchema>;

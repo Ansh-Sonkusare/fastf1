@@ -1,21 +1,31 @@
+import { Effect } from "effect";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { type F1ClientService, F1ClientServiceLive } from "../http/service";
 import { getSchedule } from "./schedule";
 
-global.fetch = vi.fn();
+function run<A, E>(effect: Effect.Effect<A, E, F1ClientService>) {
+  return Effect.runPromise(Effect.provide(effect, F1ClientServiceLive));
+}
 
 describe("getSchedule", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.restoreAllMocks();
   });
 
   it("should return schedule data for valid year", async () => {
     const mockResponse = {
       MRData: {
+        xmlns: "",
+        series: "f1",
+        url: "https://api.jolpi.ca/ergast/f1/2026.json",
+        limit: "30",
+        offset: "0",
+        total: "24",
         RaceTable: {
-          season: "2024",
+          season: "2026",
           Races: [
             {
-              season: "2024",
+              season: "2026",
               round: "1",
               url: "http://example.com",
               raceName: "Bahrain Grand Prix",
@@ -30,7 +40,7 @@ describe("getSchedule", () => {
                   country: "Bahrain",
                 },
               },
-              date: "2024-03-02",
+              date: "2026-04-05",
               time: "15:00:00Z",
             },
           ],
@@ -38,19 +48,21 @@ describe("getSchedule", () => {
       },
     };
 
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockResponse),
-    });
+    global.fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(mockResponse), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
 
-    const result = await getSchedule(2024);
+    const result = await run(getSchedule(2026));
 
     expect(result.Races).toHaveLength(1);
-    expect(result.season).toBe("2024");
+    expect(result.season).toBe("2026");
     expect(result.Races[0].raceName).toBe("Bahrain Grand Prix");
   });
 
   it("should throw on invalid year", async () => {
-    await expect(getSchedule(1800)).rejects.toThrow();
+    await expect(run(getSchedule(1800))).rejects.toThrow();
   });
 });

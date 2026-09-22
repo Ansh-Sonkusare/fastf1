@@ -1,22 +1,26 @@
+import { Effect } from "effect";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { type F1ClientService, F1ClientServiceLive } from "../http/service";
 import { getLaps } from "./laps";
 
-global.fetch = vi.fn();
+function run<A, E>(effect: Effect.Effect<A, E, F1ClientService>) {
+  return Effect.runPromise(Effect.provide(effect, F1ClientServiceLive));
+}
 
 describe("getLaps", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.restoreAllMocks();
   });
 
   it("should return lap data for valid year and round", async () => {
     const mockResponse = {
       MRData: {
         RaceTable: {
-          season: "2024",
+          season: "2026",
           round: "1",
           Races: [
             {
-              season: "2024",
+              season: "2026",
               round: "1",
               raceName: "Bahrain Grand Prix",
               Laps: [
@@ -47,12 +51,14 @@ describe("getLaps", () => {
       },
     };
 
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockResponse),
-    });
+    global.fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(mockResponse), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
 
-    const result = await getLaps(2024, 1);
+    const result = await run(getLaps(2026, 1));
 
     expect(result).toHaveLength(2);
     expect(result[0].number).toBe("1");
@@ -63,11 +69,11 @@ describe("getLaps", () => {
     const mockResponse = {
       MRData: {
         RaceTable: {
-          season: "2024",
+          season: "2026",
           round: "1",
           Races: [
             {
-              season: "2024",
+              season: "2026",
               round: "1",
               raceName: "Bahrain Grand Prix",
               Laps: [
@@ -93,18 +99,20 @@ describe("getLaps", () => {
       },
     };
 
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockResponse),
-    });
+    global.fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(mockResponse), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
 
-    const result = await getLaps(2024, 1, "hamilton");
+    const result = await run(getLaps(2026, 1, "hamilton"));
 
     expect(result).toHaveLength(1);
     expect(result[0].Timings[0].driverId).toBe("hamilton");
   });
 
   it("should throw on invalid year", async () => {
-    await expect(getLaps(1800, 1)).rejects.toThrow();
+    await expect(run(getLaps(1800, 1))).rejects.toThrow();
   });
 });

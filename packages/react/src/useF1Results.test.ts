@@ -4,6 +4,7 @@ import { useF1Results } from "./useF1Results";
 
 vi.mock("@f1/core", () => ({
   getRaceResults: vi.fn(),
+  toPromise: (x: unknown) => x,
 }));
 
 import { getRaceResults } from "@f1/core";
@@ -18,13 +19,22 @@ describe("useF1Results", () => {
   it("should return results data on success", async () => {
     const mockData = [
       {
-        season: "2024",
+        season: "2026",
         round: "1",
+        url: "http://example.com",
         raceName: "Bahrain Grand Prix",
         Results: [
           {
-            driverId: "hamilton",
-            constructorId: "mercedes",
+            Driver: {
+              driverId: "hamilton",
+              code: "HAM",
+              givenName: "Lewis",
+              familyName: "Hamilton",
+            },
+            Constructor: {
+              constructorId: "mercedes",
+              name: "Mercedes",
+            },
             position: "1",
             positionText: "1",
             points: "25",
@@ -38,7 +48,7 @@ describe("useF1Results", () => {
 
     mockGetRaceResults.mockResolvedValue(mockData);
 
-    const { result } = renderHook(() => useF1Results(2024, 1));
+    const { result } = renderHook(() => useF1Results(2026, 1));
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
@@ -49,20 +59,26 @@ describe("useF1Results", () => {
   it("should use initialData for SSR hydration", async () => {
     const initialData = [
       {
-        season: "2024",
+        season: "2026",
         round: "1",
+        url: "http://example.com",
         raceName: "Bahrain Grand Prix",
         Results: [
           {
-            driverId: "hamilton",
-            constructorId: "mercedes",
+            Driver: {
+              driverId: "hamilton",
+              code: "HAM",
+            },
+            Constructor: {
+              constructorId: "mercedes",
+            },
             position: "1",
           },
         ],
       },
     ];
 
-    const { result } = renderHook(() => useF1Results(2024, 1, { initialData }));
+    const { result } = renderHook(() => useF1Results(2026, 1, { initialData }));
 
     expect(result.current.data).toEqual(initialData);
     expect(result.current.isLoading).toBe(false);
@@ -71,7 +87,7 @@ describe("useF1Results", () => {
   it("should handle error state", async () => {
     mockGetRaceResults.mockRejectedValue(new Error("API Error"));
 
-    const { result } = renderHook(() => useF1Results(2024, 1));
+    const { result } = renderHook(() => useF1Results(2026, 1));
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
@@ -82,7 +98,7 @@ describe("useF1Results", () => {
   it("should set loading state initially", () => {
     mockGetRaceResults.mockImplementation(() => new Promise(() => {}));
 
-    const { result } = renderHook(() => useF1Results(2024, 1));
+    const { result } = renderHook(() => useF1Results(2026, 1));
 
     expect(result.current.isLoading).toBe(true);
     expect(result.current.data).toBeNull();

@@ -9,6 +9,8 @@ export {
   useRaceTelemetry,
   useFastestLap,
 } from "./useRaceHooks";
+export { useAsyncResource } from "./hooks";
+export type { UseAsyncResourceResult } from "./hooks";
 export type {
   UseRaceStintsResult,
   UseRacePitStopsResult,

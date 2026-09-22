@@ -1,233 +1,221 @@
-import { z } from "zod";
+import { Schema } from "effect";
 
-export const MeetingSchema = z.object({
-  meeting_key: z.number(),
-  meeting_name: z.string(),
-  meeting_official_name: z.string(),
-  year: z.number(),
-  meeting_round: z.number(),
-  circuit_key: z.number(),
-  circuit_short_name: z.string(),
-  circuit_type: z.string(),
-  country_key: z.number(),
-  country_name: z.string(),
-  country_code: z.string(),
-  country_flag: z.string().optional(),
-  location: z.string(),
-  date_start: z.string(),
-  date_end: z.string(),
-  gmt_offset: z.string(),
-  is_cancelled: z.boolean().optional(),
+const nullish = <A, I, R>(schema: Schema.Schema<A, I, R>) =>
+  Schema.optionalWith(schema, { nullable: true, exact: true });
+
+export const MeetingSchema = Schema.Struct({
+  meeting_key: Schema.Number,
+  meeting_name: Schema.String,
+  meeting_official_name: Schema.String,
+  meeting_round: nullish(Schema.Number),
+  year: Schema.Number,
+  circuit_key: Schema.Number,
+  circuit_short_name: Schema.String,
+  circuit_type: Schema.String,
+  country_key: Schema.Number,
+  country_name: Schema.String,
+  country_code: Schema.String,
+  country_flag: nullish(Schema.String),
+  location: Schema.String,
+  date_start: Schema.String,
+  date_end: Schema.String,
+  gmt_offset: Schema.String,
+  is_cancelled: nullish(Schema.Boolean),
 });
+export type Meeting = Schema.Schema.Type<typeof MeetingSchema>;
 
-export type Meeting = z.infer<typeof MeetingSchema>;
-
-export const SessionSchema = z.object({
-  session_key: z.number(),
-  meeting_key: z.number(),
-  session_name: z.string(),
-  session_type: z.string(),
-  year: z.number(),
-  country_key: z.number(),
-  country_name: z.string(),
-  circuit_key: z.number(),
-  circuit_short_name: z.string(),
-  location: z.string(),
-  date_start: z.string(),
-  date_end: z.string(),
-  gmt_offset: z.string(),
-  is_cancelled: z.boolean().optional(),
+export const SessionSchema = Schema.Struct({
+  session_key: Schema.Number,
+  meeting_key: Schema.Number,
+  session_name: Schema.String,
+  session_type: Schema.String,
+  year: Schema.Number,
+  country_key: Schema.Number,
+  country_name: Schema.String,
+  country_code: nullish(Schema.String),
+  circuit_key: Schema.Number,
+  circuit_short_name: Schema.String,
+  location: Schema.String,
+  date_start: Schema.String,
+  date_end: Schema.String,
+  gmt_offset: Schema.String,
+  is_cancelled: nullish(Schema.Boolean),
 });
+export type Session = Schema.Schema.Type<typeof SessionSchema>;
 
-export type Session = z.infer<typeof SessionSchema>;
-
-export const OpenF1DriverSchema = z.object({
-  session_key: z.number(),
-  meeting_key: z.number(),
-  driver_number: z.number(),
-  broadcast_name: z.string(),
-  full_name: z.string(),
-  first_name: z.string(),
-  last_name: z.string(),
-  name_acronym: z.string(),
-  team_name: z.string(),
-  team_colour: z.string(),
-  headshot_url: z.string().optional(),
+export const OpenF1DriverSchema = Schema.Struct({
+  session_key: Schema.Number,
+  meeting_key: Schema.Number,
+  driver_number: Schema.Number,
+  broadcast_name: Schema.String,
+  full_name: Schema.String,
+  first_name: Schema.String,
+  last_name: Schema.String,
+  name_acronym: Schema.String,
+  team_name: Schema.String,
+  team_colour: Schema.String,
+  headshot_url: nullish(Schema.String),
 });
+export type OpenF1Driver = Schema.Schema.Type<typeof OpenF1DriverSchema>;
 
-export type OpenF1Driver = z.infer<typeof OpenF1DriverSchema>;
-
-export const OpenF1LapSchema = z.object({
-  session_key: z.number(),
-  meeting_key: z.number(),
-  driver_number: z.number(),
-  lap_number: z.number(),
-  date_start: z.string().nullish(),
-  lap_duration: z.number().nullish(),
-  duration_sector_1: z.number().nullish(),
-  duration_sector_2: z.number().nullish(),
-  duration_sector_3: z.number().nullish(),
-  i1_speed: z.number().nullish(),
-  i2_speed: z.number().nullish(),
-  st_speed: z.number().nullish(),
-  is_pit_out_lap: z.boolean().optional(),
-  segments_sector_1: z.array(z.number()).nullish(),
-  segments_sector_2: z.array(z.number()).nullish(),
-  segments_sector_3: z.array(z.number()).nullish(),
+export const OpenF1LapSchema = Schema.Struct({
+  session_key: Schema.Number,
+  meeting_key: Schema.Number,
+  driver_number: Schema.Number,
+  lap_number: Schema.Number,
+  date_start: nullish(Schema.String),
+  lap_duration: nullish(Schema.Number),
+  duration_sector_1: nullish(Schema.Number),
+  duration_sector_2: nullish(Schema.Number),
+  duration_sector_3: nullish(Schema.Number),
+  i1_speed: nullish(Schema.Number),
+  i2_speed: nullish(Schema.Number),
+  st_speed: nullish(Schema.Number),
+  is_pit_out_lap: nullish(Schema.Boolean),
+  segments_sector_1: nullish(Schema.Array(Schema.Union(Schema.Number, Schema.Null))),
+  segments_sector_2: nullish(Schema.Array(Schema.Union(Schema.Number, Schema.Null))),
+  segments_sector_3: nullish(Schema.Array(Schema.Union(Schema.Number, Schema.Null))),
 });
+export type OpenF1Lap = Schema.Schema.Type<typeof OpenF1LapSchema>;
 
-export type OpenF1Lap = z.infer<typeof OpenF1LapSchema>;
-
-export const StintSchema = z.object({
-  session_key: z.number(),
-  meeting_key: z.number(),
-  driver_number: z.number(),
-  stint_number: z.number(),
-  lap_start: z.number(),
-  lap_end: z.number(),
-  compound: z.string(),
-  tyre_age_at_start: z.number().optional(),
+export const StintSchema = Schema.Struct({
+  session_key: Schema.Number,
+  meeting_key: Schema.Number,
+  driver_number: Schema.Number,
+  stint_number: Schema.Number,
+  lap_start: Schema.Number,
+  lap_end: Schema.Number,
+  compound: Schema.String,
+  tyre_age_at_start: nullish(Schema.Number),
 });
+export type Stint = Schema.Schema.Type<typeof StintSchema>;
 
-export type Stint = z.infer<typeof StintSchema>;
-
-export const OpenF1PitSchema = z.object({
-  session_key: z.number(),
-  meeting_key: z.number(),
-  driver_number: z.number(),
-  lap_number: z.number().nullish(),
-  stop_number: z.number().nullish(),
-  pit_duration: z.number().nullish(),
-  lane_duration: z.number().nullish(),
-  stop_duration: z.number().nullish(),
-  date: z.string().nullish(),
+export const OpenF1PitSchema = Schema.Struct({
+  session_key: Schema.Number,
+  meeting_key: Schema.Number,
+  driver_number: Schema.Number,
+  lap_number: nullish(Schema.Number),
+  stop_number: nullish(Schema.Number),
+  pit_duration: nullish(Schema.Number),
+  lane_duration: nullish(Schema.Number),
+  stop_duration: nullish(Schema.Number),
+  date: nullish(Schema.String),
 });
+export type OpenF1Pit = Schema.Schema.Type<typeof OpenF1PitSchema>;
 
-export type OpenF1Pit = z.infer<typeof OpenF1PitSchema>;
-
-export const PositionSchema = z.object({
-  session_key: z.number(),
-  meeting_key: z.number(),
-  driver_number: z.number(),
-  position: z.number(),
-  date: z.string(),
+export const PositionSchema = Schema.Struct({
+  session_key: Schema.Number,
+  meeting_key: Schema.Number,
+  driver_number: Schema.Number,
+  position: Schema.Number,
+  date: Schema.String,
 });
+export type Position = Schema.Schema.Type<typeof PositionSchema>;
 
-export type Position = z.infer<typeof PositionSchema>;
-
-export const CarDataSchema = z.object({
-  session_key: z.number(),
-  meeting_key: z.number(),
-  driver_number: z.number(),
-  date: z.string(),
-  speed: z.number().optional(),
-  rpm: z.number().optional(),
-  n_gear: z.number().optional(),
-  throttle: z.number().optional(),
-  brake: z.number().optional(),
-  drs: z.number().optional(),
+export const CarDataSchema = Schema.Struct({
+  session_key: Schema.Number,
+  meeting_key: Schema.Number,
+  driver_number: Schema.Number,
+  date: Schema.String,
+  speed: nullish(Schema.Number),
+  rpm: nullish(Schema.Number),
+  n_gear: nullish(Schema.Number),
+  throttle: nullish(Schema.Number),
+  brake: nullish(Schema.Number),
+  drs: nullish(Schema.Number),
 });
+export type CarData = Schema.Schema.Type<typeof CarDataSchema>;
 
-export type CarData = z.infer<typeof CarDataSchema>;
-
-export const LocationSchema = z.object({
-  session_key: z.number(),
-  meeting_key: z.number(),
-  driver_number: z.number(),
-  date: z.string(),
-  x: z.number(),
-  y: z.number(),
-  z: z.number().optional(),
+export const LocationSchema = Schema.Struct({
+  session_key: Schema.Number,
+  meeting_key: Schema.Number,
+  driver_number: Schema.Number,
+  date: Schema.String,
+  x: Schema.Number,
+  y: Schema.Number,
+  z: nullish(Schema.Number),
 });
+export type OpenF1Location = Schema.Schema.Type<typeof LocationSchema>;
 
-export type Location = z.infer<typeof LocationSchema>;
-
-export const WeatherSchema = z.object({
-  session_key: z.number(),
-  meeting_key: z.number(),
-  date: z.string(),
-  air_temperature: z.number().optional(),
-  track_temperature: z.number().optional(),
-  humidity: z.number().optional(),
-  pressure: z.number().optional(),
-  wind_speed: z.number().optional(),
-  wind_direction: z.number().optional(),
-  precipitation: z.number().optional(),
-  track_surface_temperature: z.number().optional(),
+export const WeatherSchema = Schema.Struct({
+  session_key: Schema.Number,
+  meeting_key: Schema.Number,
+  date: Schema.String,
+  air_temperature: nullish(Schema.Number),
+  track_temperature: nullish(Schema.Number),
+  humidity: nullish(Schema.Number),
+  pressure: nullish(Schema.Number),
+  wind_speed: nullish(Schema.Number),
+  wind_direction: nullish(Schema.Number),
+  precipitation: nullish(Schema.Number),
+  track_surface_temperature: nullish(Schema.Number),
 });
+export type Weather = Schema.Schema.Type<typeof WeatherSchema>;
 
-export type Weather = z.infer<typeof WeatherSchema>;
-
-export const RaceControlSchema = z.object({
-  session_key: z.number(),
-  meeting_key: z.number(),
-  date: z.string(),
-  category: z.string(),
-  flag: z.string().optional(),
-  scope: z.string().optional(),
-  sector: z.number().optional(),
-  lap_number: z.number().optional(),
-  driver_number: z.number().optional(),
-  message: z.string(),
-  qualifying_phase: z.string().optional(),
+export const RaceControlSchema = Schema.Struct({
+  session_key: Schema.Number,
+  meeting_key: Schema.Number,
+  date: Schema.String,
+  category: Schema.String,
+  flag: nullish(Schema.String),
+  scope: nullish(Schema.String),
+  sector: nullish(Schema.Number),
+  lap_number: nullish(Schema.Number),
+  driver_number: nullish(Schema.Number),
+  message: Schema.String,
+  qualifying_phase: nullish(Schema.String),
 });
+export type RaceControl = Schema.Schema.Type<typeof RaceControlSchema>;
 
-export type RaceControl = z.infer<typeof RaceControlSchema>;
-
-export const TeamRadioSchema = z.object({
-  session_key: z.number(),
-  meeting_key: z.number(),
-  driver_number: z.number(),
-  date: z.string(),
-  message: z.string(),
-  driver_id: z.string(),
+export const TeamRadioSchema = Schema.Struct({
+  session_key: Schema.Number,
+  meeting_key: Schema.Number,
+  driver_number: Schema.Number,
+  date: Schema.String,
+  message: Schema.String,
+  driver_id: Schema.String,
 });
+export type TeamRadio = Schema.Schema.Type<typeof TeamRadioSchema>;
 
-export type TeamRadio = z.infer<typeof TeamRadioSchema>;
-
-export const OvertakeSchema = z.object({
-  session_key: z.number(),
-  meeting_key: z.number(),
-  date: z.string(),
-  overtaking_driver_number: z.number(),
-  overtaken_driver_number: z.number(),
-  position: z.number(),
+export const OvertakeSchema = Schema.Struct({
+  session_key: Schema.Number,
+  meeting_key: Schema.Number,
+  date: Schema.String,
+  overtaking_driver_number: Schema.Number,
+  overtaken_driver_number: Schema.Number,
+  position: Schema.Number,
 });
+export type Overtake = Schema.Schema.Type<typeof OvertakeSchema>;
 
-export type Overtake = z.infer<typeof OvertakeSchema>;
-
-export const SessionResultSchema = z.object({
-  session_key: z.number(),
-  meeting_key: z.number(),
-  driver_number: z.number(),
-  position: z.number(),
-  duration: z.number().optional(),
-  gap_to_leader: z.number().optional(),
-  number_of_laps: z.number(),
-  dnf: z.boolean(),
-  dns: z.boolean(),
-  dsq: z.boolean(),
+export const SessionResultSchema = Schema.Struct({
+  session_key: Schema.Number,
+  meeting_key: Schema.Number,
+  driver_number: Schema.Number,
+  position: Schema.Number,
+  duration: nullish(Schema.Number),
+  gap_to_leader: nullish(Schema.Number),
+  number_of_laps: Schema.Number,
+  dnf: Schema.Boolean,
+  dns: Schema.Boolean,
+  dsq: Schema.Boolean,
 });
+export type SessionResult = Schema.Schema.Type<typeof SessionResultSchema>;
 
-export type SessionResult = z.infer<typeof SessionResultSchema>;
-
-export const StartingGridSchema = z.object({
-  session_key: z.number(),
-  meeting_key: z.number(),
-  driver_number: z.number(),
-  position: z.number(),
-  lap_duration: z.number().optional(),
+export const StartingGridSchema = Schema.Struct({
+  session_key: Schema.Number,
+  meeting_key: Schema.Number,
+  driver_number: Schema.Number,
+  position: Schema.Number,
+  lap_duration: nullish(Schema.Number),
 });
+export type StartingGrid = Schema.Schema.Type<typeof StartingGridSchema>;
 
-export type StartingGrid = z.infer<typeof StartingGridSchema>;
-
-export const IntervalSchema = z.object({
-  session_key: z.number(),
-  meeting_key: z.number(),
-  driver_number: z.number(),
-  date: z.string(),
-  gap_to_leader: z.number().optional(),
-  interval: z.number().optional(),
+export const IntervalSchema = Schema.Struct({
+  session_key: Schema.Number,
+  meeting_key: Schema.Number,
+  driver_number: Schema.Number,
+  date: Schema.String,
+  gap_to_leader: nullish(Schema.Number),
+  interval: nullish(Schema.Number),
 });
-
-export type Interval = z.infer<typeof IntervalSchema>;
+export type Interval = Schema.Schema.Type<typeof IntervalSchema>;

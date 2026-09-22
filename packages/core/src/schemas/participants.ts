@@ -1,53 +1,48 @@
-import { z } from "zod";
+import { Schema } from "effect";
 
-export const DriverSchema = z.object({
-  driverId: z.string().min(1).optional(),
-  permanentNumber: z.string().optional(),
-  code: z.string().optional(),
-  firstName: z.string().optional(),
-  lastName: z.string().optional(),
-  nationality: z.string().optional(),
-  dateOfBirth: z.string().optional(),
-  url: z.string().optional(),
+export const DriverSchema = Schema.Struct({
+  driverId: Schema.optional(Schema.String.pipe(Schema.minLength(1))),
+  permanentNumber: Schema.optional(Schema.String),
+  code: Schema.optional(Schema.String),
+  givenName: Schema.optional(Schema.String),
+  familyName: Schema.optional(Schema.String),
+  nationality: Schema.optional(Schema.String),
+  dateOfBirth: Schema.optional(Schema.String),
+  url: Schema.optional(Schema.String),
 });
+export type Driver = Schema.Schema.Type<typeof DriverSchema>;
 
-export type Driver = z.infer<typeof DriverSchema>;
-
-export const ConstructorSchema = z.object({
-  constructorId: z.string().optional(),
-  name: z.string().optional(),
-  nationality: z.string().optional(),
-  url: z.string().optional(),
+export const ConstructorSchema = Schema.Struct({
+  constructorId: Schema.optional(Schema.String),
+  name: Schema.optional(Schema.String),
+  nationality: Schema.optional(Schema.String),
+  url: Schema.optional(Schema.String),
 });
+export type Constructor = Schema.Schema.Type<typeof ConstructorSchema>;
 
-export type Constructor = z.infer<typeof ConstructorSchema>;
-
-export const TeamSchema = z.object({
-  teamId: z.string().min(1),
-  name: z.string().min(1),
-  nationality: z.string().optional(),
-  url: z.string().url().optional(),
+export const TeamSchema = Schema.Struct({
+  teamId: Schema.String.pipe(Schema.minLength(1)),
+  name: Schema.String.pipe(Schema.minLength(1)),
+  nationality: Schema.optional(Schema.String),
+  url: Schema.optional(Schema.String),
 });
+export type Team = Schema.Schema.Type<typeof TeamSchema>;
 
-export type Team = z.infer<typeof TeamSchema>;
-
-export const DriverStandingSchema = z.object({
-  position: z.string(),
-  positionText: z.string(),
-  points: z.string(),
-  wins: z.string(),
+export const DriverStandingSchema = Schema.Struct({
+  position: Schema.String,
+  positionText: Schema.String,
+  points: Schema.String,
+  wins: Schema.String,
   Driver: DriverSchema,
-  Constructors: z.array(ConstructorSchema),
+  Constructors: Schema.Array(ConstructorSchema),
 });
+export type DriverStanding = Schema.Schema.Type<typeof DriverStandingSchema>;
 
-export type DriverStanding = z.infer<typeof DriverStandingSchema>;
-
-export const ConstructorStandingSchema = z.object({
-  position: z.string(),
-  positionText: z.string(),
-  points: z.string(),
-  wins: z.string(),
+export const ConstructorStandingSchema = Schema.Struct({
+  position: Schema.String,
+  positionText: Schema.String,
+  points: Schema.String,
+  wins: Schema.String,
   Constructor: ConstructorSchema,
 });
-
-export type ConstructorStanding = z.infer<typeof ConstructorStandingSchema>;
+export type ConstructorStanding = Schema.Schema.Type<typeof ConstructorStandingSchema>;

@@ -1,5 +1,5 @@
+import { Schema } from "effect";
 import { describe, expect, it } from "vitest";
-import type { z } from "zod";
 import { ConstructorSchema, DriverSchema, TeamSchema } from "./participants";
 
 describe("DriverSchema", () => {
@@ -8,38 +8,43 @@ describe("DriverSchema", () => {
       driverId: "hamilton",
       permanentNumber: "44",
       code: "HAM",
-      firstName: "Lewis",
-      lastName: "Hamilton",
+      givenName: "Lewis",
+      familyName: "Hamilton",
       nationality: "British",
       dateOfBirth: "1985-01-07",
       url: "http://en.wikipedia.org/wiki/Lewis_Hamilton",
     };
-    const result = DriverSchema.parse(valid);
-    expect(result.driverId).toBe("hamilton");
-    expect(result.code).toBe("HAM");
-    expect(result.permanentNumber).toBe("44");
+    const result = Schema.decodeUnknownEither(DriverSchema)(valid);
+    expect(result._tag).toBe("Right");
+    if (result._tag === "Right") {
+      expect(result.right.driverId).toBe("hamilton");
+      expect(result.right.code).toBe("HAM");
+      expect(result.right.permanentNumber).toBe("44");
+    }
   });
 
   it("should reject invalid driver", () => {
     const invalid = {
       driverId: "",
-      firstName: "Lewis",
-      lastName: "Hamilton",
+      givenName: "Lewis",
+      familyName: "Hamilton",
     };
-    expect(() => DriverSchema.parse(invalid)).toThrow();
+    const result = Schema.decodeUnknownEither(DriverSchema)(invalid);
+    expect(result._tag).toBe("Left");
   });
 
   it("should infer correct types", () => {
-    const parsed = DriverSchema.parse({
+    const result = Schema.decodeUnknownEither(DriverSchema)({
       driverId: "hamilton",
       code: "HAM",
-      firstName: "Lewis",
-      lastName: "Hamilton",
+      givenName: "Lewis",
+      familyName: "Hamilton",
       nationality: "British",
       dateOfBirth: "1985-01-07",
     });
-    type Driver = z.infer<typeof DriverSchema>;
-    const _typeCheck: Driver = parsed;
+    if (result._tag === "Right") {
+      const _typeCheck: import("./participants").Driver = result.right;
+    }
   });
 });
 
@@ -51,29 +56,23 @@ describe("ConstructorSchema", () => {
       nationality: "German",
       url: "http://en.wikipedia.org/wiki/Mercedes-Benz_in_Formula_One",
     };
-    const result = ConstructorSchema.parse(valid);
-    expect(result.constructorId).toBe("mercedes");
-    expect(result.name).toBe("Mercedes");
-  });
-
-  it("should parse valid constructor", () => {
-    const valid = {
-      constructorId: "mercedes",
-      name: "Mercedes",
-      nationality: "German",
-      url: "http://en.wikipedia.org/wiki/Mercedes-Benz_in_Formula_One",
-    };
-    const result = ConstructorSchema.parse(valid);
-    expect(result.constructorId).toBe("mercedes");
-    expect(result.name).toBe("Mercedes");
+    const result = Schema.decodeUnknownEither(ConstructorSchema)(valid);
+    expect(result._tag).toBe("Right");
+    if (result._tag === "Right") {
+      expect(result.right.constructorId).toBe("mercedes");
+      expect(result.right.name).toBe("Mercedes");
+    }
   });
 
   it("should parse partial constructor", () => {
     const valid = {
       constructorId: "mercedes",
     };
-    const result = ConstructorSchema.parse(valid);
-    expect(result.constructorId).toBe("mercedes");
+    const result = Schema.decodeUnknownEither(ConstructorSchema)(valid);
+    expect(result._tag).toBe("Right");
+    if (result._tag === "Right") {
+      expect(result.right.constructorId).toBe("mercedes");
+    }
   });
 });
 
@@ -85,8 +84,11 @@ describe("TeamSchema", () => {
       nationality: "German",
       url: "http://en.wikipedia.org/wiki/Mercedes-Benz_in_Formula_One",
     };
-    const result = TeamSchema.parse(valid);
-    expect(result.teamId).toBe("mercedes");
-    expect(result.name).toBe("Mercedes");
+    const result = Schema.decodeUnknownEither(TeamSchema)(valid);
+    expect(result._tag).toBe("Right");
+    if (result._tag === "Right") {
+      expect(result.right.teamId).toBe("mercedes");
+      expect(result.right.name).toBe("Mercedes");
+    }
   });
 });

@@ -4,6 +4,7 @@ import { useF1Schedule } from "./useF1Schedule";
 
 vi.mock("@f1/core", () => ({
   getSchedule: vi.fn(),
+  toPromise: (x: unknown) => x,
 }));
 
 import { getSchedule } from "@f1/core";
@@ -21,16 +22,16 @@ describe("useF1Schedule", () => {
 
   it("should return schedule data on success", async () => {
     const mockData = {
-      season: "2024",
+      season: "2026",
       Races: [
         {
-          season: "2024",
+          season: "2026",
           round: "1",
           url: "http://example.com",
           raceName: "Bahrain Grand Prix",
           Circuit: {
             circuitId: "bahrain",
-            url: "http://example.com",
+            url: "http://example.com/circuit",
             circuitName: "Bahrain International Circuit",
             Location: {
               lat: "26.0325",
@@ -39,7 +40,7 @@ describe("useF1Schedule", () => {
               country: "Bahrain",
             },
           },
-          date: "2024-03-02",
+          date: "2026-04-05",
           time: "15:00:00Z",
         },
       ],
@@ -47,7 +48,7 @@ describe("useF1Schedule", () => {
 
     mockGetSchedule.mockResolvedValue(mockData);
 
-    const { result } = renderHook(() => useF1Schedule(2024));
+    const { result } = renderHook(() => useF1Schedule(2026));
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
@@ -57,16 +58,16 @@ describe("useF1Schedule", () => {
 
   it("should use initialData for SSR hydration", async () => {
     const initialData = {
-      season: "2024",
+      season: "2026",
       Races: [
         {
-          season: "2024",
+          season: "2026",
           round: "1",
           url: "http://example.com",
           raceName: "Bahrain Grand Prix",
           Circuit: {
             circuitId: "bahrain",
-            url: "http://example.com",
+            url: "http://example.com/circuit",
             circuitName: "Bahrain International Circuit",
             Location: {
               lat: "26.0325",
@@ -75,13 +76,13 @@ describe("useF1Schedule", () => {
               country: "Bahrain",
             },
           },
-          date: "2024-03-02",
+          date: "2026-04-05",
           time: "15:00:00Z",
         },
       ],
     };
 
-    const { result } = renderHook(() => useF1Schedule(2024, { initialData }));
+    const { result } = renderHook(() => useF1Schedule(2026, { initialData }));
 
     expect(result.current.data).toEqual(initialData);
     expect(result.current.isLoading).toBe(false);
@@ -90,7 +91,7 @@ describe("useF1Schedule", () => {
   it("should handle error state", async () => {
     mockGetSchedule.mockRejectedValue(new Error("API Error"));
 
-    const { result } = renderHook(() => useF1Schedule(2024));
+    const { result } = renderHook(() => useF1Schedule(2026));
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
@@ -101,7 +102,7 @@ describe("useF1Schedule", () => {
   it("should set loading state initially", () => {
     mockGetSchedule.mockImplementation(() => new Promise(() => {}));
 
-    const { result } = renderHook(() => useF1Schedule(2024));
+    const { result } = renderHook(() => useF1Schedule(2026));
 
     expect(result.current.isLoading).toBe(true);
     expect(result.current.data).toBeNull();

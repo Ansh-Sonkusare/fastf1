@@ -1,5 +1,5 @@
+import { Schema } from "effect";
 import { describe, expect, it } from "vitest";
-import type { z } from "zod";
 import { ConstructorStandingSchema, DriverStandingSchema } from "./participants";
 import { QualifyingResultSchema, RaceResultSchema, SprintResultSchema } from "./results";
 
@@ -13,23 +13,12 @@ describe("QualifyingResultSchema", () => {
       q2: "1:19.456",
       q3: "1:18.789",
     };
-    const result = QualifyingResultSchema.parse(valid);
-    expect(result.position).toBe("1");
-    expect(result.q1).toBe("1:20.123");
-  });
-
-  it("should parse valid qualifying result", () => {
-    const valid = {
-      driverId: "hamilton",
-      constructorId: "mercedes",
-      position: "1",
-      q1: "1:20.123",
-      q2: "1:19.456",
-      q3: "1:18.789",
-    };
-    const result = QualifyingResultSchema.parse(valid);
-    expect(result.position).toBe("1");
-    expect(result.q1).toBe("1:20.123");
+    const result = Schema.decodeUnknownEither(QualifyingResultSchema)(valid);
+    expect(result._tag).toBe("Right");
+    if (result._tag === "Right") {
+      expect(result.right.position).toBe("1");
+      expect(result.right.q1).toBe("1:20.123");
+    }
   });
 
   it("should parse with nested Driver/Constructor", () => {
@@ -38,18 +27,22 @@ describe("QualifyingResultSchema", () => {
       Constructor: { constructorId: "mercedes" },
       position: "1",
     };
-    const result = QualifyingResultSchema.parse(valid);
-    expect(result.Driver?.driverId).toBe("hamilton");
+    const result = Schema.decodeUnknownEither(QualifyingResultSchema)(valid);
+    expect(result._tag).toBe("Right");
+    if (result._tag === "Right") {
+      expect(result.right.Driver?.driverId).toBe("hamilton");
+    }
   });
 
   it("should infer correct types", () => {
-    const parsed = QualifyingResultSchema.parse({
+    const result = Schema.decodeUnknownEither(QualifyingResultSchema)({
       driverId: "hamilton",
       constructorId: "mercedes",
       position: "1",
     });
-    type QualifyingResult = z.infer<typeof QualifyingResultSchema>;
-    const _typeCheck: QualifyingResult = parsed;
+    if (result._tag === "Right") {
+      const _typeCheck: import("./results").QualifyingResult = result.right;
+    }
   });
 });
 
@@ -65,9 +58,12 @@ describe("RaceResultSchema", () => {
       grid: "1",
       status: "Finished",
     };
-    const result = RaceResultSchema.parse(valid);
-    expect(result.position).toBe("1");
-    expect(result.points).toBe("25");
+    const result = Schema.decodeUnknownEither(RaceResultSchema)(valid);
+    expect(result._tag).toBe("Right");
+    if (result._tag === "Right") {
+      expect(result.right.position).toBe("1");
+      expect(result.right.points).toBe("25");
+    }
   });
 
   it("should parse race result with nested Driver/Constructor", () => {
@@ -77,9 +73,12 @@ describe("RaceResultSchema", () => {
       position: "1",
       points: "25",
     };
-    const result = RaceResultSchema.parse(valid);
-    expect(result.Driver?.driverId).toBe("hamilton");
-    expect(result.Constructor?.name).toBe("Mercedes");
+    const result = Schema.decodeUnknownEither(RaceResultSchema)(valid);
+    expect(result._tag).toBe("Right");
+    if (result._tag === "Right") {
+      expect(result.right.Driver?.driverId).toBe("hamilton");
+      expect(result.right.Constructor?.name).toBe("Mercedes");
+    }
   });
 });
 
@@ -95,9 +94,12 @@ describe("SprintResultSchema", () => {
       grid: "1",
       status: "Finished",
     };
-    const result = SprintResultSchema.parse(valid);
-    expect(result.position).toBe("2");
-    expect(result.points).toBe("6");
+    const result = Schema.decodeUnknownEither(SprintResultSchema)(valid);
+    expect(result._tag).toBe("Right");
+    if (result._tag === "Right") {
+      expect(result.right.position).toBe("2");
+      expect(result.right.points).toBe("6");
+    }
   });
 
   it("should handle optional fields", () => {
@@ -106,8 +108,11 @@ describe("SprintResultSchema", () => {
       constructorId: "mercedes",
       position: "1",
     };
-    const result = SprintResultSchema.parse(valid);
-    expect(result.status).toBeUndefined();
+    const result = Schema.decodeUnknownEither(SprintResultSchema)(valid);
+    expect(result._tag).toBe("Right");
+    if (result._tag === "Right") {
+      expect(result.right.status).toBeUndefined();
+    }
   });
 });
 
@@ -121,8 +126,8 @@ describe("DriverStandingSchema", () => {
       Driver: {
         driverId: "hamilton",
         code: "HAM",
-        firstName: "Lewis",
-        lastName: "Hamilton",
+        givenName: "Lewis",
+        familyName: "Hamilton",
         nationality: "British",
         dateOfBirth: "1985-01-07",
       },
@@ -134,9 +139,12 @@ describe("DriverStandingSchema", () => {
         },
       ],
     };
-    const result = DriverStandingSchema.parse(valid);
-    expect(result.position).toBe("1");
-    expect(result.Driver.driverId).toBe("hamilton");
+    const result = Schema.decodeUnknownEither(DriverStandingSchema)(valid);
+    expect(result._tag).toBe("Right");
+    if (result._tag === "Right") {
+      expect(result.right.position).toBe("1");
+      expect(result.right.Driver.driverId).toBe("hamilton");
+    }
   });
 });
 
@@ -153,8 +161,11 @@ describe("ConstructorStandingSchema", () => {
         nationality: "German",
       },
     };
-    const result = ConstructorStandingSchema.parse(valid);
-    expect(result.position).toBe("1");
-    expect(result.Constructor.name).toBe("Mercedes");
+    const result = Schema.decodeUnknownEither(ConstructorStandingSchema)(valid);
+    expect(result._tag).toBe("Right");
+    if (result._tag === "Right") {
+      expect(result.right.position).toBe("1");
+      expect(result.right.Constructor.name).toBe("Mercedes");
+    }
   });
 });
