@@ -39,6 +39,14 @@ const getWeatherMock = getWeather as ReturnType<typeof vi.fn>;
 const getCarDataMock = getCarData as ReturnType<typeof vi.fn>;
 const getOpenF1LapsMock = getOpenF1Laps as ReturnType<typeof vi.fn>;
 
+const MIAMI_2026 = {
+  meeting_key: 1254,
+  meeting_name: "Miami Grand Prix",
+  meeting_official_name: "2026 Miami Grand Prix",
+  meeting_round: 6,
+  year: 2026,
+};
+
 describe("getRaceStints", () => {
   beforeEach(() => {
     vi.resetAllMocks();
@@ -147,6 +155,41 @@ describe("getRaceTelemetry", () => {
 
     expect(getCarDataMock).toHaveBeenCalledWith(9693, 1);
     expect(result).toHaveLength(2);
+  });
+
+  it("should filter telemetry to a single lap", async () => {
+    getOpenF1LapsMock.mockReturnValue(
+      Effect.succeed([{ lap_number: 5, date_start: "2026-03-05T20:01:00.000Z", lap_duration: 90 }]),
+    );
+    getCarDataMock.mockReturnValue(Effect.succeed([{ speed: 320 }]));
+
+    const result = await toPromise(
+      getRaceTelemetry({ year: 2026, sessionKey: 9693, driver: "VER", lap: 5 }),
+    );
+
+    expect(getOpenF1LapsMock).toHaveBeenCalledWith(9693, 1, 5);
+    expect(result).toHaveLength(1);
+  });
+
+  it("should filter telemetry to a lap window", async () => {
+    getOpenF1LapsMock.mockReturnValue(
+      Effect.succeed([
+        { lap_number: 6, date_start: "2026-03-05T20:02:30.000Z", lap_duration: 92 },
+        { lap_number: 7, date_start: "2026-03-05T20:04:02.000Z", lap_duration: 91 },
+      ]),
+    );
+    getCarDataMock.mockReturnValue(Effect.succeed([{ speed: 320 }]));
+
+    const result = await toPromise(
+      getRaceTelemetry({ year: 2026, sessionKey: 9693, driver: "VER", lapStart: 6, lapEnd: 7 }),
+    );
+
+    expect(getOpenF1LapsMock).toHaveBeenCalledWith(9693, 1);
+    expect(getCarDataMock).toHaveBeenCalledWith(9693, 1, {
+      dateGt: "2026-03-05T20:02:30.000Z",
+      dateLt: "2026-03-05T20:05:33.000Z",
+    });
+    expect(result).toHaveLength(1);
   });
 });
 
@@ -258,5 +301,31 @@ describe("getFastestLap", () => {
 
     expect(result).toBeNull();
     expect(getOpenF1LapsMock).not.toHaveBeenCalled();
+  });
+
+  it("should resolve via a direct session key", async () => {
+    getOpenF1LapsMock.mockReturnValue(Effect.succeed([{ lap_number: 2, lap_duration: 89.2 }]));
+
+    const result = await toPromise(getFastestLap({ year: 2026, sessionKey: 9693, driver: "HAM" }));
+
+    expect(result).toBe(2);
+    expect(getMeetingsMock).not.toHaveBeenCalled();
+    expect(getSessionsMock).not.toHaveBeenCalled();
+    expect(getOpenF1LapsMock).toHaveBeenCalledWith(9693, 44);
+  });
+
+  it("should resolve by round", async () => {
+    getMeetingsMock.mockReturnValue(
+      Effect.succeed([
+        { ...MIAMI_2026, meeting_key: 1250, meeting_name: "Bahrain Grand Prix", meeting_round: 1 },
+        MIAMI_2026,
+      ]),
+    );
+    getOpenF1LapsMock.mockReturnValue(Effect.succeed([{ lap_number: 1, lap_duration: 90 }]));
+
+    const result = await toPromise(getFastestLap({ year: 2026, round: 6, driver: "VER" }));
+
+    expect(result).toBe(1);
+    expect(getOpenF1LapsMock).toHaveBeenCalledWith(9693, 1);
   });
 });
