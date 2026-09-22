@@ -150,6 +150,25 @@ describe("useRaceHooks", () => {
     expect(result.current.data).toEqual([telemetry]);
   });
 
+  it("should filter telemetry to a lap window", async () => {
+    mockGetRaceTelemetry.mockResolvedValue([telemetry]);
+
+    const { result } = renderHook(() => useRaceTelemetry(2026, "Miami", "HAM", "race", 1254, 6, 8));
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(mockGetRaceTelemetry).toHaveBeenCalledWith({
+      year: 2026,
+      raceName: "Miami",
+      driver: "HAM",
+      session: "race",
+      meetingKey: 1254,
+      lap: 6,
+      lapStart: 8,
+    });
+    expect(result.current.data).toEqual([telemetry]);
+  });
+
   it("should return fastest lap on success", async () => {
     mockGetFastestLap.mockResolvedValue(24);
 
@@ -176,5 +195,24 @@ describe("useRaceHooks", () => {
 
     expect(result.current.error).toBeDefined();
     expect(result.current.lap).toBeNull();
+  });
+
+  it("should pass round and sessionKey for fastest lap", async () => {
+    mockGetFastestLap.mockResolvedValue(24);
+
+    const { result } = renderHook(() => useFastestLap(2026, "Miami", "HAM", "race", 1254, 6, 9693));
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(mockGetFastestLap).toHaveBeenCalledWith({
+      year: 2026,
+      raceName: "Miami",
+      driver: "HAM",
+      session: "race",
+      meetingKey: 1254,
+      round: 6,
+      sessionKey: 9693,
+    });
+    expect(result.current.lap).toBe(24);
   });
 });

@@ -171,6 +171,8 @@ export interface GetRaceTelemetryParams {
   session?: string;
   sessionKey?: number;
   lap?: number;
+  lapStart?: number;
+  lapEnd?: number;
 }
 
 export const getRaceTelemetry = Effect.fn("getRaceTelemetry")(function* (
@@ -188,6 +190,8 @@ export const getRaceTelemetry = Effect.fn("getRaceTelemetry")(function* (
 
   const { carData } = yield* resolveTelemetryLapWindow(resolved.sessionKey, params.driver, {
     lap: params.lap,
+    lapStart: params.lapStart,
+    lapEnd: params.lapEnd,
   });
   return carData;
 });
@@ -195,17 +199,21 @@ export const getRaceTelemetry = Effect.fn("getRaceTelemetry")(function* (
 export interface GetFastestLapParams {
   year: number;
   raceName?: string;
+  round?: number;
   meetingKey?: number;
   driver?: string | number;
   session?: string;
+  sessionKey?: number;
 }
 
 export const getFastestLap = Effect.fn("getFastestLap")(function* (params: GetFastestLapParams) {
   const resolved = yield* resolveSession({
     year: params.year,
     raceName: params.raceName,
+    round: params.round,
     session: params.session,
     meetingKey: params.meetingKey,
+    sessionKey: params.sessionKey,
   });
   if (!resolved) return null as number | null;
 

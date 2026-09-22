@@ -108,6 +108,8 @@ export function useRaceTelemetry(
   session: SessionKind = "race",
   meetingKey?: number,
   lap?: number,
+  lapStart?: number,
+  lapEnd?: number,
   options?: { initialData?: CarData[] },
 ): UseRaceTelemetryResult {
   return useAsyncResource(
@@ -115,8 +117,10 @@ export function useRaceTelemetry(
       const params: GetRaceTelemetryParams = { year, raceName, driver: driverCode, session };
       if (meetingKey) params.meetingKey = meetingKey;
       if (lap) params.lap = lap;
+      if (lapStart) params.lapStart = lapStart;
+      if (lapEnd) params.lapEnd = lapEnd;
       return toPromise(getRaceTelemetry(params)).then((result) => [...result]);
-    }, [year, raceName, driverCode, session, meetingKey, lap]),
+    }, [year, raceName, driverCode, session, meetingKey, lap, lapStart, lapEnd]),
     options?.initialData,
   );
 }
@@ -133,14 +137,18 @@ export function useFastestLap(
   driverCode: string,
   session: SessionKind = "race",
   meetingKey?: number,
+  round?: number,
+  sessionKey?: number,
   options?: { initialData?: number | null },
 ): UseFastestLapResult {
   const resource = useAsyncResource(
     useCallback(() => {
       const params: GetFastestLapParams = { year, raceName, driver: driverCode, session };
       if (meetingKey) params.meetingKey = meetingKey;
+      if (round) params.round = round;
+      if (sessionKey) params.sessionKey = sessionKey;
       return toPromise(getFastestLap(params));
-    }, [year, raceName, driverCode, session, meetingKey]),
+    }, [year, raceName, driverCode, session, meetingKey, round, sessionKey]),
     options?.initialData ?? undefined,
   );
 
