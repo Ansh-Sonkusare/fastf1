@@ -1,6 +1,7 @@
-import { useState } from "react";
-import type { CarData } from "@f1/core";
-import { useRaceTelemetry, useFastestLap } from "@f1/react";
+import { useEffect, useState } from "react";
+import type { CarData, RaceTable } from "@f1/core";
+import { useRaceTelemetry, useFastestLap, useF1Schedule } from "@f1/react";
+import { loadInitialData } from "./data/initial";
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 const DRIVERS = [
@@ -61,6 +62,50 @@ function Select({
         ))}
       </select>
     </div>
+  );
+}
+
+function SchedulePanel({ schedule }: { schedule: RaceTable }) {
+  if (!schedule?.Races?.length) {
+    return (
+      <div style={{ color: "#666", fontSize: 14 }}>No races scheduled for this season yet.</div>
+    );
+  }
+
+  return (
+    <section
+      style={{
+        marginTop: 32,
+        background: "#0d0d0d",
+        border: "1px solid #222",
+        borderRadius: 8,
+        padding: 16,
+      }}
+    >
+      <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 12 }}>2025 Season Schedule</h2>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+        <thead>
+          <tr style={{ color: "#888", textAlign: "left", fontSize: 11, textTransform: "uppercase" }}>
+            <th style={{ padding: "6px 8px", borderBottom: "1px solid #222" }}>Round</th>
+            <th style={{ padding: "6px 8px", borderBottom: "1px solid #222" }}>Date</th>
+            <th style={{ padding: "6px 8px", borderBottom: "1px solid #222" }}>Grand Prix</th>
+            <th style={{ padding: "6px 8px", borderBottom: "1px solid #222" }}>Circuit</th>
+          </tr>
+        </thead>
+        <tbody>
+          {schedule.Races.map((race) => (
+            <tr key={`${race.round}-${race.raceName}`} style={{ color: "#ddd" }}>
+              <td style={{ padding: "6px 8px", borderBottom: "1px solid #1a1a1a" }}>{race.round}</td>
+              <td style={{ padding: "6px 8px", borderBottom: "1px solid #1a1a1a" }}>{race.date}</td>
+              <td style={{ padding: "6px 8px", borderBottom: "1px solid #1a1a1a" }}>{race.raceName}</td>
+              <td style={{ padding: "6px 8px", borderBottom: "1px solid #1a1a1a" }}>
+                {race.Circuit.circuitName}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
   );
 }
 
@@ -238,6 +283,61 @@ export default function App() {
           </button>
         </div>
       </div>
+
+      {scheduleIsLoading && (
+        <div
+          style={{ height: 120, display: "flex", alignItems: "center", justifyContent: "center" }}
+        >
+          Loading season schedule...
+        </div>
+      )}
+
+      {scheduleError && (
+        <div style={{ color: "#f55", fontSize: 13, padding: "12px 0" }}>
+          Failed to load season schedule: {scheduleError.message}
+        </div>
+      )}
+
+      {schedule?.Races?.length ? (
+        <section
+          style={{
+            marginTop: 28,
+            padding: "0 2px",
+          }}
+        >
+          <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>
+            2025 Season Schedule
+          </h2>
+          <table
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              fontSize: 13,
+            }}
+          >
+            <thead>
+              <tr style={{ color: "#888", textAlign: "left", fontSize: 11, textTransform: "uppercase" }}>
+                <th style={{ padding: "8px 12px", borderBottom: "1px solid #222" }}>Round</th>
+                <th style={{ padding: "8px 12px", borderBottom: "1px solid #222" }}>Race</th>
+                <th style={{ padding: "8px 12px", borderBottom: "1px solid #222" }}>Circuit</th>
+                <th style={{ padding: "8px 12px", borderBottom: "1px solid #222" }}>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {schedule.Races.map((race) => (
+                <tr key={`${race.round}-${race.raceName}`} style={{ color: "#ddd" }}>
+                  <td style={{ padding: "8px 12px", borderBottom: "1px solid #1a1a1a" }}>{race.round}</td>
+                  <td style={{ padding: "8px 12px", borderBottom: "1px solid #1a1a1a" }}>{race.raceName}</td>
+                  <td style={{ padding: "8px 12px", borderBottom: "1px solid #1a1a1a" }}>
+                    {race.Circuit.circuitName}
+                  </td>
+                  <td style={{ padding: "8px 12px", borderBottom: "1px solid #1a1a1a" }}>{race.date}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      ) : null}
 
       {isLoading && (
         <div
