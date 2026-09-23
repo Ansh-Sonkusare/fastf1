@@ -29,3 +29,11 @@ Each pushed green (build + test + lint) before starting the next.
 **Vite** app with an SSR-style `initialData` seam (SSR/SSG-flavored page load → hydrate), not
 literal Next.js. This rollout executes that documented divergence — I'm filing the divergence
 note against #14 as part of this work, and this file is the tracking record.
+
+## Tooling: Playwright MCP (for later demo E2E)
+
+Added repo-scoped `opencode.json` (root), not touching the global mcp block:
+
+- server: `playwright.mcp` via `@playwright/mcp` (local), enabled, headless-ready
+- used to browser-test the deepened demo once subtasks ~#25 are in (E2E: load schedule → shows current season; load results → shows latest race)
+- per the rest-of-session note: save config → **restart opencode** so the server loads
