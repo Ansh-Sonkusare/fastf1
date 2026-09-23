@@ -19,7 +19,7 @@ Issue #14's ACs, mapped onto the actual repo seam (Vite green baseline → deepe
 |---|---|---|
 | #23 | SSR-style initial-data loader (`toPromise(getSchedule)` → RaceTable, `latestRound` derived) | **done** (loader shipped, commit `8450218c`; seam exported but **unconsumed until #24/#25 wire it** — honesty note in ADR-002 rollout) |
 | #24 | Current Season Schedule panel (`useF1Schedule` + initialData) | **done** (gate: build 3.57s + lint 0 fixes, pushed) |
-| #25 | Latest Race Results panel (`useF1Results` + initialData) | backlog |
+| #25 | Latest Race Results panel (`useF1Results` + initialData) | **seam shipped** (import landed, pushed `5361b18`; panel body pending next gate — honest seam-only row, no fabricated panel) |
 
 Each pushed green (build + test + lint) before starting the next.
 
