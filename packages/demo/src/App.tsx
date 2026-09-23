@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { CarData, RaceTable } from "@f1/core";
-import { useRaceTelemetry, useFastestLap, useF1Schedule } from "@f1/react";
+import { useRaceTelemetry, useFastestLap, useF1Schedule, useF1Results } from "@f1/react";
 import { loadInitialData } from "./data/initial";
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
