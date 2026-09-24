@@ -182,7 +182,7 @@ describe("useRaceHooks", () => {
       driver: "HAM",
       session: "race",
     });
-    expect(result.current.lap).toBe(24);
+    expect(result.current).toEqual({ lap: 24, isLoading: false, error: null });
   });
 
   it("should handle fastest lap error state", async () => {

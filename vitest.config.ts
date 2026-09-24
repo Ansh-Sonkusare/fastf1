@@ -4,6 +4,6 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    exclude: [...configDefaults.exclude, '**/.repos/**', '.claude/**', '.direnv/**'],
+    exclude: [...configDefaults.exclude, '.repos/**', '.claude/**', '.direnv/**'],
   },
 });
