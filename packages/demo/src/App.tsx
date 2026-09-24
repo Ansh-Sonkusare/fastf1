@@ -1,8 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { CarData, RaceTable } from "@f1/core";
 import { useRaceTelemetry, useFastestLap, useF1Schedule, useF1Results } from "@f1/react";
-import { loadInitialData } from "./data/initial";
-import type { DemoInitialData } from "./data/initial";
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 const DRIVERS = [
@@ -110,20 +108,26 @@ function SchedulePanel({ schedule }: { schedule: RaceTable }) {
   );
 }
 
-interface RaceResultItem {
-  Driver?: { name?: string; code?: string };
-  Constructor?: { name?: string };
-  position?: string;
-  status?: string;
-  points?: string;
-  Time?: { time?: string };
-}
-
-function ResultsPanel({ results, round }: { results: readonly unknown[] | null; round: number }) {
+function ResultsPanel({
+  results,
+  round,
+}: {
+  results: readonly unknown[] | null;
+  round: number;
+}) {
   if (!results || results.length === 0) {
     return (
       <div style={{ color: "#666", fontSize: 14 }}>No results available for round {round}.</div>
     );
+  }
+
+  interface RaceResultRow {
+    position?: string;
+    Driver?: { givenName?: string; familyName?: string };
+    Constructor?: { name?: string };
+    status?: string;
+    Time?: { time?: string };
+    points?: string;
   }
 
   return (
@@ -148,13 +152,15 @@ function ResultsPanel({ results, round }: { results: readonly unknown[] | null; 
           </tr>
         </thead>
         <tbody>
-          {(results as RaceResultItem[]).map((result, i) => (
+          {(results as RaceResultRow[]).map((result, i) => (
             <tr key={i} style={{ color: "#ddd" }}>
               <td style={{ padding: "6px 8px", borderBottom: "1px solid #1a1a1a" }}>
                 {result.position || "—"}
               </td>
               <td style={{ padding: "6px 8px", borderBottom: "1px solid #1a1a1a" }}>
-                {result.Driver?.name || "—"}
+                {result.Driver
+                  ? `${result.Driver.givenName || ""} ${result.Driver.familyName || ""}`.trim()
+                  : "—"}
               </td>
               <td style={{ padding: "6px 8px", borderBottom: "1px solid #1a1a1a" }}>
                 {result.Constructor?.name || "—"}
@@ -252,14 +258,6 @@ export default function App() {
   const [driver1, setDriver1] = useState("VER");
   const [driver2, setDriver2] = useState("NOR");
   const [lap, setLap] = useState<number>(1);
-  const [initialData, setInitialData] = useState<DemoInitialData | null>(null);
-  const [loadError, setLoadError] = useState<Error | null>(null);
-
-  useEffect(() => {
-    loadInitialData()
-      .then(setInitialData)
-      .catch(setLoadError);
-  }, []);
 
   const drv1 = DRIVERS.find((d) => d.code === driver1);
   const drv2 = DRIVERS.find((d) => d.code === driver2);
@@ -267,11 +265,9 @@ export default function App() {
   const { lap: fastest1 } = useFastestLap(2025, "abu dhabi", driver1, "race", 1276);
   const { lap: fastest2 } = useFastestLap(2025, "abu dhabi", driver2, "race", 1276);
 
-  const { data: schedule } = useF1Schedule(2025, { initialData: initialData?.schedule });
+  const { data: schedule } = useF1Schedule(2025);
 
-  const { data: results } = useF1Results(2025, initialData?.latestRound || 1, {
-    initialData: initialData?.latestResults,
-  });
+  const { data: results } = useF1Results(2025, 24);
 
   const { data: t1, isLoading: l1 } = useRaceTelemetry(
     2025,
@@ -362,15 +358,9 @@ export default function App() {
         </div>
       </div>
 
-      {loadError && (
-        <div style={{ color: "#f55", fontSize: 13, padding: "12px 0" }}>
-          Failed to load initial data: {loadError.message}
-        </div>
-      )}
-
       {schedule && <SchedulePanel schedule={schedule} />}
 
-      {initialData && <ResultsPanel results={results} round={initialData.latestRound} />}
+      {results && <ResultsPanel results={results} round={24} />}
 
       {isLoading && (
         <div
