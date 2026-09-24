@@ -28,6 +28,9 @@
     "lint:fix": "biome check --write .",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "quick-lru": "^6.1.2"
+  },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "vite-plugin-dts": "^5.0.0"

@@ -1,5 +1,6 @@
 import { Effect, Either, Schema } from "effect";
 import { F1ClientService } from "../../http/service";
+import { clearOpenF1Cache, getFromCache, setInCache } from "./cache";
 
 let BASE = "https://api.openf1.org/v1";
 
@@ -36,10 +37,38 @@ export function parseArray<A, I>(schema: Schema.Schema<A, I, never>, input: unkn
   return input.map((item) => parseOrDie(schema, item));
 }
 
+function buildCacheKey(endpoint: string, params?: Record<string, string | number>): string {
+  const url = `${BASE}${endpoint}`;
+  if (!params || Object.keys(params).length === 0) {
+    return url;
+  }
+  const searchParams = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    searchParams.set(key, String(value));
+  }
+  return `${url}?${searchParams.toString()}`;
+}
+
 export function fetchOpenF1<A>(endpoint: string, params?: Record<string, string | number>) {
   return Effect.gen(function* () {
+    const cacheKey = buildCacheKey(endpoint, params);
+
+    // Check cache first
+    const cached = getFromCache<A>(cacheKey);
+    if (cached !== undefined) {
+      return cached;
+    }
+
     const client = yield* F1ClientService;
     const response = yield* client.fetch<unknown>(`${BASE}${endpoint}`, { params });
-    return cleanNulls(response) as A;
+    const cleaned = cleanNulls(response) as A;
+
+    // Cache the successful response
+    setInCache(cacheKey, cleaned);
+
+    return cleaned;
   });
 }
+
+// Re-export cache control functions
+export { clearOpenF1Cache };

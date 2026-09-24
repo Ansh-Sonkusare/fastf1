@@ -53,6 +53,10 @@ importers:
         version: 2.1.9(@types/node@22.19.17)(jsdom@29.1.1(canvas@3.2.3))
 
   packages/core:
+    dependencies:
+      quick-lru:
+        specifier: ^6.1.2
+        version: 6.1.2
     devDependencies:
       '@types/node':
         specifier: ^22.0.0
@@ -1791,6 +1795,10 @@ packages:
 
   quansync@0.2.11:
     resolution: {integrity: sha512-AifT7QEbW9Nri4tAwR5M/uzpBuqfZf+zwaEM/QkzEjj7NBuFD2rBuy0K3dE+8wltbezDV7JMA0WfnCPYRSYbXA==}
+
+  quick-lru@6.1.2:
+    resolution: {integrity: sha512-AAFUA5O1d83pIHEhJwWCq/RQcRukCkn/NSm2QsTEMle5f2hP0ChI2+3Xb051PZCkLryI/Ir1MVKviT2FIloaTQ==}
+    engines: {node: '>=12'}
 
   rc@1.2.8:
     resolution: {integrity: sha512-y3bGgqKj3QBdxLbLkomlohkvsA8gdAiUQlSBJnBhfn+BPxg4bc62d8TcBW15wavDfgexCgccckhcZvywyQYPOw==}
@@ -3622,6 +3630,8 @@ snapshots:
   pure-rand@6.1.0: {}
 
   quansync@0.2.11: {}
+
+  quick-lru@6.1.2: {}
 
   rc@1.2.8:
     dependencies:
