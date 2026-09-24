@@ -1,4 +1,0 @@
-time	decision	alternatives	why
-21:57	Keep setupMocks helper in test-utils	Inline each beforeEach; remove helper	Reusable pattern across multiple test files (both #27 and #31), improves consistency and reduces boilerplate
-21:58	Use "Expected string, actual null" error pattern	"Unable to decode"; other patterns	Literal error message from Schema.decode, observable and testable
-21:59	Full URL assertions with toBe	Continued use of toContain	Ensures exact endpoint path and param order, prevents false positives from substring matching
