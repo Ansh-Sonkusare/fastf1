@@ -16,4 +16,7 @@ export default defineConfig({
       external: ["effect", "@effect/platform", "@effect/platform-node"],
     },
   },
+  test: {
+    setupFiles: ["src/test/setup.ts"],
+  },
 });

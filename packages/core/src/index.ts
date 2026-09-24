@@ -91,6 +91,8 @@ export {
   getIntervals,
   setOpenF1BaseUrl,
   getOpenF1BaseUrl,
+  clearOpenF1Cache,
+  setOpenF1CacheEnabled,
 } from "./api/openf1";
 
 export type {
