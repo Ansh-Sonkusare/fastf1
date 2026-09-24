@@ -1,7 +1,8 @@
 import { useState } from "react";
-import type { CarData, RaceTable } from "@f1/core";
+import type { CarData, RaceResult, RaceTable } from "@f1/core";
 import { useRaceTelemetry, useFastestLap, useF1Schedule, useF1Results } from "@f1/react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import type { DemoInitialData } from "./data/initial";
 
 const DRIVERS = [
   { code: "VER", name: "Max Verstappen", number: 1, color: "#1e41ff" },
@@ -112,22 +113,13 @@ function ResultsPanel({
   results,
   round,
 }: {
-  results: readonly unknown[] | null;
+  results: readonly RaceResult[];
   round: number;
 }) {
-  if (!results || results.length === 0) {
+  if (results.length === 0) {
     return (
       <div style={{ color: "#666", fontSize: 14 }}>No results available for round {round}.</div>
     );
-  }
-
-  interface RaceResultRow {
-    position?: string;
-    Driver?: { givenName?: string; familyName?: string };
-    Constructor?: { name?: string };
-    status?: string;
-    Time?: { time?: string };
-    points?: string;
   }
 
   return (
@@ -152,7 +144,7 @@ function ResultsPanel({
           </tr>
         </thead>
         <tbody>
-          {(results as RaceResultRow[]).map((result, i) => (
+          {results.map((result, i) => (
             <tr key={i} style={{ color: "#ddd" }}>
               <td style={{ padding: "6px 8px", borderBottom: "1px solid #1a1a1a" }}>
                 {result.position || "—"}
@@ -181,6 +173,20 @@ function ResultsPanel({
 
 interface TelemetryPoint extends CarData {
   driver: string;
+  seconds: number;
+}
+
+// Elapsed seconds since this driver's own first sample, not the merged array's
+// index, so a sparse driver (fewer samples, e.g. after rate-limited retries)
+// still draws across its own lap duration instead of a stub near x=0.
+function toTelemetryPoints(data: readonly CarData[] | null, driver: string): TelemetryPoint[] {
+  if (!data || data.length === 0) return [];
+  const startMs = new Date(data[0].date).getTime();
+  return data.map((d) => ({
+    ...d,
+    driver,
+    seconds: (new Date(d.date).getTime() - startMs) / 1000,
+  }));
 }
 
 function SpeedChart({ data }: { data: TelemetryPoint[] }) {
@@ -200,18 +206,12 @@ function SpeedChart({ data }: { data: TelemetryPoint[] }) {
     );
   }
 
-  const chartData = data.map((d, i) => ({
-    seconds: i * 0.27,
-    speed: d.speed,
-    driver: d.driver,
-  }));
-
   const driversInData = [...new Set(data.map((d) => d.driver))];
-  const maxSeconds = data.length * 0.27;
+  const maxSeconds = Math.max(...data.map((d) => d.seconds));
 
   return (
     <ResponsiveContainer width="100%" height={300}>
-      <LineChart data={chartData}>
+      <LineChart data={data}>
         <XAxis
           dataKey="seconds"
           type="number"
@@ -235,7 +235,7 @@ function SpeedChart({ data }: { data: TelemetryPoint[] }) {
         <Legend />
         {driversInData.map((drv) => {
           const drvInfo = DRIVERS.find((d) => d.code === drv);
-          const drvData = chartData.filter((d) => d.driver === drv);
+          const drvData = data.filter((d) => d.driver === drv);
           return (
             <Line
               key={drv}
@@ -254,7 +254,7 @@ function SpeedChart({ data }: { data: TelemetryPoint[] }) {
   );
 }
 
-export default function App() {
+export default function App({ initialData }: { initialData?: DemoInitialData }) {
   const [driver1, setDriver1] = useState("VER");
   const [driver2, setDriver2] = useState("NOR");
   const [lap, setLap] = useState<number>(1);
@@ -265,9 +265,18 @@ export default function App() {
   const { lap: fastest1 } = useFastestLap(2025, "abu dhabi", driver1, "race", 1276);
   const { lap: fastest2 } = useFastestLap(2025, "abu dhabi", driver2, "race", 1276);
 
-  const { data: schedule } = useF1Schedule(2025);
+  const latestRound = initialData?.latestRound ?? 24;
 
-  const { data: results } = useF1Results(2025, 24);
+  const { data: schedule } = useF1Schedule(2025, { initialData: initialData?.schedule });
+
+  const { data: resultsData } = useF1Results(2025, latestRound, {
+    initialData: initialData?.latestResults,
+  });
+  // getRaceResults resolves an array of races for the round; the finishers live on
+  // Races[0].Results. useF1Results types data as readonly unknown[] (open question:
+  // it should be readonly Race[] from @f1/core), so this is the single narrowing site.
+  const latestRace = resultsData?.[0] as { Results?: readonly RaceResult[] } | undefined;
+  const results = latestRace?.Results ?? [];
 
   const { data: t1, isLoading: l1 } = useRaceTelemetry(
     2025,
@@ -289,9 +298,9 @@ export default function App() {
   const isLoading = l1 || l2;
 
   const combined: TelemetryPoint[] = [
-    ...(t1 || []).map((d) => ({ ...d, driver: driver1 })),
-    ...(t2 || []).map((d) => ({ ...d, driver: driver2 })),
-  ].sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+    ...toTelemetryPoints(t1, driver1),
+    ...toTelemetryPoints(t2, driver2),
+  ];
 
   const lapOptions = Array.from({ length: 58 }, (_, i) => ({
     value: String(i + 1),
@@ -360,7 +369,7 @@ export default function App() {
 
       {schedule && <SchedulePanel schedule={schedule} />}
 
-      {results && <ResultsPanel results={results} round={24} />}
+      {resultsData && <ResultsPanel results={results} round={latestRound} />}
 
       {isLoading && (
         <div
