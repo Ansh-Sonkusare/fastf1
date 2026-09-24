@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { CarData, RaceTable } from "@f1/core";
-import { useRaceTelemetry, useFastestLap, useF1Schedule } from "@f1/react";
+import { useRaceTelemetry, useFastestLap, useF1Schedule, useF1Results } from "@f1/react";
 import { loadInitialData } from "./data/initial";
 import type { DemoInitialData } from "./data/initial";
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
@@ -110,6 +110,69 @@ function SchedulePanel({ schedule }: { schedule: RaceTable }) {
   );
 }
 
+interface RaceResultItem {
+  Driver?: { name?: string; code?: string };
+  Constructor?: { name?: string };
+  position?: string;
+  status?: string;
+  points?: string;
+  Time?: { time?: string };
+}
+
+function ResultsPanel({ results, round }: { results: readonly unknown[] | null; round: number }) {
+  if (!results || results.length === 0) {
+    return (
+      <div style={{ color: "#666", fontSize: 14 }}>No results available for round {round}.</div>
+    );
+  }
+
+  return (
+    <section
+      style={{
+        marginTop: 32,
+        background: "#0d0d0d",
+        border: "1px solid #222",
+        borderRadius: 8,
+        padding: 16,
+      }}
+    >
+      <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 12 }}>Latest Race Results</h2>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+        <thead>
+          <tr style={{ color: "#888", textAlign: "left", fontSize: 11, textTransform: "uppercase" }}>
+            <th style={{ padding: "6px 8px", borderBottom: "1px solid #222" }}>Position</th>
+            <th style={{ padding: "6px 8px", borderBottom: "1px solid #222" }}>Driver</th>
+            <th style={{ padding: "6px 8px", borderBottom: "1px solid #222" }}>Constructor</th>
+            <th style={{ padding: "6px 8px", borderBottom: "1px solid #222" }}>Time/Status</th>
+            <th style={{ padding: "6px 8px", borderBottom: "1px solid #222" }}>Points</th>
+          </tr>
+        </thead>
+        <tbody>
+          {(results as RaceResultItem[]).map((result, i) => (
+            <tr key={i} style={{ color: "#ddd" }}>
+              <td style={{ padding: "6px 8px", borderBottom: "1px solid #1a1a1a" }}>
+                {result.position || "—"}
+              </td>
+              <td style={{ padding: "6px 8px", borderBottom: "1px solid #1a1a1a" }}>
+                {result.Driver?.name || "—"}
+              </td>
+              <td style={{ padding: "6px 8px", borderBottom: "1px solid #1a1a1a" }}>
+                {result.Constructor?.name || "—"}
+              </td>
+              <td style={{ padding: "6px 8px", borderBottom: "1px solid #1a1a1a" }}>
+                {result.Time?.time || result.status || "—"}
+              </td>
+              <td style={{ padding: "6px 8px", borderBottom: "1px solid #1a1a1a" }}>
+                {result.points || "0"}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
+  );
+}
+
 interface TelemetryPoint extends CarData {
   driver: string;
 }
@@ -205,6 +268,10 @@ export default function App() {
   const { lap: fastest2 } = useFastestLap(2025, "abu dhabi", driver2, "race", 1276);
 
   const { data: schedule } = useF1Schedule(2025, { initialData: initialData?.schedule });
+
+  const { data: results } = useF1Results(2025, initialData?.latestRound || 1, {
+    initialData: initialData?.latestResults,
+  });
 
   const { data: t1, isLoading: l1 } = useRaceTelemetry(
     2025,
@@ -302,6 +369,8 @@ export default function App() {
       )}
 
       {schedule && <SchedulePanel schedule={schedule} />}
+
+      {initialData && <ResultsPanel results={results} round={initialData.latestRound} />}
 
       {isLoading && (
         <div

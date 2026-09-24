@@ -23,10 +23,19 @@ export interface DemoInitialData {
 
 export async function loadInitialData(): Promise<DemoInitialData> {
   const schedule = await toPromise(getSchedule(2025));
+
+  const today = new Date();
   const latestRound = schedule.Races.reduce(
-    (max, race) => Math.max(max, Number(race.round)),
+    (latest, race) => {
+      if (!race.date) return latest;
+      const raceDate = new Date(race.date);
+      if (raceDate > today) return latest;
+      const roundNum = Number(race.round);
+      return roundNum > latest ? roundNum : latest;
+    },
     Number(schedule.Races[0]?.round ?? 1),
   );
+
   const latestResults = await toPromise(getRaceResults(2025, latestRound));
   return { schedule, latestRound, latestResults };
 }
