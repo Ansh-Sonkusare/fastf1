@@ -1,11 +1,12 @@
 import type { Deferred } from "effect";
 import QuickLRU from "quick-lru";
+import type { ClientError } from "../../http/service";
 
 const CACHE_TTL_MS = 60 * 60 * 1000;
 
 type CacheEntry =
   | { type: "resolved"; value: unknown }
-  | { type: "pending"; deferred: Deferred.Deferred<unknown> };
+  | { type: "pending"; deferred: Deferred.Deferred<unknown, ClientError> };
 
 const cache = new QuickLRU<string, CacheEntry>({
   maxSize: 100,
@@ -25,9 +26,15 @@ export function setInCache<A>(key: string, value: A): void {
   }
 }
 
-export function setInFlightCache<A>(key: string, deferred: Deferred.Deferred<A>): void {
+export function setInFlightCache<A>(
+  key: string,
+  deferred: Deferred.Deferred<A, ClientError>,
+): void {
   if (cacheEnabled) {
-    cache.set(key, { type: "pending", deferred: deferred as Deferred.Deferred<unknown> });
+    cache.set(key, {
+      type: "pending",
+      deferred: deferred as Deferred.Deferred<unknown, ClientError>,
+    });
   }
 }
 

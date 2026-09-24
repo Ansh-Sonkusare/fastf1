@@ -229,6 +229,65 @@ describe("fetchOpenF1 Cache", () => {
     expect(fetchSpy).toHaveBeenCalledTimes(2);
   });
 
+  it("interrupted in-flight fetch does not poison later calls", async () => {
+    const data = [{ id: 1 }];
+    const fetchSpy = vi.fn((): Promise<Response> => {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve(
+            new Response(JSON.stringify(data), {
+              status: 200,
+              headers: { "Content-Type": "application/json" },
+            }),
+          );
+        }, 500);
+      });
+    });
+    global.fetch = fetchSpy;
+
+    const firstCallAborted = Effect.timeout(fetchOpenF1("/test"), "50 millis").pipe(
+      Effect.catchAll(() => Effect.void),
+    );
+    await run(firstCallAborted);
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+
+    const secondResult = await run(fetchOpenF1("/test"));
+    expect(secondResult).toEqual(data);
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it("concurrent callers both receive error when first fetch fails", async () => {
+    let callCount = 0;
+    const fetchSpy = vi.fn((): Promise<Response> => {
+      callCount++;
+      if (callCount === 1) {
+        throw new Error("Connection failed");
+      }
+      return Promise.resolve(
+        new Response(JSON.stringify([{ id: 2 }]), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+    });
+    global.fetch = fetchSpy;
+
+    const errors: Error[] = [];
+
+    const call1Promise = run(fetchOpenF1("/concurrent")).catch((err) => {
+      errors.push(err);
+    });
+    const call2Promise = run(fetchOpenF1("/concurrent")).catch((err) => {
+      errors.push(err);
+    });
+
+    await Promise.all([call1Promise, call2Promise]);
+
+    expect(errors).toHaveLength(2);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
   it("exports cache controls from package entry", async () => {
     const { clearOpenF1Cache: exported } = await import("../../index");
     expect(typeof exported).toBe("function");

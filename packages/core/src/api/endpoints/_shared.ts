@@ -1,4 +1,5 @@
-import { Cause, Deferred, Effect, Either, Schema } from "effect";
+import { Cause, Deferred, Effect, Either, Exit, Schema } from "effect";
+import type { ClientError } from "../../http/service";
 import { F1ClientService, buildUrl } from "../../http/service";
 import { evictFromCache, getFromCache, setInCache, setInFlightCache } from "./cache";
 
@@ -46,10 +47,10 @@ export function fetchOpenF1<A>(endpoint: string, params?: Record<string, string 
       if (cached.type === "resolved") {
         return cached.value as A;
       }
-      return yield* Deferred.await(cached.deferred as Deferred.Deferred<A>);
+      return yield* Deferred.await(cached.deferred as Deferred.Deferred<A, ClientError>);
     }
 
-    const deferred = yield* Deferred.make<A>();
+    const deferred = yield* Deferred.make<A, ClientError>();
     setInFlightCache(cacheKey, deferred);
 
     const fetchEffect = Effect.gen(function* () {
@@ -58,15 +59,21 @@ export function fetchOpenF1<A>(endpoint: string, params?: Record<string, string 
       return cleanNulls(response) as A;
     });
 
-    const attempt = yield* Effect.either(fetchEffect);
-    if (attempt._tag === "Right") {
-      yield* Deferred.succeed(deferred, attempt.right);
-      setInCache(cacheKey, attempt.right);
-      return attempt.right;
-    }
-    evictFromCache(cacheKey);
-    const cause = Cause.fail(attempt.left);
-    yield* Deferred.failCause(deferred as unknown as Deferred.Deferred<A, unknown>, cause);
-    return yield* Effect.failCause(cause);
+    const result = yield* fetchEffect.pipe(
+      Effect.onExit((exit) =>
+        Effect.gen(function* () {
+          if (Exit.isSuccess(exit)) {
+            const value = exit.value;
+            yield* Deferred.succeed(deferred, value);
+            setInCache(cacheKey, value);
+          } else {
+            evictFromCache(cacheKey);
+            yield* Deferred.done(deferred, exit);
+          }
+        }),
+      ),
+    );
+
+    return result;
   });
 }
