@@ -25,7 +25,13 @@ function okNegotiate(): Response {
   });
 }
 
-function setup(topics: readonly Topic[] = ["Heartbeat"]) {
+interface SetupOptions {
+  topics?: readonly Topic[];
+  autoReconnect?: boolean;
+  insideFactory?: (handlers: SocketHandlers) => void;
+}
+
+function setup({ topics = ["Heartbeat"], autoReconnect, insideFactory }: SetupOptions = {}) {
   const sockets: FakeSocket[] = [];
   const fetchCalls: { url: string; method: string | undefined; at: number }[] = [];
   let negotiateStatus = 200;
@@ -35,8 +41,10 @@ function setup(topics: readonly Topic[] = ["Heartbeat"]) {
   };
   const client = new SignalRClient({
     topics,
+    autoReconnect,
     fetch: fetchFake as typeof fetch,
     socket: (url, headers, handlers) => {
+      insideFactory?.(handlers);
       const socket: FakeSocket = { url, headers, handlers, sent: [], closed: false };
       sockets.push(socket);
       return {
@@ -81,7 +89,7 @@ afterEach(() => {
 
 describe("SignalRClient", () => {
   it("negotiates, connects with the token and cookies, then sends handshake and subscribe", async () => {
-    const { client, sockets, fetchCalls } = setup(["Heartbeat", "WeatherData"]);
+    const { client, sockets, fetchCalls } = setup({ topics: ["Heartbeat", "WeatherData"] });
     const connected = client.connect();
     const socket = await openLatest(sockets);
     await connected;
@@ -204,5 +212,153 @@ describe("SignalRClient", () => {
     const connected = client.connect();
     client.disconnect();
     await expect(connected).rejects.toThrow("disconnected before the connection was established");
+  });
+
+  it("retries when the socket factory throws", async () => {
+    let throws = true;
+    const { client, sockets, errors } = setup({
+      insideFactory: () => {
+        if (throws) throw new Error("factory boom");
+      },
+    });
+    const connected = client.connect();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(client.status).toBe("reconnecting");
+    expect(errors).toEqual(["factory boom"]);
+
+    throws = false;
+    await vi.advanceTimersByTimeAsync(1000);
+    await openLatest(sockets);
+    await connected;
+    expect(client.status).toBe("connected");
+  });
+
+  it("handles socket events fired synchronously inside the factory", async () => {
+    const { client, sockets, errors } = setup({
+      insideFactory: (handlers) => {
+        handlers.onOpen();
+        handlers.onError(new Error("sync failure"));
+      },
+    });
+    client.connect().catch(() => {});
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(sockets[0]?.sent).toEqual([HANDSHAKE]);
+    expect(sockets[0]?.closed).toBe(true);
+    expect(errors).toEqual(["sync failure"]);
+    expect(client.status).toBe("reconnecting");
+    client.disconnect();
+  });
+
+  it("pings every 15s and treats 30s of server silence as a drop", async () => {
+    const { client, sockets, errors } = setup();
+    void client.connect();
+    const socket = await openLatest(sockets);
+
+    await vi.advanceTimersByTimeAsync(15_000);
+    expect(socket.sent.at(-1)).toBe('{"type":6}\x1e');
+    socket.handlers.onMessage(frames.ping);
+    await vi.advanceTimersByTimeAsync(29_999);
+    expect(client.status).toBe("connected");
+    await vi.advanceTimersByTimeAsync(1);
+    expect(client.status).toBe("reconnecting");
+    expect(errors).toEqual(["no message from server in 30000ms"]);
+    expect(socket.closed).toBe(true);
+    client.disconnect();
+  });
+
+  it("goes idle on a server close that forbids reconnecting", async () => {
+    const { client, sockets, fetchCalls, errors } = setup();
+    void client.connect();
+    const socket = await openLatest(sockets);
+    socket.handlers.onMessage('{"type":7,"error":"bye","allowReconnect":false}\x1e');
+
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(client.status).toBe("idle");
+    expect(fetchCalls).toHaveLength(1);
+    expect(errors).toEqual(["SignalR server closed: bye"]);
+  });
+
+  it("does not reconnect after a drop when autoReconnect is false", async () => {
+    const { client, sockets, fetchCalls } = setup({ autoReconnect: false });
+    const events: string[] = [];
+    client.on("disconnected", () => events.push("disconnected"));
+    void client.connect();
+    const socket = await openLatest(sockets);
+    socket.handlers.onClose();
+
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(client.status).toBe("idle");
+    expect(fetchCalls).toHaveLength(1);
+    expect(events).toEqual(["disconnected"]);
+  });
+
+  it("includes topics added during the handshake in the first Subscribe", async () => {
+    const { client, sockets } = setup();
+    void client.connect();
+    await vi.advanceTimersByTimeAsync(0);
+    const socket = sockets[0];
+    if (!socket) throw new Error("no socket was created");
+    socket.handlers.onOpen();
+    client.subscribe(["LapCount"]);
+    socket.handlers.onMessage(frames.handshake);
+
+    expect(socket.sent).toEqual([
+      HANDSHAKE,
+      '{"type":1,"target":"Subscribe","arguments":[["Heartbeat","LapCount"]],"invocationId":"0"}\x1e',
+    ]);
+  });
+
+  it("fails the attempt on a handshake error", async () => {
+    const { client, sockets, errors } = setup();
+    client.connect().catch(() => {});
+    await vi.advanceTimersByTimeAsync(0);
+    sockets[0]?.handlers.onOpen();
+    sockets[0]?.handlers.onMessage('{"error":"unsupported protocol"}\x1e');
+
+    expect(client.status).toBe("reconnecting");
+    expect(errors).toEqual(["SignalR handshake-error: unsupported protocol"]);
+    client.disconnect();
+  });
+
+  it("stops processing a message once a listener disconnects", async () => {
+    const { client, sockets, messages } = setup();
+    client.on("topic", () => client.disconnect());
+    void client.connect();
+    const socket = await openLatest(sockets);
+    socket.handlers.onMessage(frames.feedBatch);
+
+    expect(messages.map((m) => m.topic)).toEqual(["TimingData"]);
+    expect(client.status).toBe("idle");
+  });
+
+  it("rejects connect before a throwing error listener runs", async () => {
+    const { client, sockets } = setup({ autoReconnect: false });
+    client.on("error", () => {
+      throw new Error("listener bug");
+    });
+    const connected = client.connect();
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(() => sockets[0]?.handlers.onError(new Error("reset"))).toThrow("listener bug");
+    await expect(connected).rejects.toThrow("reset");
+    expect(client.status).toBe("idle");
+  });
+
+  it("connect() during reconnect resolves on the next handshake", async () => {
+    const { client, sockets } = setup();
+    void client.connect();
+    const first = await openLatest(sockets);
+    first.handlers.onClose();
+
+    let settled = false;
+    const next = client.connect().then(() => {
+      settled = true;
+    });
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(settled).toBe(false);
+    await openLatest(sockets);
+    await next;
+    expect(settled).toBe(true);
   });
 });

@@ -11,6 +11,11 @@ const BASE_URL = "https://livetiming.formula1.com/signalrcore";
 const NEGOTIATE_URL = `${BASE_URL}/negotiate?negotiateVersion=1`;
 const WS_URL = BASE_URL.replace(/^https/, "wss");
 const MAX_BACKOFF_MS = 30_000;
+// The server pings every 15s (observed), so 30s without any inbound frame means a dead link.
+// Client pings follow SignalR Core's default keepalive; the F1 server tolerated 80s without them.
+const PING_INTERVAL_MS = 15_000;
+const SERVER_TIMEOUT_MS = 30_000;
+const PING = '{"type":6}\x1e';
 
 export interface SocketHandlers {
   onOpen(): void;
@@ -32,13 +37,16 @@ export type TopicMessage =
   | { source: "snapshot"; topic: Topic; payload: unknown }
   | { source: "feed"; topic: Topic; payload: unknown; timestamp: string };
 
-export interface SignalRClientEvents {
-  raw: (data: string) => void;
-  topic: (message: TopicMessage) => void;
-  connected: () => void;
-  disconnected: () => void;
-  error: (error: Error) => void;
+export interface SignalRClientEventArgs {
+  raw: [data: string];
+  topic: [message: TopicMessage];
+  connected: [];
+  disconnected: [];
+  error: [error: Error];
 }
+export type SignalRClientEvents = {
+  [E in keyof SignalRClientEventArgs]: (...args: SignalRClientEventArgs[E]) => void;
+};
 
 export interface SignalRClientOptions {
   socket: SocketFactory;
@@ -47,11 +55,20 @@ export interface SignalRClientOptions {
   autoReconnect?: boolean;
 }
 
+type Timer = ReturnType<typeof setTimeout>;
+type AttemptToken = object;
+
 type ConnectionState =
   | { status: "idle" }
-  | { status: "connecting"; attempt: number; socket: SocketConnection | null }
-  | { status: "connected"; socket: SocketConnection }
-  | { status: "reconnecting"; attempt: number; timer: ReturnType<typeof setTimeout> };
+  | { status: "connecting"; token: AttemptToken; attempt: number; socket: SocketConnection | null }
+  | {
+      status: "connected";
+      token: AttemptToken;
+      socket: SocketConnection;
+      keepalive: ReturnType<typeof setInterval>;
+      watchdog: Timer;
+    }
+  | { status: "reconnecting"; attempt: number; timer: Timer };
 
 interface PendingConnect {
   promise: Promise<void>;
@@ -68,14 +85,23 @@ function cookieHeader(response: Response): Record<string, string> {
   return cookies.length > 0 ? { Cookie: cookies.join("; ") } : {};
 }
 
+function toError(error: unknown): Error {
+  return error instanceof Error ? error : new Error(String(error));
+}
+
 export class SignalRClient {
   private state: ConnectionState = { status: "idle" };
   private pending: PendingConnect | null = null;
   private readonly topics: Set<Topic>;
-  private readonly listeners = new Map<
-    keyof SignalRClientEvents,
-    Set<(...args: never[]) => void>
-  >();
+  private readonly listeners: {
+    [E in keyof SignalRClientEventArgs]: Set<(...args: SignalRClientEventArgs[E]) => void>;
+  } = {
+    raw: new Set(),
+    topic: new Set(),
+    connected: new Set(),
+    disconnected: new Set(),
+    error: new Set(),
+  };
   private readonly socketFactory: SocketFactory;
   private readonly fetchFn: typeof fetch;
   private readonly autoReconnect: boolean;
@@ -92,16 +118,24 @@ export class SignalRClient {
     return this.state.status;
   }
 
-  on<E extends keyof SignalRClientEvents>(event: E, handler: SignalRClientEvents[E]): () => void {
-    const set = this.listeners.get(event) ?? new Set();
+  on<E extends keyof SignalRClientEventArgs>(
+    event: E,
+    handler: (...args: SignalRClientEventArgs[E]) => void,
+  ): () => void {
+    const set = this.listeners[event];
     set.add(handler);
-    this.listeners.set(event, set);
     return () => set.delete(handler);
   }
 
+  /**
+   * Resolves on the next successful handshake. Failed attempts retry in the background with
+   * backoff (when autoReconnect is on) and keep the promise pending; it rejects only when the
+   * client goes idle first, via disconnect(), autoReconnect: false, or a server close that
+   * forbids reconnecting.
+   */
   connect(): Promise<void> {
     if (this.pending) return this.pending.promise;
-    if (this.state.status !== "idle") return Promise.resolve();
+    if (this.state.status === "connected") return Promise.resolve();
     let resolve = () => {};
     let reject: (error: Error) => void = () => {};
     const promise = new Promise<void>((res, rej) => {
@@ -109,10 +143,12 @@ export class SignalRClient {
       reject = rej;
     });
     this.pending = { promise, resolve, reject };
-    void this.open(0);
+    if (this.state.status === "idle") void this.open(0);
     return promise;
   }
 
+  /** Adds topics. A live connection subscribes to the new ones immediately; otherwise they
+   * are included in the Subscribe sent after the next handshake. */
   subscribe(topics: readonly Topic[]): void {
     const added = topics.filter((topic) => !this.topics.has(topic));
     for (const topic of added) this.topics.add(topic);
@@ -124,76 +160,99 @@ export class SignalRClient {
   disconnect(): void {
     const prev = this.state;
     this.state = { status: "idle" };
-    if (prev.status === "reconnecting") clearTimeout(prev.timer);
-    if (prev.status === "connecting" || prev.status === "connected") prev.socket?.close();
-    this.pending?.reject(new Error("disconnected before the connection was established"));
-    this.pending = null;
+    this.settle(new Error("disconnected before the connection was established"));
+    this.release(prev);
     if (prev.status === "connected") this.emit("disconnected");
   }
 
-  private emit<E extends keyof SignalRClientEvents>(
+  private emit<E extends keyof SignalRClientEventArgs>(
     event: E,
-    ...args: Parameters<SignalRClientEvents[E]>
+    ...args: SignalRClientEventArgs[E]
   ): void {
-    for (const handler of this.listeners.get(event) ?? []) {
-      (handler as (...a: Parameters<SignalRClientEvents[E]>) => void)(...args);
+    for (const handler of this.listeners[event]) handler(...args);
+  }
+
+  private isCurrent(token: AttemptToken): boolean {
+    return (
+      (this.state.status === "connecting" || this.state.status === "connected") &&
+      this.state.token === token
+    );
+  }
+
+  private settle(error: Error | null): void {
+    const pending = this.pending;
+    this.pending = null;
+    if (error) pending?.reject(error);
+    else pending?.resolve();
+  }
+
+  private release(prev: ConnectionState): void {
+    if (prev.status === "reconnecting") clearTimeout(prev.timer);
+    if (prev.status === "connected") {
+      clearInterval(prev.keepalive);
+      clearTimeout(prev.watchdog);
     }
+    if (prev.status === "connecting" || prev.status === "connected") prev.socket?.close();
   }
 
   private async open(attempt: number): Promise<void> {
-    const attemptState: ConnectionState = { status: "connecting", attempt, socket: null };
-    this.state = attemptState;
-    let token: string;
-    let headers: Record<string, string>;
+    const token: AttemptToken = {};
+    this.state = { status: "connecting", token, attempt, socket: null };
     try {
       const response = await this.fetchFn(NEGOTIATE_URL, { method: "POST" });
       if (!response.ok) throw new Error(`negotiate failed with HTTP ${response.status}`);
       const negotiated = parseNegotiate(await response.json());
       if ("error" in negotiated) throw new Error(negotiated.error);
-      token = negotiated.connectionToken;
-      headers = cookieHeader(response);
-    } catch (error) {
-      if (this.state === attemptState)
-        this.fail(error instanceof Error ? error : new Error(String(error)));
-      return;
-    }
-    if (this.state !== attemptState) return;
+      if (!this.isCurrent(token)) return;
 
-    const isCurrent = () =>
-      (this.state.status === "connecting" || this.state.status === "connected") &&
-      this.state.socket === socket;
-    const socket: SocketConnection = this.socketFactory(
-      `${WS_URL}?id=${encodeURIComponent(token)}`,
-      headers,
-      {
-        onOpen: () => {
-          if (!isCurrent()) return;
-          socket.send(encodeHandshake());
-          socket.send(encodeSubscribe([...this.topics], String(this.nextInvocationId++)));
+      // Socket events that fire before the factory returns are replayed once `socket` exists.
+      let early: (() => void)[] | null = [];
+      const run = (fn: () => void) => {
+        if (early) early.push(fn);
+        else if (this.isCurrent(token)) fn();
+      };
+      const socket = this.socketFactory(
+        `${WS_URL}?id=${encodeURIComponent(negotiated.connectionToken)}`,
+        cookieHeader(response),
+        {
+          onOpen: () => run(() => socket.send(encodeHandshake())),
+          onMessage: (data) => run(() => this.handleMessage(token, socket, data)),
+          onClose: () => run(() => this.fail(null)),
+          onError: (error) => run(() => this.fail(error)),
         },
-        onMessage: (data) => {
-          if (isCurrent()) this.handleMessage(socket, data);
-        },
-        onClose: () => {
-          if (isCurrent()) this.fail(null);
-        },
-        onError: (error) => {
-          if (isCurrent()) this.fail(error);
-        },
-      },
-    );
-    this.state = { status: "connecting", attempt, socket };
+      );
+      this.state = { status: "connecting", token, attempt, socket };
+      const queued = early;
+      early = null;
+      for (const fn of queued) run(fn);
+    } catch (error) {
+      if (this.isCurrent(token)) this.fail(toError(error));
+    }
   }
 
-  private handleMessage(socket: SocketConnection, data: string): void {
+  private handleMessage(token: AttemptToken, socket: SocketConnection, data: string): void {
     this.emit("raw", data);
     for (const frame of parseFrames(data)) {
+      if (!this.isCurrent(token)) return;
+      if (this.state.status === "connected") {
+        clearTimeout(this.state.watchdog);
+        this.state.watchdog = this.startWatchdog();
+      }
       switch (frame.kind) {
         case "handshake":
-          this.state = { status: "connected", socket };
-          this.pending?.resolve();
-          this.pending = null;
+          this.state = {
+            status: "connected",
+            token,
+            socket,
+            keepalive: setInterval(() => socket.send(PING), PING_INTERVAL_MS),
+            watchdog: this.startWatchdog(),
+          };
+          socket.send(encodeSubscribe([...this.topics], String(this.nextInvocationId++)));
+          this.settle(null);
           this.emit("connected");
+          break;
+        case "handshake-error":
+          this.fail(new Error(`SignalR handshake-error: ${frame.error}`));
           break;
         case "feed":
           this.emit("topic", {
@@ -208,9 +267,8 @@ export class SignalRClient {
             this.emit("topic", { source: "snapshot", topic, payload });
           }
           break;
-        case "handshake-error":
         case "invocation-error":
-          this.emit("error", new Error(`SignalR ${frame.kind}: ${frame.error}`));
+          this.emit("error", new Error(`SignalR invocation-error: ${frame.error}`));
           break;
         case "invalid":
           this.emit(
@@ -221,8 +279,9 @@ export class SignalRClient {
         case "close":
           this.fail(
             frame.error === null ? null : new Error(`SignalR server closed: ${frame.error}`),
+            frame.allowReconnect,
           );
-          return;
+          break;
         case "ping":
           break;
         default:
@@ -231,22 +290,26 @@ export class SignalRClient {
     }
   }
 
-  private fail(error: Error | null): void {
+  private startWatchdog(): Timer {
+    return setTimeout(
+      () => this.fail(new Error(`no message from server in ${SERVER_TIMEOUT_MS}ms`)),
+      SERVER_TIMEOUT_MS,
+    );
+  }
+
+  private fail(error: Error | null, allowReconnect = true): void {
     const prev = this.state;
     if (prev.status !== "connecting" && prev.status !== "connected") return;
-    if (this.autoReconnect) {
+    if (this.autoReconnect && allowReconnect) {
       const attempt = prev.status === "connecting" ? prev.attempt + 1 : 1;
       const timer = setTimeout(() => void this.open(attempt), backoffDelay(attempt));
       this.state = { status: "reconnecting", attempt, timer };
     } else {
       this.state = { status: "idle" };
+      this.settle(error ?? new Error("connection closed"));
     }
-    prev.socket?.close();
+    this.release(prev);
     if (error) this.emit("error", error);
     if (prev.status === "connected") this.emit("disconnected");
-    if (this.state.status === "idle") {
-      this.pending?.reject(error ?? new Error("connection closed"));
-      this.pending = null;
-    }
   }
 }
