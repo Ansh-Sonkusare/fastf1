@@ -1,5 +1,0 @@
-time	decision	alternatives	why
-12:50	Split tests into 2 commits (meetings/telemetry, context/results)	Single commit; 3+ PRs per endpoint	Balances vitest output clarity with budget compliance; maintains test cohesion
-12:51	Use distinct session_key (9693, 9698) across test files	Reuse same key across all tests	Ensures cache isolation safety if lane B merges first; distinct keys avoid potential cross-file pollution
-12:52	Assert literal values for every test	Use generic "is defined" checks	Follows laps.test.ts pattern; literal assertions catch parsing regressions
-12:54	Include all 5 edge cases per endpoint (null cleaning, empty/non-array input, params)	Test subset	Comprehensive coverage prevents silent regressions across query param handling
