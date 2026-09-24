@@ -34,7 +34,7 @@ The error channel is `ClientError`, a union of three tagged errors:
 | `_tag` | Cause | Retried |
 | --- | --- | --- |
 | `RateLimitError` | HTTP 429 | Yes. Waits `Retry-After` seconds (max 60), else exponential backoff. |
-| `TimeoutError` | No response within 10 seconds | Yes, exponential backoff |
+| `TimeoutError` | No response headers within 10 seconds. Reading the body has no timeout. | Yes, exponential backoff |
 | `F1ClientError` | Any other non-2xx status, network failure, or invalid JSON | Only for status 500 or higher |
 
 A request makes at most 4 attempts. Exponential backoff waits 100 ms, 200 ms, then 400 ms.
@@ -48,8 +48,14 @@ Each function decodes every row with an Effect Schema from `packages/core/src/sc
 - A field declared `nullish(...)` accepts `null`, and decoding removes the key. In TypeScript the field is optional (`field?: T`), so read it as `T | undefined`, never `null`.
 - A required field that arrives as `null`, missing, or with the wrong type fails decoding. `parseOrDie` throws, so the Effect dies with a defect. `toPromise` rejects, but the failure is not in the `ClientError` channel.
 - Fields not in the schema are dropped. For example, `/session_result` sends `points`, which `SessionResult` does not keep.
+- A 200 response whose body is not an array decodes to `[]` without an error.
 
-`cleanNulls` in `_shared.ts` copies the response recursively and keeps `null` values. The schemas do the null removal. The PRD's `cleanNulls`, which filters nulls before Zod validation, does not exist.
+Two functions named `cleanNulls` exist, and neither removes nulls from OpenF1 responses:
+
+- The internal `cleanNulls` in `packages/core/src/api/endpoints/_shared.ts` runs on every response. It copies objects and arrays recursively and keeps `null` values.
+- The exported `cleanNulls` from `@f1/core` (`packages/core/src/utils.ts`) drops `null` and `undefined` keys from one object, shallowly. The OpenF1 functions do not call it.
+
+The schemas do the null removal. The PRD's recursive `cleanNulls`, which also filters `null` items out of arrays before Zod validation, does not exist.
 
 ### Optional numeric arguments
 
@@ -322,7 +328,7 @@ setOpenF1BaseUrl("http://localhost:8080/v1");
 clearOpenF1Cache(): void
 ```
 
-Deletes every cached response, including in-flight entries. A request that is in flight during the clear still resolves its waiters, and then writes its result back into the cache. See [Caching](#caching).
+Deletes every cached response, including in-flight entries. It does not cancel or detach requests that are in flight. Such a request still resolves its waiters. When it settles, it writes its result into the cache on success, or deletes the key on failure. If a newer request for the same key started after the clear, the old request overwrites that newer entry with its older data, or deletes it. See [Known issues](#known-issues).
 
 ### setOpenF1CacheEnabled
 
@@ -330,7 +336,7 @@ Deletes every cached response, including in-flight entries. A request that is in
 setOpenF1CacheEnabled(enabled: boolean): void
 ```
 
-`false` stops cache reads and writes. Every call goes to the network, and concurrent identical calls are no longer shared. Existing entries stay in memory. `true` turns caching back on, and unexpired entries are served again.
+`false` stops cache reads and writes. Every call goes to the network, and concurrent identical calls are no longer shared. Existing entries stay in memory, with one exception: a failed request still deletes its key, even while the cache is disabled. `true` turns caching back on, and unexpired entries are served again.
 
 ## Caching
 
@@ -338,12 +344,12 @@ The cache lives in `packages/core/src/api/endpoints/cache.ts`. `fetchOpenF1` in 
 
 - **Scope.** One module-level `QuickLRU` shared by every caller in the JavaScript process. `toPromise` builds a fresh `F1ClientServiceLive` layer per call, so a layer-scoped cache would never hit. The module-level cache hits across `toPromise` calls and across `@f1/react` hooks.
 - **Key.** The full request URL, including the base URL and the query string, for example `https://api.openf1.org/v1/stints?session_key=9472&driver_number=1`. Argument order is fixed per function, so equal arguments give equal keys.
-- **Lifetime.** Each entry expires 1 hour after it is written (`maxAge`). `maxSize` is 100 and least recently used entries go first.
+- **Lifetime.** Each entry expires 1 hour after it is written (`maxAge`). `maxSize` is 100. quick-lru keeps two generations of up to 100 entries each, so it holds up to about 200 entries. It drops the older generation as a whole, which approximates least-recently-used eviction.
 - **What is stored.** The response JSON before schema decoding. Every call decodes again. A decoding failure does not evict the entry.
-- **Success only.** When the HTTP request fails or is interrupted, the entry is deleted. The next call fetches again.
+- **Success only.** When the HTTP request fails or is interrupted, the entry is deleted. The next call fetches again. Interruption does not abort the underlying `fetch`, so the request still counts against the rate limit.
 - **In-flight sharing.** The first call for a key stores a pending `Deferred`. Concurrent calls with the same key wait on it instead of sending their own request. They receive the same value, failure, or interruption.
 
-`examples/openf1/cache-demo.ts` counts the real `fetch` calls:
+`examples/openf1/cache-demo.ts` counts the real `fetch` calls. The expected counts are 1, 0, 1, and 2, plus one for each 429 retry. This is one run:
 
 ```text
 first call                       network calls 1 [200]  494 ms
@@ -352,7 +358,7 @@ repeat call                      network calls 0 []  1 ms
 2 calls with cache disabled      network calls 3 [200, 429, 200]  1451 ms
 ```
 
-The last line shows a 429 from the rate limit and its retry after `Retry-After: 1`.
+In this run the last step hit the rate limit once and retried after `Retry-After: 1`. Other runs show `2 [200, 200]`.
 
 ### Isolate tests from the cache
 
@@ -365,7 +371,7 @@ beforeEach(() => {
 });
 ```
 
-To test code outside `@f1/core` that calls these functions, add the same `beforeEach` to your own setup file.
+To test code outside `@f1/core` that calls these functions, add the same `beforeEach` to your own setup file. Before a test ends, await or interrupt every request it started. A request still in flight when the next test clears the cache can overwrite or delete that test's entries.
 
 ## Data availability
 
@@ -382,8 +388,14 @@ These are schema mismatches in `packages/core/src/schemas/openf1.ts` against liv
 | --- | --- | --- |
 | `getSessionResult`, `getIntervals` | `gap_to_leader: "+1 LAP"` for lapped cars (session `9472`) | `number` or `null` |
 | `getSessionResult` | `duration: [90.031, 89.374, 89.179]` in qualifying (session `9468`) | `number` or `null` |
+| `getSessionResult` | `gap_to_leader: [0.122, 0.209, 0.0]` in qualifying, in all 20 rows (session `9468`) | `number` or `null` |
 | `getSessionResult` | `position: null` for drivers with `dnf: true` (session `9506`) | `number` |
 | `getTeamRadio` | `recording_url`, no `message` or `driver_id` (session `9472`) | `message` and `driver_id` required |
+
+These are cache bugs in `packages/core/src/api/endpoints/`, found by reading the source:
+
+- `evictFromCache` in `cache.ts` ignores `setOpenF1CacheEnabled(false)`. A request that fails while the cache is disabled deletes the good entry for its key.
+- `clearOpenF1Cache` does not detach in-flight requests. A request started before the clear writes its result, or its deletion, over the entry of a newer request for the same key. The newer entry then holds older data, or is gone.
 
 ## Differences from the PRD
 
@@ -391,10 +403,11 @@ These are schema mismatches in `packages/core/src/schemas/openf1.ts` against liv
 
 - Functions return `Effect`, not `Promise`. Use `toPromise`.
 - Pit stops are exported as `getOpenF1PitStops`, not `getPitStops`.
+- The PRD's `PitStop` and `Location` types are exported as `OpenF1Pit` and `OpenF1Location`.
 - `getCarData` takes an `opts` date window that the PRD does not list.
-- Validation uses Effect Schema, not Zod. Nulls are removed by `nullish` schema fields, not by a `cleanNulls` pre-pass.
-- `CarData.brake` is a number (`0` or `100`), not a boolean. Timing fields the PRD types as `number | null` are optional (`number | undefined`).
-- Empty results fail with a 404 `F1ClientError` instead of returning `[]`.
+- Validation uses Effect Schema, not Zod. `nullish` schema fields remove nulls. No recursive `cleanNulls` pre-pass runs.
+- `CarData.brake` is a number (`0` or `100`), not a boolean. The PRD types the `CarData` fields `speed`, `rpm`, `n_gear`, `throttle`, `brake`, and `drs` as required. In the source all six are optional. Timing fields the PRD types as `number | null` are optional (`number | undefined`).
+- The PRD says to handle sessions without data gracefully. The source fails with a 404 `F1ClientError` instead.
 - The PRD notes 2025 as empty. Live data now covers 2023 to 2026.
 
 ## Run the examples
