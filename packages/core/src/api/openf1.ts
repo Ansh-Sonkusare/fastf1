@@ -1,4 +1,11 @@
-export { setOpenF1BaseUrl, getOpenF1BaseUrl } from "./endpoints/_shared";
+export {
+  setOpenF1BaseUrl,
+  getOpenF1BaseUrl,
+} from "./endpoints/_shared";
+export {
+  clearOpenF1Cache,
+  setOpenF1CacheEnabled,
+} from "./endpoints/cache";
 export {
   getMeetings,
   getSessions,

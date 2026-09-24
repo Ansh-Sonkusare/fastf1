@@ -1,5 +1,7 @@
-import { Effect, Either, Schema } from "effect";
-import { F1ClientService } from "../../http/service";
+import { Cause, Deferred, Effect, Either, Exit, Schema } from "effect";
+import type { ClientError } from "../../http/service";
+import { F1ClientService, buildUrl } from "../../http/service";
+import { evictFromCache, getFromCache, setInCache, setInFlightCache } from "./cache";
 
 let BASE = "https://api.openf1.org/v1";
 
@@ -38,8 +40,40 @@ export function parseArray<A, I>(schema: Schema.Schema<A, I, never>, input: unkn
 
 export function fetchOpenF1<A>(endpoint: string, params?: Record<string, string | number>) {
   return Effect.gen(function* () {
-    const client = yield* F1ClientService;
-    const response = yield* client.fetch<unknown>(`${BASE}${endpoint}`, { params });
-    return cleanNulls(response) as A;
+    const cacheKey = buildUrl(`${BASE}${endpoint}`, params);
+    const cached = getFromCache(cacheKey);
+
+    if (cached !== undefined) {
+      if (cached.type === "resolved") {
+        return cached.value as A;
+      }
+      return yield* Deferred.await(cached.deferred as Deferred.Deferred<A, ClientError>);
+    }
+
+    const deferred = yield* Deferred.make<A, ClientError>();
+    setInFlightCache(cacheKey, deferred);
+
+    const fetchEffect = Effect.gen(function* () {
+      const client = yield* F1ClientService;
+      const response = yield* client.fetch<unknown>(`${BASE}${endpoint}`, { params });
+      return cleanNulls(response) as A;
+    });
+
+    const result = yield* fetchEffect.pipe(
+      Effect.onExit((exit) =>
+        Effect.gen(function* () {
+          if (Exit.isSuccess(exit)) {
+            const value = exit.value;
+            yield* Deferred.succeed(deferred, value);
+            setInCache(cacheKey, value);
+          } else {
+            evictFromCache(cacheKey);
+            yield* Deferred.done(deferred, exit);
+          }
+        }),
+      ),
+    );
+
+    return result;
   });
 }

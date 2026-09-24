@@ -60,7 +60,7 @@ export class F1ClientService extends Context.Tag("F1ClientService")<
   F1ClientServiceShape
 >() {}
 
-function buildUrl(endpoint: string, params?: Record<string, string | number>): string {
+export function buildUrl(endpoint: string, params?: Record<string, string | number>): string {
   if (!params) return endpoint;
   const qs = Object.entries(params)
     .filter(([, v]) => v !== undefined && v !== null)
