@@ -1,6 +1,6 @@
-import { Effect, Either, Schema } from "effect";
-import { F1ClientService } from "../../http/service";
-import { clearOpenF1Cache, getFromCache, setInCache } from "./cache";
+import { Cause, Deferred, Effect, Either, Schema } from "effect";
+import { F1ClientService, buildUrl } from "../../http/service";
+import { evictFromCache, getFromCache, setInCache, setInFlightCache } from "./cache";
 
 let BASE = "https://api.openf1.org/v1";
 
@@ -37,38 +37,36 @@ export function parseArray<A, I>(schema: Schema.Schema<A, I, never>, input: unkn
   return input.map((item) => parseOrDie(schema, item));
 }
 
-function buildCacheKey(endpoint: string, params?: Record<string, string | number>): string {
-  const url = `${BASE}${endpoint}`;
-  if (!params || Object.keys(params).length === 0) {
-    return url;
-  }
-  const searchParams = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
-    searchParams.set(key, String(value));
-  }
-  return `${url}?${searchParams.toString()}`;
-}
-
 export function fetchOpenF1<A>(endpoint: string, params?: Record<string, string | number>) {
   return Effect.gen(function* () {
-    const cacheKey = buildCacheKey(endpoint, params);
+    const cacheKey = buildUrl(`${BASE}${endpoint}`, params);
+    const cached = getFromCache(cacheKey);
 
-    // Check cache first
-    const cached = getFromCache<A>(cacheKey);
     if (cached !== undefined) {
-      return cached;
+      if (cached.type === "resolved") {
+        return cached.value as A;
+      }
+      return yield* Deferred.await(cached.deferred as Deferred.Deferred<A>);
     }
 
-    const client = yield* F1ClientService;
-    const response = yield* client.fetch<unknown>(`${BASE}${endpoint}`, { params });
-    const cleaned = cleanNulls(response) as A;
+    const deferred = yield* Deferred.make<A>();
+    setInFlightCache(cacheKey, deferred);
 
-    // Cache the successful response
-    setInCache(cacheKey, cleaned);
+    const fetchEffect = Effect.gen(function* () {
+      const client = yield* F1ClientService;
+      const response = yield* client.fetch<unknown>(`${BASE}${endpoint}`, { params });
+      return cleanNulls(response) as A;
+    });
 
-    return cleaned;
+    const attempt = yield* Effect.either(fetchEffect);
+    if (attempt._tag === "Right") {
+      yield* Deferred.succeed(deferred, attempt.right);
+      setInCache(cacheKey, attempt.right);
+      return attempt.right;
+    }
+    evictFromCache(cacheKey);
+    const cause = Cause.fail(attempt.left);
+    yield* Deferred.failCause(deferred as unknown as Deferred.Deferred<A, unknown>, cause);
+    return yield* Effect.failCause(cause);
   });
 }
-
-// Re-export cache control functions
-export { clearOpenF1Cache };

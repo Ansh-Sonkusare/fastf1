@@ -171,9 +171,66 @@ describe("fetchOpenF1 Cache", () => {
     expect(result.name).toBe("test");
     expect(result.nested.value).toBe(42);
 
-    // Verify cached result is identical
     const result2 = await run(fetchOpenF1("/test"));
     expect(result2).toEqual(result);
     expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("shares in-flight promises for concurrent identical calls", async () => {
+    const data = [{ id: 1 }];
+    const fetchSpy = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(data), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    global.fetch = fetchSpy;
+
+    const call1 = run(fetchOpenF1("/test"));
+    const call2 = run(fetchOpenF1("/test"));
+
+    const [result1, result2] = await Promise.all([call1, call2]);
+
+    expect(result1).toEqual(data);
+    expect(result2).toEqual(data);
+    expect(result1).toBe(result2);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("evicts failed in-flight calls so next call refetches", async () => {
+    const successData = [{ id: 1 }];
+    let callCount = 0;
+
+    const fetchSpy = vi.fn(() => {
+      callCount++;
+      if (callCount === 1) {
+        throw new Error("Network error");
+      }
+      return Promise.resolve(
+        new Response(JSON.stringify(successData), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+    });
+    global.fetch = fetchSpy;
+
+    let errorThrown = false;
+    try {
+      await run(fetchOpenF1("/test"));
+    } catch {
+      errorThrown = true;
+    }
+    expect(errorThrown).toBe(true);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+
+    const result = await run(fetchOpenF1("/test"));
+    expect(result).toEqual(successData);
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it("exports cache controls from package entry", async () => {
+    const { clearOpenF1Cache: exported } = await import("../../index");
+    expect(typeof exported).toBe("function");
   });
 });
