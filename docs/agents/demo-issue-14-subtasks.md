@@ -18,8 +18,8 @@ Issue #14's ACs, mapped onto the actual repo seam (Vite green baseline → deepe
 | # | Title | Status |
 |---|---|---|
 | #23 | SSR-style initial-data loader (`toPromise(getSchedule)` → RaceTable, `latestRound` derived) | **done** (loader shipped, commit `8450218c`; seam exported and consumed by #24/#25 — honesty note in ADR-002 rollout) |
-| #24 | Current Season Schedule panel (`useF1Schedule` + initialData) | **done** (SchedulePanel rendering real schedule data, commit `299a41f`) |
-| #25 | Latest Race Results panel (`useF1Results` + initialData) | **done** (ResultsPanel rendering position/driver/constructor/time/points, commit `f7f0674`) |
+| #24 | Current Season Schedule panel (`useF1Schedule` + initialData) | **done** (SchedulePanel renders all 24 real 2025 rounds; `main.tsx` awaits `loadInitialData()` before `createRoot().render` so the panel has data on first paint; verified in a real browser at commit `791c8ae`, screenshot `evidence/lane-a/v3/05-speed-chart-lap1.png`) |
+| #25 | Latest Race Results panel (`useF1Results` + initialData) | **done** (ResultsPanel renders all 20 real finishers for the round with position/driver/constructor/time/points; fixed at `791c8ae` after commits `299a41f`/`f7f0674` shipped it rendering one row of dashes — `useF1Results` resolves `Race[]`, the finishers are on `Races[0].Results`, not the top-level array; verified in a real browser, screenshot `evidence/lane-a/v3/02-results.png`) |
 
 Each pushed green (build + test + lint) before starting the next.
 
@@ -28,6 +28,12 @@ Each pushed green (build + test + lint) before starting the next.
 - **DRIVERS table** (App.tsx): corrected driver codes (AGR → ALB), names (BEA, DOO, STR), and numbers to match real grid
 - **latestRound calculation** (initial.ts): changed from max round in schedule to latest round with date ≤ today (ensures results exist)
 - **Type safety**: added `@types/react` and `@types/react-dom`, added typecheck script to demo package.json
+- **`loadInitialData` seam restored** (`main.tsx`, commit `791c8ae`): a prior commit on this branch (`049bbeb`) deleted the seam entirely. `useAsyncResource` (`packages/react/src/hooks.ts`) only reads `initialData` on first render and skips its own fetch effect once it is set, so data loaded in a post-mount effect is never picked up. `main.tsx` now awaits `loadInitialData()` before `createRoot().render`.
+- **Speed chart x-axis fixed** (App.tsx, commit `791c8ae`): seconds were computed as `index * 0.27` over the merged two-driver array, so a driver with fewer surviving samples (after upstream OpenF1 429s) drew only a stub near the origin. Seconds are now elapsed time since that driver's own first sample.
+
+## Honesty note
+
+Two earlier commits on this branch (`299a41f`, `f7f0674`, `049bbeb`) were reported as working without a passing browser check. They were not: the results panel rendered one row of dashes, and the `initialData` seam was dropped outright. Commit `791c8ae` is the first commit on this branch verified against a real browser session (screenshots and network/console logs in `/home/teak/code/fastf1-autopilot/evidence/lane-a/v3/`). The verify-fastf1-demo skill's `shot:` step (fixed 1100x900 viewport, full-page screenshot) can blank or truncate the speed chart's SVG when it sits below the fold; that is a screenshot-capture artifact of the skill, not a demo bug — confirmed by re-capturing the same settled page state at a taller viewport (`05-speed-chart-lap1.png`, `06-speed-chart-fastest-laps.png`) and by reading the live SVG path data directly, both showing complete, correct traces.
 
 ## ADR divergence being executed (documented, not Next.js)
 
