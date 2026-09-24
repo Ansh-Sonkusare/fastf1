@@ -17,11 +17,17 @@ Issue #14's ACs, mapped onto the actual repo seam (Vite green baseline → deepe
 
 | # | Title | Status |
 |---|---|---|
-| #23 | SSR-style initial-data loader (`toPromise(getSchedule)` → RaceTable, `latestRound` derived) | **done** (loader shipped, commit `8450218c`; seam exported but **unconsumed until #24/#25 wire it** — honesty note in ADR-002 rollout) |
-| #24 | Current Season Schedule panel (`useF1Schedule` + initialData) | **done** (gate: build 3.57s + lint 0 fixes, pushed) |
-| #25 | Latest Race Results panel (`useF1Results` + initialData) | **seam shipped** (import landed, pushed `5361b18`; panel body pending next gate — honest seam-only row, no fabricated panel) |
+| #23 | SSR-style initial-data loader (`toPromise(getSchedule)` → RaceTable, `latestRound` derived) | **done** (loader shipped, commit `8450218c`; seam exported and consumed by #24/#25 — honesty note in ADR-002 rollout) |
+| #24 | Current Season Schedule panel (`useF1Schedule` + initialData) | **done** (SchedulePanel rendering real schedule data, commit `299a41f`) |
+| #25 | Latest Race Results panel (`useF1Results` + initialData) | **done** (ResultsPanel rendering position/driver/constructor/time/points, commit `f7f0674`) |
 
 Each pushed green (build + test + lint) before starting the next.
+
+## Additional fixes applied
+
+- **DRIVERS table** (App.tsx): corrected driver codes (AGR → ALB), names (BEA, DOO, STR), and numbers to match real grid
+- **latestRound calculation** (initial.ts): changed from max round in schedule to latest round with date ≤ today (ensures results exist)
+- **Type safety**: added `@types/react` and `@types/react-dom`, added typecheck script to demo package.json
 
 ## ADR divergence being executed (documented, not Next.js)
 
