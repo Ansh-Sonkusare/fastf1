@@ -33,10 +33,25 @@ interface SetupOptions {
 
 function setup({ topics = ["Heartbeat"], autoReconnect, insideFactory }: SetupOptions = {}) {
   const sockets: FakeSocket[] = [];
-  const fetchCalls: { url: string; method: string | undefined; at: number }[] = [];
-  let negotiateStatus = 200;
+  const fetchCalls: {
+    url: string;
+    method: string | undefined;
+    at: number;
+    signal: AbortSignal | null | undefined;
+  }[] = [];
+  let negotiateStatus: number | "hang" = 200;
   const fetchFake = async (input: RequestInfo | URL, init?: RequestInit) => {
-    fetchCalls.push({ url: String(input), method: init?.method, at: Date.now() });
+    fetchCalls.push({
+      url: String(input),
+      method: init?.method,
+      at: Date.now(),
+      signal: init?.signal,
+    });
+    if (negotiateStatus === "hang") {
+      return new Promise<Response>((_, reject) =>
+        init?.signal?.addEventListener("abort", () => reject(new Error("aborted"))),
+      );
+    }
     return negotiateStatus === 200 ? okNegotiate() : new Response("", { status: negotiateStatus });
   };
   const client = new SignalRClient({
@@ -65,7 +80,7 @@ function setup({ topics = ["Heartbeat"], autoReconnect, insideFactory }: SetupOp
     fetchCalls,
     messages,
     errors,
-    setNegotiateStatus: (status: number) => {
+    setNegotiateStatus: (status: number | "hang") => {
       negotiateStatus = status;
     },
   };
@@ -202,9 +217,79 @@ describe("SignalRClient", () => {
     expect(client.status).toBe("reconnecting");
 
     client.disconnect();
+    expect(vi.getTimerCount()).toBe(0);
     await vi.advanceTimersByTimeAsync(60_000);
     expect(fetchCalls).toHaveLength(1);
     expect(client.status).toBe("idle");
+  });
+
+  it("emits disconnected before a throwing error listener runs", async () => {
+    const { client, sockets } = setup();
+    const events: string[] = [];
+    client.on("disconnected", () => events.push("disconnected"));
+    client.on("error", () => {
+      throw new Error("listener bug");
+    });
+    void client.connect();
+    const socket = await openLatest(sockets);
+
+    expect(() => socket.handlers.onError(new Error("reset"))).toThrow("listener bug");
+    expect(events).toEqual(["disconnected"]);
+    expect(client.status).toBe("reconnecting");
+    client.disconnect();
+  });
+
+  it("clears every timer when disconnected while connected", async () => {
+    const { client, sockets } = setup();
+    void client.connect();
+    await openLatest(sockets);
+    expect(vi.getTimerCount()).toBe(2);
+    client.disconnect();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("ignores a repeated handshake without leaking timers", async () => {
+    const { client, sockets, errors } = setup();
+    void client.connect();
+    const socket = await openLatest(sockets);
+    socket.handlers.onMessage(frames.handshake);
+
+    expect(errors).toEqual(["SignalR unexpected handshake on an open connection"]);
+    expect(vi.getTimerCount()).toBe(2);
+    for (let i = 0; i < 4; i++) {
+      await vi.advanceTimersByTimeAsync(20_000);
+      socket.handlers.onMessage(frames.ping);
+    }
+    expect(client.status).toBe("connected");
+    expect(errors).toHaveLength(1);
+    client.disconnect();
+  });
+
+  it("times out an attempt whose negotiate never answers", async () => {
+    const { client, fetchCalls, errors, setNegotiateStatus } = setup();
+    setNegotiateStatus("hang");
+    client.connect().catch(() => {});
+    await vi.advanceTimersByTimeAsync(14_999);
+    expect(client.status).toBe("connecting");
+    await vi.advanceTimersByTimeAsync(1);
+
+    expect(client.status).toBe("reconnecting");
+    expect(errors).toEqual(["handshake not completed within 15000ms"]);
+    expect(fetchCalls[0]?.signal?.aborted).toBe(true);
+    client.disconnect();
+  });
+
+  it("times out an attempt whose handshake ack never arrives", async () => {
+    const { client, sockets, errors } = setup();
+    client.connect().catch(() => {});
+    await vi.advanceTimersByTimeAsync(0);
+    sockets[0]?.handlers.onOpen();
+    await vi.advanceTimersByTimeAsync(15_000);
+
+    expect(client.status).toBe("reconnecting");
+    expect(errors).toEqual(["handshake not completed within 15000ms"]);
+    expect(sockets[0]?.closed).toBe(true);
+    client.disconnect();
   });
 
   it("rejects connect when disconnected before the handshake", async () => {
@@ -262,8 +347,11 @@ describe("SignalRClient", () => {
     expect(client.status).toBe("connected");
     await vi.advanceTimersByTimeAsync(1);
     expect(client.status).toBe("reconnecting");
-    expect(errors).toEqual(["no message from server in 30000ms"]);
+    expect(errors).toEqual(["no message from server within 30000ms"]);
     expect(socket.closed).toBe(true);
+    const sentAtDrop = socket.sent.length;
+    await vi.advanceTimersByTimeAsync(45_000);
+    expect(socket.sent).toHaveLength(sentAtDrop);
     client.disconnect();
   });
 
@@ -286,10 +374,13 @@ describe("SignalRClient", () => {
     void client.connect();
     const socket = await openLatest(sockets);
     socket.handlers.onClose();
+    expect(vi.getTimerCount()).toBe(0);
+    const sentAtDrop = socket.sent.length;
 
     await vi.advanceTimersByTimeAsync(60_000);
     expect(client.status).toBe("idle");
     expect(fetchCalls).toHaveLength(1);
+    expect(socket.sent).toHaveLength(sentAtDrop);
     expect(events).toEqual(["disconnected"]);
   });
 

@@ -16,6 +16,8 @@ const MAX_BACKOFF_MS = 30_000;
 const PING_INTERVAL_MS = 15_000;
 const SERVER_TIMEOUT_MS = 30_000;
 const PING = '{"type":6}\x1e';
+// Matches the ASP.NET Core SignalR client's default HandshakeTimeout.
+const HANDSHAKE_TIMEOUT_MS = 15_000;
 
 export interface SocketHandlers {
   onOpen(): void;
@@ -60,7 +62,14 @@ type AttemptToken = object;
 
 type ConnectionState =
   | { status: "idle" }
-  | { status: "connecting"; token: AttemptToken; attempt: number; socket: SocketConnection | null }
+  | {
+      status: "connecting";
+      token: AttemptToken;
+      attempt: number;
+      socket: SocketConnection | null;
+      deadline: Timer;
+      abort: AbortController;
+    }
   | {
       status: "connected";
       token: AttemptToken;
@@ -188,6 +197,10 @@ export class SignalRClient {
 
   private release(prev: ConnectionState): void {
     if (prev.status === "reconnecting") clearTimeout(prev.timer);
+    if (prev.status === "connecting") {
+      clearTimeout(prev.deadline);
+      prev.abort.abort();
+    }
     if (prev.status === "connected") {
       clearInterval(prev.keepalive);
       clearTimeout(prev.watchdog);
@@ -197,9 +210,20 @@ export class SignalRClient {
 
   private async open(attempt: number): Promise<void> {
     const token: AttemptToken = {};
-    this.state = { status: "connecting", token, attempt, socket: null };
+    const connecting = {
+      status: "connecting" as const,
+      token,
+      attempt,
+      socket: null,
+      deadline: this.failAfter(token, HANDSHAKE_TIMEOUT_MS, "handshake not completed"),
+      abort: new AbortController(),
+    };
+    this.state = connecting;
     try {
-      const response = await this.fetchFn(NEGOTIATE_URL, { method: "POST" });
+      const response = await this.fetchFn(NEGOTIATE_URL, {
+        method: "POST",
+        signal: connecting.abort.signal,
+      });
       if (!response.ok) throw new Error(`negotiate failed with HTTP ${response.status}`);
       const negotiated = parseNegotiate(await response.json());
       if ("error" in negotiated) throw new Error(negotiated.error);
@@ -221,7 +245,7 @@ export class SignalRClient {
           onError: (error) => run(() => this.fail(error)),
         },
       );
-      this.state = { status: "connecting", token, attempt, socket };
+      this.state = { ...connecting, socket };
       const queued = early;
       early = null;
       for (const fn of queued) run(fn);
@@ -236,16 +260,21 @@ export class SignalRClient {
       if (!this.isCurrent(token)) return;
       if (this.state.status === "connected") {
         clearTimeout(this.state.watchdog);
-        this.state.watchdog = this.startWatchdog();
+        this.state.watchdog = this.startWatchdog(token);
       }
       switch (frame.kind) {
         case "handshake":
+          if (this.state.status !== "connecting") {
+            this.emit("error", new Error("SignalR unexpected handshake on an open connection"));
+            break;
+          }
+          clearTimeout(this.state.deadline);
           this.state = {
             status: "connected",
             token,
             socket,
             keepalive: setInterval(() => socket.send(PING), PING_INTERVAL_MS),
-            watchdog: this.startWatchdog(),
+            watchdog: this.startWatchdog(token),
           };
           socket.send(encodeSubscribe([...this.topics], String(this.nextInvocationId++)));
           this.settle(null);
@@ -290,11 +319,14 @@ export class SignalRClient {
     }
   }
 
-  private startWatchdog(): Timer {
-    return setTimeout(
-      () => this.fail(new Error(`no message from server in ${SERVER_TIMEOUT_MS}ms`)),
-      SERVER_TIMEOUT_MS,
-    );
+  private startWatchdog(token: AttemptToken): Timer {
+    return this.failAfter(token, SERVER_TIMEOUT_MS, "no message from server");
+  }
+
+  private failAfter(token: AttemptToken, ms: number, reason: string): Timer {
+    return setTimeout(() => {
+      if (this.isCurrent(token)) this.fail(new Error(`${reason} within ${ms}ms`));
+    }, ms);
   }
 
   private fail(error: Error | null, allowReconnect = true): void {
@@ -309,7 +341,8 @@ export class SignalRClient {
       this.settle(error ?? new Error("connection closed"));
     }
     this.release(prev);
-    if (error) this.emit("error", error);
+    // Lifecycle first: a throwing error listener must not hide the disconnect from link trackers.
     if (prev.status === "connected") this.emit("disconnected");
+    if (error) this.emit("error", error);
   }
 }
