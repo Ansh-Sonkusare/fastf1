@@ -1,8 +1,8 @@
 import { Effect } from "effect";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { type F1ClientService, F1ClientServiceLive } from "../../http/service";
-import { clearOpenF1Cache, setOpenF1CacheEnabled } from "./cache";
 import { fetchOpenF1 } from "./_shared";
+import { clearOpenF1Cache, setOpenF1CacheEnabled } from "./cache";
 
 function run<A, E>(effect: Effect.Effect<A, E, F1ClientService>) {
   return Effect.runPromise(Effect.provide(effect, F1ClientServiceLive));
@@ -75,7 +75,8 @@ describe("fetchOpenF1 Cache", () => {
     vi.useFakeTimers();
     try {
       const data = [{ id: 1 }];
-      const fetchSpy = vi.fn()
+      const fetchSpy = vi
+        .fn()
         .mockResolvedValueOnce(
           new Response(JSON.stringify(data), {
             status: 200,
@@ -117,7 +118,8 @@ describe("fetchOpenF1 Cache", () => {
 
   it("respects cache disabled state", async () => {
     const data = [{ id: 1 }];
-    const fetchSpy = vi.fn()
+    const fetchSpy = vi
+      .fn()
       .mockResolvedValueOnce(
         new Response(JSON.stringify(data), {
           status: 200,
