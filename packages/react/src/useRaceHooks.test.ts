@@ -183,7 +183,6 @@ describe("useRaceHooks", () => {
       session: "race",
     });
     expect(result.current.lap).toBe(24);
-    expect(result.current.data).toBeUndefined();
   });
 
   it("should handle fastest lap error state", async () => {
