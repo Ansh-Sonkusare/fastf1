@@ -71,8 +71,7 @@ describe("getCarData", () => {
     await run(getCarData(9693, 1));
 
     const url = spy.mock.calls[0][0] as string;
-    expect(url).toContain("session_key=9693");
-    expect(url).toContain("driver_number=1");
+    expect(url).toBe(`${getOpenF1BaseUrl()}/car_data?session_key=9693&driver_number=1`);
   });
 
   it("includes date range when provided", async () => {
@@ -86,9 +85,9 @@ describe("getCarData", () => {
     );
 
     const url = spy.mock.calls[0][0] as string;
-    expect(url).toContain("session_key=9693");
-    expect(url).toContain("date%3E=");
-    expect(url).toContain("date%3C=");
+    expect(url).toBe(
+      `${getOpenF1BaseUrl()}/car_data?session_key=9693&date%3E=2024-03-01T08%3A00%3A00Z&date%3C=2024-03-01T10%3A00%3A00Z`,
+    );
   });
 
   testEdgeCases(() => run(getCarData(9693)));
@@ -153,8 +152,25 @@ describe("getLocation", () => {
     await run(getLocation(9693, 1));
 
     const url = spy.mock.calls[0][0] as string;
-    expect(url).toContain("session_key=9693");
-    expect(url).toContain("driver_number=1");
+    expect(url).toBe(`${getOpenF1BaseUrl()}/location?session_key=9693&driver_number=1`);
+  });
+
+  it("rejects when required x field is null", async () => {
+    mockFetch([
+      {
+        session_key: 9693,
+        meeting_key: 1254,
+        driver_number: 1,
+        date: "2024-03-01T12:00:00.000Z",
+        x: null,
+        y: 456.2,
+        z: 50,
+      },
+    ]);
+
+    await expect(run(getLocation(9693))).rejects.toThrow(
+      /Expected number, actual null/,
+    );
   });
 
   testEdgeCases(() => run(getLocation(9693)));

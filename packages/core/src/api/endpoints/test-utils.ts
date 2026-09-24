@@ -39,20 +39,6 @@ export function testEdgeCases(fn: () => Promise<readonly unknown[]>): void {
   });
 }
 
-export function testRequiredFieldFailure(
-  fn: (data: unknown) => Promise<readonly unknown[]>,
-  fieldName: string,
-): void {
-  it(`fails to parse when required ${fieldName} is null`, async () => {
-    const invalidData = { x: null };
-    mockFetch([invalidData]);
-
-    const result = await fn([invalidData]);
-
-    expect(result).toEqual([]);
-  });
-}
-
 export function setupMocks(): void {
   beforeEach(() => {
     vi.restoreAllMocks();

@@ -77,6 +77,33 @@ describe("getMeetings", () => {
     expect(url).toBe(`${getOpenF1BaseUrl()}/meetings?year=2024`);
   });
 
+  it("rejects when required country_code field is null", async () => {
+    mockFetch([
+      {
+        meeting_key: 1254,
+        meeting_name: "Bahrain",
+        meeting_official_name: "Formula 1 Gulf Air Bahrain Grand Prix 2024",
+        meeting_round: 1,
+        year: 2024,
+        circuit_key: 1,
+        circuit_short_name: "BAH",
+        circuit_type: "Permanent",
+        country_key: 97,
+        country_name: "Bahrain",
+        country_code: null,
+        location: "Sakhir",
+        date_start: "2024-03-01T00:00:00Z",
+        date_end: "2024-03-03T00:00:00Z",
+        gmt_offset: "+03:00",
+        is_cancelled: null,
+      },
+    ]);
+
+    await expect(run(getMeetings(2024))).rejects.toThrow(
+      /Expected string, actual null/,
+    );
+  });
+
   testEdgeCases(() => run(getMeetings(2024)));
 });
 
