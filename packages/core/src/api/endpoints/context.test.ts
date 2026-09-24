@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { type F1ClientService, F1ClientServiceLive } from "../../http/service";
-import { getWeather, getRaceControl, getTeamRadio, getOvertakes } from "./context";
+import { getOvertakes, getRaceControl, getTeamRadio, getWeather } from "./context";
 
 function run<A, E>(effect: Effect.Effect<A, E, F1ClientService>) {
   return Effect.runPromise(Effect.provide(effect, F1ClientServiceLive));
@@ -24,6 +24,17 @@ function collectNulls(items: readonly object[]): string[] {
     }
   }
   return [...keys];
+}
+
+function testEdgeCases(name: string, fn: (arg: unknown) => Promise<readonly unknown[]>) {
+  it.each([
+    ["empty array", []],
+    ["non-array input", { error: "not found" }],
+  ])("returns empty array for %s", async (_, input) => {
+    mockFetch(input);
+    const result = await fn(input);
+    expect(result).toEqual([]);
+  });
 }
 
 describe("getWeather", () => {
@@ -109,21 +120,7 @@ describe("getWeather", () => {
     expect(url).toContain("session_key=9693");
   });
 
-  it("returns an empty array for empty array input", async () => {
-    mockFetch([]);
-
-    const result = await run(getWeather(9693));
-
-    expect(result).toEqual([]);
-  });
-
-  it("returns an empty array for non-array input", async () => {
-    mockFetch({ error: "not found" });
-
-    const result = await run(getWeather(9693));
-
-    expect(result).toEqual([]);
-  });
+  testEdgeCases("getWeather", () => run(getWeather(9693)));
 });
 
 describe("getRaceControl", () => {
@@ -207,21 +204,7 @@ describe("getRaceControl", () => {
     expect(url).toContain("session_key=9693");
   });
 
-  it("returns an empty array for empty array input", async () => {
-    mockFetch([]);
-
-    const result = await run(getRaceControl(9693));
-
-    expect(result).toEqual([]);
-  });
-
-  it("returns an empty array for non-array input", async () => {
-    mockFetch({ error: "not found" });
-
-    const result = await run(getRaceControl(9693));
-
-    expect(result).toEqual([]);
-  });
+  testEdgeCases("getRaceControl", () => run(getRaceControl(9693)));
 });
 
 describe("getTeamRadio", () => {
@@ -293,21 +276,7 @@ describe("getTeamRadio", () => {
     expect(url).toContain("session_key=9693");
   });
 
-  it("returns an empty array for empty array input", async () => {
-    mockFetch([]);
-
-    const result = await run(getTeamRadio(9693));
-
-    expect(result).toEqual([]);
-  });
-
-  it("returns an empty array for non-array input", async () => {
-    mockFetch({ error: "not found" });
-
-    const result = await run(getTeamRadio(9693));
-
-    expect(result).toEqual([]);
-  });
+  testEdgeCases("getTeamRadio", () => run(getTeamRadio(9693)));
 });
 
 describe("getOvertakes", () => {
@@ -378,19 +347,5 @@ describe("getOvertakes", () => {
     expect(url).toContain("session_key=9693");
   });
 
-  it("returns an empty array for empty array input", async () => {
-    mockFetch([]);
-
-    const result = await run(getOvertakes(9693));
-
-    expect(result).toEqual([]);
-  });
-
-  it("returns an empty array for non-array input", async () => {
-    mockFetch({ error: "not found" });
-
-    const result = await run(getOvertakes(9693));
-
-    expect(result).toEqual([]);
-  });
+  testEdgeCases("getOvertakes", () => run(getOvertakes(9693)));
 });

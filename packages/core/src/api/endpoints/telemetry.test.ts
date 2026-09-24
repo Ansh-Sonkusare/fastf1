@@ -26,6 +26,17 @@ function collectNulls(items: readonly object[]): string[] {
   return [...keys];
 }
 
+function testEdgeCases(name: string, fn: (arg: unknown) => Promise<readonly unknown[]>) {
+  it.each([
+    ["empty array", []],
+    ["non-array input", { error: "not found" }],
+  ])("returns empty array for %s", async (_, input) => {
+    mockFetch(input);
+    const result = await fn(input);
+    expect(result).toEqual([]);
+  });
+}
+
 describe("getCarData", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -130,7 +141,12 @@ describe("getCarData", () => {
     );
     global.fetch = fetchSpy;
 
-    await run(getCarData(9693, undefined, { dateGt: "2024-03-01T08:00:00Z", dateLt: "2024-03-01T10:00:00Z" }));
+    await run(
+      getCarData(9693, undefined, {
+        dateGt: "2024-03-01T08:00:00Z",
+        dateLt: "2024-03-01T10:00:00Z",
+      }),
+    );
 
     expect(fetchSpy).toHaveBeenCalledOnce();
     const url = fetchSpy.mock.calls[0][0] as string;
@@ -139,21 +155,7 @@ describe("getCarData", () => {
     expect(url).toContain("date%3C=2024-03-01T10%3A00%3A00Z");
   });
 
-  it("returns an empty array for empty array input", async () => {
-    mockFetch([]);
-
-    const result = await run(getCarData(9693));
-
-    expect(result).toEqual([]);
-  });
-
-  it("returns an empty array for non-array input", async () => {
-    mockFetch({ error: "not found" });
-
-    const result = await run(getCarData(9693));
-
-    expect(result).toEqual([]);
-  });
+  testEdgeCases("getCarData", () => run(getCarData(9693)));
 });
 
 describe("getLocation", () => {
@@ -237,19 +239,5 @@ describe("getLocation", () => {
     expect(url).toContain("driver_number=1");
   });
 
-  it("returns an empty array for empty array input", async () => {
-    mockFetch([]);
-
-    const result = await run(getLocation(9693));
-
-    expect(result).toEqual([]);
-  });
-
-  it("returns an empty array for non-array input", async () => {
-    mockFetch({ error: "not found" });
-
-    const result = await run(getLocation(9693));
-
-    expect(result).toEqual([]);
-  });
+  testEdgeCases("getLocation", () => run(getLocation(9693)));
 });

@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { type F1ClientService, F1ClientServiceLive } from "../../http/service";
-import { getSessionResult, getStartingGrid, getIntervals } from "./results";
+import { getIntervals, getSessionResult, getStartingGrid } from "./results";
 
 function run<A, E>(effect: Effect.Effect<A, E, F1ClientService>) {
   return Effect.runPromise(Effect.provide(effect, F1ClientServiceLive));
@@ -24,6 +24,17 @@ function collectNulls(items: readonly object[]): string[] {
     }
   }
   return [...keys];
+}
+
+function testEdgeCases(name: string, fn: (arg: unknown) => Promise<readonly unknown[]>) {
+  it.each([
+    ["empty array", []],
+    ["non-array input", { error: "not found" }],
+  ])("returns empty array for %s", async (_, input) => {
+    mockFetch(input);
+    const result = await fn(input);
+    expect(result).toEqual([]);
+  });
 }
 
 describe("getSessionResult", () => {
@@ -125,21 +136,7 @@ describe("getSessionResult", () => {
     expect(url).toContain("session_key=9693");
   });
 
-  it("returns an empty array for empty array input", async () => {
-    mockFetch([]);
-
-    const result = await run(getSessionResult(9693));
-
-    expect(result).toEqual([]);
-  });
-
-  it("returns an empty array for non-array input", async () => {
-    mockFetch({ error: "not found" });
-
-    const result = await run(getSessionResult(9693));
-
-    expect(result).toEqual([]);
-  });
+  testEdgeCases("getSessionResult", () => run(getSessionResult(9693)));
 });
 
 describe("getStartingGrid", () => {
@@ -234,21 +231,7 @@ describe("getStartingGrid", () => {
     expect(url).toContain("session_key=9698");
   });
 
-  it("returns an empty array for empty array input", async () => {
-    mockFetch([]);
-
-    const result = await run(getStartingGrid(9698));
-
-    expect(result).toEqual([]);
-  });
-
-  it("returns an empty array for non-array input", async () => {
-    mockFetch({ error: "not found" });
-
-    const result = await run(getStartingGrid(9698));
-
-    expect(result).toEqual([]);
-  });
+  testEdgeCases("getStartingGrid", () => run(getStartingGrid(9698)));
 });
 
 describe("getIntervals", () => {
@@ -351,19 +334,5 @@ describe("getIntervals", () => {
     expect(url).toContain("session_key=9693");
   });
 
-  it("returns an empty array for empty array input", async () => {
-    mockFetch([]);
-
-    const result = await run(getIntervals(9693));
-
-    expect(result).toEqual([]);
-  });
-
-  it("returns an empty array for non-array input", async () => {
-    mockFetch({ error: "not found" });
-
-    const result = await run(getIntervals(9693));
-
-    expect(result).toEqual([]);
-  });
+  testEdgeCases("getIntervals", () => run(getIntervals(9693)));
 });

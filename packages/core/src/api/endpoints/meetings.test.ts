@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { type F1ClientService, F1ClientServiceLive } from "../../http/service";
-import { getMeetings, getSessions, getDrivers } from "./meetings";
+import { getDrivers, getMeetings, getSessions } from "./meetings";
 
 function run<A, E>(effect: Effect.Effect<A, E, F1ClientService>) {
   return Effect.runPromise(Effect.provide(effect, F1ClientServiceLive));
@@ -24,6 +24,17 @@ function collectNulls(items: readonly object[]): string[] {
     }
   }
   return [...keys];
+}
+
+function testEdgeCases(name: string, fn: (arg: unknown) => Promise<readonly unknown[]>) {
+  it.each([
+    ["empty array", []],
+    ["non-array input", { error: "not found" }],
+  ])("returns empty array for %s", async (_, input) => {
+    mockFetch(input);
+    const result = await fn(input);
+    expect(result).toEqual([]);
+  });
 }
 
 describe("getMeetings", () => {
@@ -113,21 +124,7 @@ describe("getMeetings", () => {
     expect(url).toContain("year=2024");
   });
 
-  it("returns an empty array for empty array input", async () => {
-    mockFetch([]);
-
-    const result = await run(getMeetings(2024));
-
-    expect(result).toEqual([]);
-  });
-
-  it("returns an empty array for non-array input", async () => {
-    mockFetch({ error: "not found" });
-
-    const result = await run(getMeetings(2024));
-
-    expect(result).toEqual([]);
-  });
+  testEdgeCases("getMeetings", () => run(getMeetings(2024)));
 });
 
 describe("getSessions", () => {
@@ -212,21 +209,7 @@ describe("getSessions", () => {
     expect(url).toContain("meeting_key=1254");
   });
 
-  it("returns an empty array for empty array input", async () => {
-    mockFetch([]);
-
-    const result = await run(getSessions(1254));
-
-    expect(result).toEqual([]);
-  });
-
-  it("returns an empty array for non-array input", async () => {
-    mockFetch({ error: "not found" });
-
-    const result = await run(getSessions(1254));
-
-    expect(result).toEqual([]);
-  });
+  testEdgeCases("getSessions", () => run(getSessions(1254)));
 });
 
 describe("getDrivers", () => {
@@ -314,19 +297,5 @@ describe("getDrivers", () => {
     expect(url).toContain("session_key=9693");
   });
 
-  it("returns an empty array for empty array input", async () => {
-    mockFetch([]);
-
-    const result = await run(getDrivers(9693));
-
-    expect(result).toEqual([]);
-  });
-
-  it("returns an empty array for non-array input", async () => {
-    mockFetch({ error: "not found" });
-
-    const result = await run(getDrivers(9693));
-
-    expect(result).toEqual([]);
-  });
+  testEdgeCases("getDrivers", () => run(getDrivers(9693)));
 });
