@@ -18,8 +18,8 @@ Issue #14's ACs, mapped onto the actual repo seam (Vite green baseline → deepe
 | # | Title | Status |
 |---|---|---|
 | #23 | SSR-style initial-data loader (`toPromise(getSchedule)` → RaceTable, `latestRound` derived) | **done** (loader shipped, commit `84521c8`; seam exported and consumed by #24/#25 — see Honesty note below) |
-| #24 | Current Season Schedule panel (`useF1Schedule` + initialData) | **done** (SchedulePanel renders all 24 real 2025 rounds; `main.tsx` races `loadInitialData()` against a timeout before `createRoot().render` so the panel usually has data on first paint; verified in a real browser at this branch's final commit, PLACEHOLDER_SHA) |
-| #25 | Latest Race Results panel (`useF1Results` + initialData) | **done** (ResultsPanel renders all 20 real finishers for the round with position/driver/constructor/time/points, including lapped and retired cars; verified in a real browser at this branch's final commit, PLACEHOLDER_SHA) |
+| #24 | Current Season Schedule panel (`useF1Schedule` + initialData) | **done** (SchedulePanel renders all 24 real 2025 rounds; `main.tsx` races `loadInitialData()` against a timeout before `createRoot().render` so the panel usually has data on first paint; verified in a real browser at commit `2b01aca`) |
+| #25 | Latest Race Results panel (`useF1Results` + initialData) | **done** (ResultsPanel renders all 20 real finishers for the round with position/driver/constructor/time/points, including lapped and retired cars; verified in a real browser at commit `2b01aca`) |
 
 Each pushed green (build + test + lint) before starting the next.
 
