@@ -99,9 +99,7 @@ describe("getMeetings", () => {
       },
     ]);
 
-    await expect(run(getMeetings(2024))).rejects.toThrow(
-      /Expected string, actual null/,
-    );
+    await expect(run(getMeetings(2024))).rejects.toThrow(/Expected string, actual null/);
   });
 
   testEdgeCases(() => run(getMeetings(2024)));

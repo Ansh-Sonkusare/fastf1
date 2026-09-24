@@ -168,9 +168,7 @@ describe("getLocation", () => {
       },
     ]);
 
-    await expect(run(getLocation(9693))).rejects.toThrow(
-      /Expected number, actual null/,
-    );
+    await expect(run(getLocation(9693))).rejects.toThrow(/Expected number, actual null/);
   });
 
   testEdgeCases(() => run(getLocation(9693)));
