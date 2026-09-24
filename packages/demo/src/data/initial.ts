@@ -1,15 +1,24 @@
 import {
-  type Race,
   type RaceTable,
   getRaceResults,
   getSchedule,
   toPromise,
 } from "@f1/core";
 
+export interface RaceResultRow {
+  readonly season: string;
+  readonly round: string;
+  readonly raceName: string;
+  readonly date?: string;
+  readonly Results?: readonly unknown[];
+  readonly QualifyingResults?: readonly unknown[];
+  readonly SprintResults?: readonly unknown[];
+}
+
 export interface DemoInitialData {
   schedule: RaceTable;
   latestRound: number;
-  latestResults: Race[];
+  latestResults: readonly RaceResultRow[];
 }
 
 export async function loadInitialData(): Promise<DemoInitialData> {

@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import type { CarData, RaceTable } from "@f1/core";
-import { useRaceTelemetry, useFastestLap, useF1Schedule, useF1Results } from "@f1/react";
+import { useRaceTelemetry, useFastestLap, useF1Schedule } from "@f1/react";
 import { loadInitialData } from "./data/initial";
+import type { DemoInitialData } from "./data/initial";
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 const DRIVERS = [
@@ -188,12 +189,22 @@ export default function App() {
   const [driver1, setDriver1] = useState("VER");
   const [driver2, setDriver2] = useState("NOR");
   const [lap, setLap] = useState<number>(1);
+  const [initialData, setInitialData] = useState<DemoInitialData | null>(null);
+  const [loadError, setLoadError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    loadInitialData()
+      .then(setInitialData)
+      .catch(setLoadError);
+  }, []);
 
   const drv1 = DRIVERS.find((d) => d.code === driver1);
   const drv2 = DRIVERS.find((d) => d.code === driver2);
 
   const { lap: fastest1 } = useFastestLap(2025, "abu dhabi", driver1, "race", 1276);
   const { lap: fastest2 } = useFastestLap(2025, "abu dhabi", driver2, "race", 1276);
+
+  const { data: schedule } = useF1Schedule(2025, { initialData: initialData?.schedule });
 
   const { data: t1, isLoading: l1 } = useRaceTelemetry(
     2025,
@@ -284,60 +295,13 @@ export default function App() {
         </div>
       </div>
 
-      {scheduleIsLoading && (
-        <div
-          style={{ height: 120, display: "flex", alignItems: "center", justifyContent: "center" }}
-        >
-          Loading season schedule...
-        </div>
-      )}
-
-      {scheduleError && (
+      {loadError && (
         <div style={{ color: "#f55", fontSize: 13, padding: "12px 0" }}>
-          Failed to load season schedule: {scheduleError.message}
+          Failed to load initial data: {loadError.message}
         </div>
       )}
 
-      {schedule?.Races?.length ? (
-        <section
-          style={{
-            marginTop: 28,
-            padding: "0 2px",
-          }}
-        >
-          <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>
-            2025 Season Schedule
-          </h2>
-          <table
-            style={{
-              width: "100%",
-              borderCollapse: "collapse",
-              fontSize: 13,
-            }}
-          >
-            <thead>
-              <tr style={{ color: "#888", textAlign: "left", fontSize: 11, textTransform: "uppercase" }}>
-                <th style={{ padding: "8px 12px", borderBottom: "1px solid #222" }}>Round</th>
-                <th style={{ padding: "8px 12px", borderBottom: "1px solid #222" }}>Race</th>
-                <th style={{ padding: "8px 12px", borderBottom: "1px solid #222" }}>Circuit</th>
-                <th style={{ padding: "8px 12px", borderBottom: "1px solid #222" }}>Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {schedule.Races.map((race) => (
-                <tr key={`${race.round}-${race.raceName}`} style={{ color: "#ddd" }}>
-                  <td style={{ padding: "8px 12px", borderBottom: "1px solid #1a1a1a" }}>{race.round}</td>
-                  <td style={{ padding: "8px 12px", borderBottom: "1px solid #1a1a1a" }}>{race.raceName}</td>
-                  <td style={{ padding: "8px 12px", borderBottom: "1px solid #1a1a1a" }}>
-                    {race.Circuit.circuitName}
-                  </td>
-                  <td style={{ padding: "8px 12px", borderBottom: "1px solid #1a1a1a" }}>{race.date}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
-      ) : null}
+      {schedule && <SchedulePanel schedule={schedule} />}
 
       {isLoading && (
         <div
