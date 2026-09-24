@@ -1,0 +1,4 @@
+time	decision	alternatives	why
+09:00	Add @types/react and @types/react-dom devDeps first	Manual type stubs,skip types	Needed to surface the real errors in App.tsx before fixing logic
+09:01	Feed initialData to useF1Schedule via options, not as state	Pass through useEffect	Clean seam — initialData is loaded once, then fed to hooks
+09:02	Make DemoInitialData.latestResults readonly	Cast away readonly	Fix at source — interface should reflect the types it holds
