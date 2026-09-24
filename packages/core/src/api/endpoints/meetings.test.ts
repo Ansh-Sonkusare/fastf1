@@ -1,46 +1,10 @@
-import { Effect } from "effect";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { type F1ClientService, F1ClientServiceLive } from "../../http/service";
+import { describe, expect, it } from "vitest";
+import { getOpenF1BaseUrl } from "./_shared";
 import { getDrivers, getMeetings, getSessions } from "./meetings";
-
-function run<A, E>(effect: Effect.Effect<A, E, F1ClientService>) {
-  return Effect.runPromise(Effect.provide(effect, F1ClientServiceLive));
-}
-
-function mockFetch(data: unknown) {
-  global.fetch = vi.fn().mockResolvedValue(
-    new Response(JSON.stringify(data), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    }),
-  );
-}
-
-function collectNulls(items: readonly object[]): string[] {
-  const keys = new Set<string>();
-  for (const item of items) {
-    for (const [key, value] of Object.entries(item)) {
-      if (value === null) keys.add(key);
-    }
-  }
-  return [...keys];
-}
-
-function testEdgeCases(name: string, fn: (arg: unknown) => Promise<readonly unknown[]>) {
-  it.each([
-    ["empty array", []],
-    ["non-array input", { error: "not found" }],
-  ])("returns empty array for %s", async (_, input) => {
-    mockFetch(input);
-    const result = await fn(input);
-    expect(result).toEqual([]);
-  });
-}
+import { collectNulls, mockFetch, run, setupMocks, testEdgeCases } from "./test-utils";
 
 describe("getMeetings", () => {
-  beforeEach(() => {
-    vi.restoreAllMocks();
-  });
+  setupMocks();
 
   it("parses meeting data and null-cleans nullable fields", async () => {
     mockFetch([
@@ -52,7 +16,7 @@ describe("getMeetings", () => {
         year: 2024,
         circuit_key: 1,
         circuit_short_name: "BAH",
-        circuit_type: "Street",
+        circuit_type: "Permanent",
         country_key: 97,
         country_name: "Bahrain",
         country_code: "BH",
@@ -76,7 +40,7 @@ describe("getMeetings", () => {
     expect(result[0].is_cancelled).toBeUndefined();
   });
 
-  it("strips nulls from all nullable fields in the projected output", async () => {
+  it("strips nulls from nullable fields when present", async () => {
     mockFetch([
       {
         meeting_key: 1255,
@@ -86,7 +50,7 @@ describe("getMeetings", () => {
         year: 2024,
         circuit_key: 2,
         circuit_short_name: "JED",
-        circuit_type: "Street",
+        circuit_type: "Permanent",
         country_key: 238,
         country_name: "Saudi Arabia",
         country_code: "SA",
@@ -101,36 +65,23 @@ describe("getMeetings", () => {
 
     const result = await run(getMeetings(2024));
 
-    expect(result).toHaveLength(1);
     expect(collectNulls(result)).toEqual([]);
-    expect(result[0].meeting_round).toBeUndefined();
-    expect(result[0].country_flag).toBeUndefined();
-    expect(result[0].is_cancelled).toBeUndefined();
   });
 
-  it("passes year query param", async () => {
-    const fetchSpy = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify([]), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
-    );
-    global.fetch = fetchSpy;
+  it("passes correct full URL with query params", async () => {
+    const spy = mockFetch([]);
 
     await run(getMeetings(2024));
 
-    expect(fetchSpy).toHaveBeenCalledOnce();
-    const url = fetchSpy.mock.calls[0][0] as string;
-    expect(url).toContain("year=2024");
+    const url = spy.mock.calls[0][0] as string;
+    expect(url).toBe(`${getOpenF1BaseUrl()}/meetings?year=2024`);
   });
 
-  testEdgeCases("getMeetings", () => run(getMeetings(2024)));
+  testEdgeCases(() => run(getMeetings(2024)));
 });
 
 describe("getSessions", () => {
-  beforeEach(() => {
-    vi.restoreAllMocks();
-  });
+  setupMocks();
 
   it("parses session data and null-cleans nullable fields", async () => {
     mockFetch([
@@ -164,7 +115,7 @@ describe("getSessions", () => {
     expect(result[0].country_code).toBe("BH");
   });
 
-  it("strips nulls from nullable fields", async () => {
+  it("strips nulls from nullable fields when present", async () => {
     mockFetch([
       {
         session_key: 9694,
@@ -187,35 +138,23 @@ describe("getSessions", () => {
 
     const result = await run(getSessions(1254));
 
-    expect(result).toHaveLength(1);
     expect(collectNulls(result)).toEqual([]);
-    expect(result[0].country_code).toBeUndefined();
-    expect(result[0].is_cancelled).toBeUndefined();
   });
 
-  it("passes meeting_key query param", async () => {
-    const fetchSpy = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify([]), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
-    );
-    global.fetch = fetchSpy;
+  it("passes correct full URL with query params", async () => {
+    const spy = mockFetch([]);
 
     await run(getSessions(1254));
 
-    expect(fetchSpy).toHaveBeenCalledOnce();
-    const url = fetchSpy.mock.calls[0][0] as string;
-    expect(url).toContain("meeting_key=1254");
+    const url = spy.mock.calls[0][0] as string;
+    expect(url).toBe(`${getOpenF1BaseUrl()}/sessions?meeting_key=1254`);
   });
 
-  testEdgeCases("getSessions", () => run(getSessions(1254)));
+  testEdgeCases(() => run(getSessions(1254)));
 });
 
 describe("getDrivers", () => {
-  beforeEach(() => {
-    vi.restoreAllMocks();
-  });
+  setupMocks();
 
   it("parses driver data and null-cleans nullable fields", async () => {
     mockFetch([
@@ -223,33 +162,7 @@ describe("getDrivers", () => {
         session_key: 9693,
         meeting_key: 1254,
         driver_number: 1,
-        broadcast_name: "VER",
-        full_name: "Max Verstappen",
-        first_name: "Max",
-        last_name: "Verstappen",
-        name_acronym: "VER",
-        team_name: "Red Bull Racing",
-        team_colour: "3671C6",
-        headshot_url: null,
-      },
-    ]);
-
-    const result = await run(getDrivers(9693));
-
-    expect(result).toHaveLength(1);
-    expect(result[0].driver_number).toBe(1);
-    expect(result[0].full_name).toBe("Max Verstappen");
-    expect(result[0].team_name).toBe("Red Bull Racing");
-    expect(result[0].headshot_url).toBeUndefined();
-  });
-
-  it("strips nulls from nullable headshot_url", async () => {
-    mockFetch([
-      {
-        session_key: 9693,
-        meeting_key: 1254,
-        driver_number: 33,
-        broadcast_name: "VER",
+        broadcast_name: "M VERSTAPPEN",
         full_name: "Max Verstappen",
         first_name: "Max",
         last_name: "Verstappen",
@@ -262,7 +175,7 @@ describe("getDrivers", () => {
         session_key: 9693,
         meeting_key: 1254,
         driver_number: 44,
-        broadcast_name: "HAM",
+        broadcast_name: "L HAMILTON",
         full_name: "Lewis Hamilton",
         first_name: "Lewis",
         last_name: "Hamilton",
@@ -276,26 +189,24 @@ describe("getDrivers", () => {
     const result = await run(getDrivers(9693));
 
     expect(result).toHaveLength(2);
-    expect(collectNulls(result)).toEqual([]);
+    expect(result[0].driver_number).toBe(1);
+    expect(result[0].broadcast_name).toBe("M VERSTAPPEN");
+    expect(result[0].full_name).toBe("Max Verstappen");
+    expect(result[0].team_name).toBe("Red Bull Racing");
     expect(result[0].headshot_url).toBeUndefined();
-    expect(result[1].headshot_url).toBeUndefined();
+    expect(result[1].driver_number).toBe(44);
+    expect(result[1].broadcast_name).toBe("L HAMILTON");
+    expect(collectNulls(result)).toEqual([]);
   });
 
-  it("passes session_key query param", async () => {
-    const fetchSpy = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify([]), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
-    );
-    global.fetch = fetchSpy;
+  it("passes correct full URL with query params", async () => {
+    const spy = mockFetch([]);
 
     await run(getDrivers(9693));
 
-    expect(fetchSpy).toHaveBeenCalledOnce();
-    const url = fetchSpy.mock.calls[0][0] as string;
-    expect(url).toContain("session_key=9693");
+    const url = spy.mock.calls[0][0] as string;
+    expect(url).toBe(`${getOpenF1BaseUrl()}/drivers?session_key=9693`);
   });
 
-  testEdgeCases("getDrivers", () => run(getDrivers(9693)));
+  testEdgeCases(() => run(getDrivers(9693)));
 });

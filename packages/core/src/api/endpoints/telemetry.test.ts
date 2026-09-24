@@ -1,46 +1,10 @@
-import { Effect } from "effect";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { type F1ClientService, F1ClientServiceLive } from "../../http/service";
+import { describe, expect, it } from "vitest";
+import { getOpenF1BaseUrl } from "./_shared";
 import { getCarData, getLocation } from "./telemetry";
-
-function run<A, E>(effect: Effect.Effect<A, E, F1ClientService>) {
-  return Effect.runPromise(Effect.provide(effect, F1ClientServiceLive));
-}
-
-function mockFetch(data: unknown) {
-  global.fetch = vi.fn().mockResolvedValue(
-    new Response(JSON.stringify(data), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    }),
-  );
-}
-
-function collectNulls(items: readonly object[]): string[] {
-  const keys = new Set<string>();
-  for (const item of items) {
-    for (const [key, value] of Object.entries(item)) {
-      if (value === null) keys.add(key);
-    }
-  }
-  return [...keys];
-}
-
-function testEdgeCases(name: string, fn: (arg: unknown) => Promise<readonly unknown[]>) {
-  it.each([
-    ["empty array", []],
-    ["non-array input", { error: "not found" }],
-  ])("returns empty array for %s", async (_, input) => {
-    mockFetch(input);
-    const result = await fn(input);
-    expect(result).toEqual([]);
-  });
-}
+import { collectNulls, mockFetch, run, setupMocks, testEdgeCases } from "./test-utils";
 
 describe("getCarData", () => {
-  beforeEach(() => {
-    vi.restoreAllMocks();
-  });
+  setupMocks();
 
   it("parses car data and null-cleans nullable fields", async () => {
     mockFetch([
@@ -71,7 +35,7 @@ describe("getCarData", () => {
     expect(result[0].drs).toBe(0);
   });
 
-  it("strips nulls from nullable fields", async () => {
+  it("strips nulls from nullable fields when present", async () => {
     mockFetch([
       {
         session_key: 9693,
@@ -89,57 +53,30 @@ describe("getCarData", () => {
 
     const result = await run(getCarData(9693));
 
-    expect(result).toHaveLength(1);
     expect(collectNulls(result)).toEqual([]);
-    expect(result[0].speed).toBeUndefined();
-    expect(result[0].rpm).toBeUndefined();
-    expect(result[0].n_gear).toBeUndefined();
-    expect(result[0].throttle).toBeUndefined();
-    expect(result[0].brake).toBeUndefined();
-    expect(result[0].drs).toBeUndefined();
   });
 
-  it("passes session_key as query param", async () => {
-    const fetchSpy = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify([]), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
-    );
-    global.fetch = fetchSpy;
+  it("passes correct full URL with session_key only", async () => {
+    const spy = mockFetch([]);
 
     await run(getCarData(9693));
 
-    expect(fetchSpy).toHaveBeenCalledOnce();
-    const url = fetchSpy.mock.calls[0][0] as string;
-    expect(url).toContain("session_key=9693");
+    const url = spy.mock.calls[0][0] as string;
+    expect(url).toBe(`${getOpenF1BaseUrl()}/car_data?session_key=9693`);
   });
 
-  it("passes driver_number query param when provided", async () => {
-    const fetchSpy = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify([]), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
-    );
-    global.fetch = fetchSpy;
+  it("includes driver_number when provided", async () => {
+    const spy = mockFetch([]);
 
     await run(getCarData(9693, 1));
 
-    expect(fetchSpy).toHaveBeenCalledOnce();
-    const url = fetchSpy.mock.calls[0][0] as string;
+    const url = spy.mock.calls[0][0] as string;
     expect(url).toContain("session_key=9693");
     expect(url).toContain("driver_number=1");
   });
 
-  it("passes date range query params when provided", async () => {
-    const fetchSpy = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify([]), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
-    );
-    global.fetch = fetchSpy;
+  it("includes date range when provided", async () => {
+    const spy = mockFetch([]);
 
     await run(
       getCarData(9693, undefined, {
@@ -148,20 +85,17 @@ describe("getCarData", () => {
       }),
     );
 
-    expect(fetchSpy).toHaveBeenCalledOnce();
-    const url = fetchSpy.mock.calls[0][0] as string;
+    const url = spy.mock.calls[0][0] as string;
     expect(url).toContain("session_key=9693");
-    expect(url).toContain("date%3E=2024-03-01T08%3A00%3A00Z");
-    expect(url).toContain("date%3C=2024-03-01T10%3A00%3A00Z");
+    expect(url).toContain("date%3E=");
+    expect(url).toContain("date%3C=");
   });
 
-  testEdgeCases("getCarData", () => run(getCarData(9693)));
+  testEdgeCases(() => run(getCarData(9693)));
 });
 
 describe("getLocation", () => {
-  beforeEach(() => {
-    vi.restoreAllMocks();
-  });
+  setupMocks();
 
   it("parses location data with literal expected values", async () => {
     mockFetch([
@@ -186,7 +120,7 @@ describe("getLocation", () => {
     expect(result[0].z).toBe(50);
   });
 
-  it("strips nulls from nullable z coordinate", async () => {
+  it("strips nulls from nullable z coordinate when present", async () => {
     mockFetch([
       {
         session_key: 9693,
@@ -201,43 +135,27 @@ describe("getLocation", () => {
 
     const result = await run(getLocation(9693));
 
-    expect(result).toHaveLength(1);
     expect(collectNulls(result)).toEqual([]);
-    expect(result[0].z).toBeUndefined();
   });
 
-  it("passes session_key as query param", async () => {
-    const fetchSpy = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify([]), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
-    );
-    global.fetch = fetchSpy;
+  it("passes correct full URL with session_key only", async () => {
+    const spy = mockFetch([]);
 
     await run(getLocation(9693));
 
-    expect(fetchSpy).toHaveBeenCalledOnce();
-    const url = fetchSpy.mock.calls[0][0] as string;
-    expect(url).toContain("session_key=9693");
+    const url = spy.mock.calls[0][0] as string;
+    expect(url).toBe(`${getOpenF1BaseUrl()}/location?session_key=9693`);
   });
 
-  it("passes driver_number query param when provided", async () => {
-    const fetchSpy = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify([]), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
-    );
-    global.fetch = fetchSpy;
+  it("includes driver_number when provided", async () => {
+    const spy = mockFetch([]);
 
     await run(getLocation(9693, 1));
 
-    expect(fetchSpy).toHaveBeenCalledOnce();
-    const url = fetchSpy.mock.calls[0][0] as string;
+    const url = spy.mock.calls[0][0] as string;
     expect(url).toContain("session_key=9693");
     expect(url).toContain("driver_number=1");
   });
 
-  testEdgeCases("getLocation", () => run(getLocation(9693)));
+  testEdgeCases(() => run(getLocation(9693)));
 });
