@@ -1,36 +1,14 @@
-import { Effect } from "effect";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { type F1ClientService, F1ClientServiceLive } from "../../http/service";
+import { getOpenF1BaseUrl } from "./_shared";
 import { getOvertakes, getRaceControl, getTeamRadio, getWeather } from "./context";
+import { collectNulls, mockFetch, run, testEdgeCases } from "./test-utils";
 
-function run<A, E>(effect: Effect.Effect<A, E, F1ClientService>) {
-  return Effect.runPromise(Effect.provide(effect, F1ClientServiceLive));
-}
-
-function mockFetch(data: unknown) {
-  global.fetch = vi.fn().mockResolvedValue(
-    new Response(JSON.stringify(data), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    }),
-  );
-}
-
-function collectNulls(items: readonly object[]): string[] {
-  const keys = new Set<string>();
-  for (const item of items) {
-    for (const [key, value] of Object.entries(item)) {
-      if (value === null) keys.add(key);
-    }
-  }
-  return [...keys];
-}
+beforeEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe("getWeather", () => {
-  beforeEach(() => {
-    vi.restoreAllMocks();
-  });
-
   it("parses weather data and null-cleans nullable fields", async () => {
     mockFetch([
       {
@@ -62,7 +40,7 @@ describe("getWeather", () => {
     expect(result[0].track_surface_temperature).toBe(50.2);
   });
 
-  it("strips nulls from all nullable fields", async () => {
+  it("removes null values from nullable fields", async () => {
     mockFetch([
       {
         session_key: 9693,
@@ -93,51 +71,25 @@ describe("getWeather", () => {
     expect(result[0].track_surface_temperature).toBeUndefined();
   });
 
-  it("passes session_key query param", async () => {
-    const fetchSpy = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify([]), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
-    );
-    global.fetch = fetchSpy;
-
+  it("passes session_key query param in full URL", async () => {
+    const spy = mockFetch([]);
     await run(getWeather(9693));
-
-    expect(fetchSpy).toHaveBeenCalledOnce();
-    const url = fetchSpy.mock.calls[0][0] as string;
-    expect(url).toContain("session_key=9693");
+    expect(spy).toHaveBeenCalledOnce();
+    const url = spy.mock.calls[0][0] as string;
+    expect(url).toBe(`${getOpenF1BaseUrl()}/weather?session_key=9693`);
   });
 
-  it("returns an empty array for empty array input", async () => {
-    mockFetch([]);
-
-    const result = await run(getWeather(9693));
-
-    expect(result).toEqual([]);
-  });
-
-  it("returns an empty array for non-array input", async () => {
-    mockFetch({ error: "not found" });
-
-    const result = await run(getWeather(9693));
-
-    expect(result).toEqual([]);
-  });
+  testEdgeCases(() => run(getWeather(9693)));
 });
 
 describe("getRaceControl", () => {
-  beforeEach(() => {
-    vi.restoreAllMocks();
-  });
-
   it("parses race control data and null-cleans nullable fields", async () => {
     mockFetch([
       {
         session_key: 9693,
         meeting_key: 1254,
         date: "2024-03-01T12:05:00Z",
-        category: "Yellow Flag",
+        category: "Flag",
         flag: "YELLOW",
         scope: "Track",
         sector: 2,
@@ -152,7 +104,7 @@ describe("getRaceControl", () => {
 
     expect(result).toHaveLength(1);
     expect(result[0].session_key).toBe(9693);
-    expect(result[0].category).toBe("Yellow Flag");
+    expect(result[0].category).toBe("Flag");
     expect(result[0].flag).toBe("YELLOW");
     expect(result[0].scope).toBe("Track");
     expect(result[0].sector).toBe(2);
@@ -162,7 +114,7 @@ describe("getRaceControl", () => {
     expect(result[0].qualifying_phase).toBeUndefined();
   });
 
-  it("strips nulls from nullable fields", async () => {
+  it("removes null values from nullable fields", async () => {
     mockFetch([
       {
         session_key: 9693,
@@ -191,66 +143,19 @@ describe("getRaceControl", () => {
     expect(result[0].qualifying_phase).toBeUndefined();
   });
 
-  it("passes session_key query param", async () => {
-    const fetchSpy = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify([]), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
-    );
-    global.fetch = fetchSpy;
-
+  it("passes session_key query param in full URL", async () => {
+    const spy = mockFetch([]);
     await run(getRaceControl(9693));
-
-    expect(fetchSpy).toHaveBeenCalledOnce();
-    const url = fetchSpy.mock.calls[0][0] as string;
-    expect(url).toContain("session_key=9693");
+    expect(spy).toHaveBeenCalledOnce();
+    const url = spy.mock.calls[0][0] as string;
+    expect(url).toBe(`${getOpenF1BaseUrl()}/race_control?session_key=9693`);
   });
 
-  it("returns an empty array for empty array input", async () => {
-    mockFetch([]);
-
-    const result = await run(getRaceControl(9693));
-
-    expect(result).toEqual([]);
-  });
-
-  it("returns an empty array for non-array input", async () => {
-    mockFetch({ error: "not found" });
-
-    const result = await run(getRaceControl(9693));
-
-    expect(result).toEqual([]);
-  });
+  testEdgeCases(() => run(getRaceControl(9693)));
 });
 
 describe("getTeamRadio", () => {
-  beforeEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it("parses team radio data with literal expected values", async () => {
-    mockFetch([
-      {
-        session_key: 9693,
-        meeting_key: 1254,
-        driver_number: 1,
-        date: "2024-03-01T12:10:00Z",
-        message: "Good pace, maintain the gap",
-        driver_id: "max_verstappen",
-      },
-    ]);
-
-    const result = await run(getTeamRadio(9693));
-
-    expect(result).toHaveLength(1);
-    expect(result[0].session_key).toBe(9693);
-    expect(result[0].driver_number).toBe(1);
-    expect(result[0].message).toBe("Good pace, maintain the gap");
-    expect(result[0].driver_id).toBe("max_verstappen");
-  });
-
-  it("handles multiple team radio messages", async () => {
+  it("parses team radio data with literal values", async () => {
     mockFetch([
       {
         session_key: 9693,
@@ -273,124 +178,66 @@ describe("getTeamRadio", () => {
     const result = await run(getTeamRadio(9693));
 
     expect(result).toHaveLength(2);
+    expect(result[0].session_key).toBe(9693);
     expect(result[0].driver_number).toBe(1);
+    expect(result[0].message).toBe("Good pace, maintain the gap");
+    expect(result[0].driver_id).toBe("max_verstappen");
     expect(result[1].driver_number).toBe(44);
+    expect(result[1].message).toBe("Box box, box box");
+    expect(result[1].driver_id).toBe("lewis_hamilton");
   });
 
-  it("passes session_key query param", async () => {
-    const fetchSpy = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify([]), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
-    );
-    global.fetch = fetchSpy;
-
+  it("passes session_key query param in full URL", async () => {
+    const spy = mockFetch([]);
     await run(getTeamRadio(9693));
-
-    expect(fetchSpy).toHaveBeenCalledOnce();
-    const url = fetchSpy.mock.calls[0][0] as string;
-    expect(url).toContain("session_key=9693");
+    expect(spy).toHaveBeenCalledOnce();
+    const url = spy.mock.calls[0][0] as string;
+    expect(url).toBe(`${getOpenF1BaseUrl()}/team_radio?session_key=9693`);
   });
 
-  it("returns an empty array for empty array input", async () => {
-    mockFetch([]);
-
-    const result = await run(getTeamRadio(9693));
-
-    expect(result).toEqual([]);
-  });
-
-  it("returns an empty array for non-array input", async () => {
-    mockFetch({ error: "not found" });
-
-    const result = await run(getTeamRadio(9693));
-
-    expect(result).toEqual([]);
-  });
+  testEdgeCases(() => run(getTeamRadio(9693)));
 });
 
 describe("getOvertakes", () => {
-  beforeEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it("parses overtake data with literal expected values", async () => {
+  it("parses overtakes data with literal values", async () => {
     mockFetch([
       {
         session_key: 9693,
         meeting_key: 1254,
-        date: "2024-03-01T12:15:00Z",
+        date: "2024-03-01T14:30:00Z",
         overtaking_driver_number: 1,
         overtaken_driver_number: 44,
-        position: 2,
-      },
-    ]);
-
-    const result = await run(getOvertakes(9693));
-
-    expect(result).toHaveLength(1);
-    expect(result[0].overtaking_driver_number).toBe(1);
-    expect(result[0].overtaken_driver_number).toBe(44);
-    expect(result[0].position).toBe(2);
-  });
-
-  it("handles multiple overtakes", async () => {
-    mockFetch([
-      {
-        session_key: 9693,
-        meeting_key: 1254,
-        date: "2024-03-01T12:15:00Z",
-        overtaking_driver_number: 1,
-        overtaken_driver_number: 44,
-        position: 2,
+        position: 1,
       },
       {
         session_key: 9693,
         meeting_key: 1254,
-        date: "2024-03-01T12:16:00Z",
-        overtaking_driver_number: 44,
-        overtaken_driver_number: 1,
-        position: 2,
+        date: "2024-03-01T14:35:00Z",
+        overtaking_driver_number: 55,
+        overtaken_driver_number: 23,
+        position: 5,
       },
     ]);
 
     const result = await run(getOvertakes(9693));
 
     expect(result).toHaveLength(2);
+    expect(result[0].session_key).toBe(9693);
     expect(result[0].overtaking_driver_number).toBe(1);
-    expect(result[1].overtaking_driver_number).toBe(44);
+    expect(result[0].overtaken_driver_number).toBe(44);
+    expect(result[0].position).toBe(1);
+    expect(result[1].overtaking_driver_number).toBe(55);
+    expect(result[1].overtaken_driver_number).toBe(23);
+    expect(result[1].position).toBe(5);
   });
 
-  it("passes session_key query param", async () => {
-    const fetchSpy = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify([]), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
-    );
-    global.fetch = fetchSpy;
-
+  it("passes session_key query param in full URL", async () => {
+    const spy = mockFetch([]);
     await run(getOvertakes(9693));
-
-    expect(fetchSpy).toHaveBeenCalledOnce();
-    const url = fetchSpy.mock.calls[0][0] as string;
-    expect(url).toContain("session_key=9693");
+    expect(spy).toHaveBeenCalledOnce();
+    const url = spy.mock.calls[0][0] as string;
+    expect(url).toBe(`${getOpenF1BaseUrl()}/overtakes?session_key=9693`);
   });
 
-  it("returns an empty array for empty array input", async () => {
-    mockFetch([]);
-
-    const result = await run(getOvertakes(9693));
-
-    expect(result).toEqual([]);
-  });
-
-  it("returns an empty array for non-array input", async () => {
-    mockFetch({ error: "not found" });
-
-    const result = await run(getOvertakes(9693));
-
-    expect(result).toEqual([]);
-  });
+  testEdgeCases(() => run(getOvertakes(9693)));
 });
