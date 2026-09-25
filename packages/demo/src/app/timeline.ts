@@ -178,3 +178,24 @@ export function flagAt(
   }
   return { kind: "green", label: "GREEN" };
 }
+
+/**
+ * Laps on which the safety car led the field through the pit lane. OpenF1 records every car's pass
+ * as a pit row and a new stint, but nobody stopped. From "SAFETY CAR THROUGH THE PIT LANE" until
+ * "... WILL USE START/FINISH STRAIGHT" or the safety car ends.
+ */
+export function pitLanePassLaps(rows: readonly RaceControl[]): ReadonlySet<number> {
+  const laps = new Set<number>();
+  let from: number | null = null;
+  const sorted = [...rows].sort((x, y) => Date.parse(x.date) - Date.parse(y.date));
+  for (const r of sorted) {
+    const msg = r.message.toUpperCase();
+    if (!msg.includes("SAFETY CAR") || r.lap_number == null) continue;
+    if (msg.includes("THROUGH THE PIT LANE")) from ??= r.lap_number;
+    else if (from !== null && (msg.includes("START/FINISH STRAIGHT") || msg.includes("IN THIS LAP"))) {
+      for (let n = from; n < r.lap_number; n++) laps.add(n);
+      from = null;
+    }
+  }
+  return laps;
+}

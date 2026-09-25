@@ -118,7 +118,7 @@ function SessionConsole({
     const { crossings, timeline, laps, drivers } = derived;
     const order = classified.length
       ? classificationOrder(classified)
-      : buildTower({ lap: timeline.totalLaps, crossings, laps, stints: [], retired: null }).map((r) => r.driver);
+      : buildTower({ lap: timeline.totalLaps, crossings, laps, stints: [], passLaps: new Set(), retired: null }).map((r) => r.driver);
     dispatch({ type: "load", totalLaps: timeline.totalLaps });
     if (link.lap === null) dispatch({ type: "seek", lap: timeline.totalLaps });
     dispatch({ type: "focus", focus: resolveFocus(link, new Set(drivers.keys()), order) });
