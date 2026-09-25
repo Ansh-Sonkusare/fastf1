@@ -1,4 +1,4 @@
-import type { OpenF1Driver, Race, Session } from "@f1/core";
+import type { OpenF1Driver, Race, Session, SessionResult } from "@f1/core";
 import { asSessionKey } from "../data/openf1";
 import type { ConsoleSession, DriverInfo, DriverNumber } from "./types";
 
@@ -44,4 +44,10 @@ export function toDriverMap(rows: readonly OpenF1Driver[]): Map<DriverNumber, Dr
       },
     ]),
   );
+}
+
+/** Finishing order from session_result. OpenF1 sends `position: null` for DNF/DNS, despite the schema; those go last. */
+export function classificationOrder(rows: readonly SessionResult[]): DriverNumber[] {
+  const pos = (r: SessionResult) => (typeof r.position === "number" ? r.position : Number.POSITIVE_INFINITY);
+  return [...rows].sort((x, y) => pos(x) - pos(y)).map((r) => r.driver_number);
 }

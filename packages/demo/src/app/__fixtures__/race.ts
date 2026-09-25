@@ -1,4 +1,4 @@
-import type { OpenF1Lap, OpenF1Pit, RaceControl, Stint } from "@f1/core";
+import type { OpenF1Lap, RaceControl, Stint } from "@f1/core";
 
 const T0 = Date.parse("2025-12-07T13:03:00Z");
 const iso = (s: number) => new Date(T0 + s * 1000).toISOString();
@@ -27,10 +27,6 @@ export const stints: Stint[] = [
   { session_key: 9839, meeting_key: 1276, driver_number: 1, stint_number: 1, lap_start: 1, lap_end: 3, compound: "MEDIUM", tyre_age_at_start: 0 },
   { session_key: 9839, meeting_key: 1276, driver_number: 4, stint_number: 1, lap_start: 1, lap_end: 2, compound: "SOFT", tyre_age_at_start: 3 },
   { session_key: 9839, meeting_key: 1276, driver_number: 4, stint_number: 2, lap_start: 3, lap_end: 3, compound: "HARD", tyre_age_at_start: 0 },
-];
-
-export const pits: OpenF1Pit[] = [
-  { session_key: 9839, meeting_key: 1276, driver_number: 4, lap_number: 2, pit_duration: 22 },
 ];
 
 export const rc = (s: number, fields: Partial<RaceControl>): RaceControl => ({

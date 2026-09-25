@@ -12,7 +12,7 @@ import { color, font, type } from "../ui/tokens";
 import { formatDeepLink, parseDeepLink } from "./deepLink";
 import { replayReducer, resolveFocus } from "./replay";
 import { SeasonDrawer, buttonStyle } from "./SeasonDrawer";
-import { sessionTitle, toConsoleSessions, toDriverMap } from "./session";
+import { classificationOrder, sessionTitle, toConsoleSessions, toDriverMap } from "./session";
 import {
   buildTimeline,
   driverLapBlock,
@@ -117,8 +117,8 @@ function SessionConsole({
     if (!derived || classified === null) return;
     const { crossings, timeline, laps, drivers } = derived;
     const order = classified.length
-      ? [...classified].sort((x, y) => x.position - y.position).map((r) => r.driver_number)
-      : buildTower({ lap: timeline.totalLaps, crossings, laps, stints: [], pits: [], retired: null }).map((r) => r.driver);
+      ? classificationOrder(classified)
+      : buildTower({ lap: timeline.totalLaps, crossings, laps, stints: [], retired: null }).map((r) => r.driver);
     dispatch({ type: "load", totalLaps: timeline.totalLaps });
     if (link.lap === null) dispatch({ type: "seek", lap: timeline.totalLaps });
     dispatch({ type: "focus", focus: resolveFocus(link, new Set(drivers.keys()), order) });

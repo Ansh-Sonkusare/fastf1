@@ -1,6 +1,7 @@
-import type { OpenF1Driver, Race, Session } from "@f1/core";
+import type { OpenF1Driver, Race, Session, SessionResult } from "@f1/core";
 import { describe, expect, it } from "vitest";
-import { sessionTitle, toConsoleSessions, toDriverMap } from "./session";
+import { classificationOrder, sessionTitle, toConsoleSessions, toDriverMap } from "./session";
+import australia from "../panels/tower/__fixtures__/australia.json";
 
 const session = (session_key: number, date_start: string, extra: Partial<Session> = {}): Session => ({
   session_key,
@@ -48,5 +49,13 @@ describe("toDriverMap", () => {
       { driver_number: 1, name_acronym: "VER", first_name: "Max", last_name: "Verstappen", team_name: "Red Bull Racing", team_colour: "4781D7" } as OpenF1Driver,
     ]);
     expect(m.get(1)).toEqual({ number: 1, code: "VER", name: "Max Verstappen", team: "Red Bull Racing", color: "#4781d7" });
+  });
+});
+
+describe("classificationOrder", () => {
+  it("orders by position with null-position DNFs last: Australia 9693", () => {
+    const order = classificationOrder(australia.result as unknown as SessionResult[]);
+    expect(order.slice(0, 3)).toEqual([4, 1, 63]);
+    expect(order.slice(14).sort((a, b) => a - b)).toEqual([5, 6, 7, 14, 30, 55]);
   });
 });

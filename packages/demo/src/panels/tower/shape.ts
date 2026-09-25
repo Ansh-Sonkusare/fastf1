@@ -1,4 +1,4 @@
-import type { OpenF1Lap, OpenF1Pit, Stint } from "@f1/core";
+import type { OpenF1Lap, Stint } from "@f1/core";
 import type { Crossings } from "../../app/timeline";
 import type { DriverNumber } from "../../app/types";
 
@@ -25,7 +25,6 @@ export interface TowerInput {
   readonly crossings: Crossings;
   readonly laps: readonly OpenF1Lap[];
   readonly stints: readonly Stint[];
-  readonly pits: readonly OpenF1Pit[];
   /** Classified DNF/DNS from session_result; null falls back to a timing heuristic. */
   readonly retired: ReadonlySet<DriverNumber> | null;
 }
@@ -43,11 +42,13 @@ const INF = Number.POSITIVE_INFINITY;
  * Running order once the leader completes `lap`.
  * - A car has "done" lap n if it crossed the line for lap n before the leader completed lap+1,
  *   so a lapped car counts one lap fewer on every lap, not only at the flag.
+ * - PIT counts tyre changes (stints begun), not pit-lane passes: OpenF1's pit feed also lists
+ *   drive-throughs, e.g. the whole field through the lane under the Australia 2025 safety car.
  * - OUT = retired and never completed this lap (including the lap it retired on).
  *   Without classification, retired = last crossing more than one leader lap before the flag
  *   (a running lapped car always takes the flag after the leader).
  */
-export function buildTower({ lap, crossings, laps, stints, pits, retired }: TowerInput): TowerRow[] {
+export function buildTower({ lap, crossings, laps, stints, retired }: TowerInput): TowerRow[] {
   const all = [...crossings.values()];
   const firstAt = (n: number) => Math.min(...all.map((t) => t[n] ?? INF));
   const nextEnd = firstAt(lap + 1);
@@ -118,7 +119,7 @@ export function buildTower({ lap, crossings, laps, stints, pits, retired }: Towe
       bestIsOverall: best !== null && best === overall,
       compound: stint?.compound ?? null,
       tyreAge: stint ? (stint.tyre_age_at_start ?? 0) + onLap - stint.lap_start + 1 : null,
-      pits: pits.filter((p) => p.driver_number === s.driver && p.lap_number != null && p.lap_number <= lap).length,
+      pits: Math.max(0, stints.filter((x) => x.driver_number === s.driver && x.lap_start <= onLap + 1).length - 1),
     };
   });
 }

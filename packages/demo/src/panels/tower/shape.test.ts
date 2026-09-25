@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { lapCrossings } from "../../app/timeline";
-import { laps, pits, stints } from "../../app/__fixtures__/race";
+import { laps, stints } from "../../app/__fixtures__/race";
 import type { OpenF1Lap } from "@f1/core";
 import { buildTower } from "./shape";
 import australia from "./__fixtures__/australia.json";
@@ -8,7 +8,7 @@ import vegas from "./__fixtures__/vegas.json";
 import zandvoort from "./__fixtures__/zandvoort.json";
 
 const crossings = lapCrossings(laps);
-const tower = (lap: number) => buildTower({ lap, crossings, laps, stints, pits, retired: null });
+const tower = (lap: number) => buildTower({ lap, crossings, laps, stints, retired: null });
 
 describe("buildTower", () => {
   it("orders by laps done then completion time, with gaps and intervals", () => {
@@ -37,7 +37,7 @@ type Fixture = { laps: OpenF1Lap[]; result: { driver_number: number; dnf: boolea
 const real = (f: Fixture, lap: number) => {
   const c = lapCrossings(f.laps);
   const retired = new Set(f.result.filter((r) => r.dnf || r.dns).map((r) => r.driver_number));
-  return buildTower({ lap, crossings: c, laps: f.laps, stints: [], pits: [], retired });
+  return buildTower({ lap, crossings: c, laps: f.laps, stints: [], retired });
 };
 const row = (rows: ReturnType<typeof buildTower>, driver: number) => rows.find((r) => r.driver === driver);
 
@@ -68,7 +68,7 @@ describe("OUT vs lapped without classification", () => {
       lap_duration: i === starts.length - 1 ? (lastDur ?? undefined) : 90,
     }));
   const tower = (rows: OpenF1Lap[], lap: number) =>
-    buildTower({ lap, crossings: lapCrossings(rows), laps: rows, stints: [], pits: [], retired: null });
+    buildTower({ lap, crossings: lapCrossings(rows), laps: rows, stints: [], retired: null });
 
   it("a running lapped car takes the flag after the leader and is +1 L", () => {
     const rows = [...t(1, [0, 90, 180], 90), ...t(27, [45, 150], 100)];
