@@ -140,7 +140,7 @@ export function AsyncView<T>({
     <div style={{ padding: 16, font: type.label, letterSpacing: ".06em", color: tone }}>{text}</div>
   );
   if (state.status === "loading") return note("LOADING…");
-  if (state.status === "error" && isLocked(state.error)) return <LockedNote />;
+  if (state.status === "error" && isLocked(state.error)) return <LockedNote inferred={state.error.inferred} />;
   if (state.status === "error")
     return (
       <div style={{ padding: 16, display: "flex", gap: 10, alignItems: "center", font: type.label, color: color.red }}>
@@ -165,12 +165,16 @@ export const retryStyle = {
 } as const;
 
 export const LOCKED_MESSAGE = "OpenF1 is locked while a live F1 session runs. Past-race data returns when it ends.";
+export const UNREACHABLE_MESSAGE = "Can't reach OpenF1: offline, blocked, or locked by a live session. Retrying…";
 
-/** Shown in place of panel content while OpenF1 is locked. The page re-probes every minute. */
-export function LockedNote() {
+/**
+ * Shown in place of panel content while OpenF1 is locked; the page re-probes every minute.
+ * Claims a live session only when OpenF1 said so (a readable 401), not when it was inferred.
+ */
+export function LockedNote({ inferred }: { inferred: boolean }) {
   return (
     <div role="status" style={{ padding: 16, font: type.label, letterSpacing: ".04em", lineHeight: 1.5, color: color.amber }}>
-      {LOCKED_MESSAGE}
+      {inferred ? UNREACHABLE_MESSAGE : LOCKED_MESSAGE}
     </div>
   );
 }

@@ -71,8 +71,8 @@ export class OpenF1Error extends Error {
 
 /**
  * OpenF1 refuses all unauthenticated access, past sessions included, while a live F1 session runs.
- * `inferred` when the browser only saw a network failure: the lockout 401 carries no CORS
- * header, so the page can't read it and it looks exactly like a network error.
+ * `inferred` when the browser only saw repeated network failures: the lockout 401 carries no
+ * CORS header, so the page can't tell it from being offline, DNS failing or a blocked host.
  */
 export class OpenF1LockedError extends Error {
   override readonly name = "OpenF1LockedError";
@@ -93,8 +93,10 @@ export interface GateOptions {
   minIntervalMs: number;
   /** Max request starts in any rolling 60 s window. */
   perMinute: number;
-  /** Retries after a 429 or network failure before giving up. */
+  /** Retries after a 429 or unreadable body before giving up. */
   maxRetries: number;
+  /** Consecutive network failures (backoff doubling from backoffMs) before inferring a lockout. */
+  maxNetworkFailures: number;
   /** First backoff; doubles each retry. Retry-After wins when present. */
   backoffMs: number;
   /** While locked, requests fail without fetching; one probe goes out per this interval. */
@@ -119,7 +121,10 @@ interface Entry {
   readonly controller: AbortController;
   state: "queued" | "inflight" | "done";
   subscribers: number;
+  /** 429 / unreadable-body retries so far. */
   attempt: number;
+  /** Consecutive network failures (a CORS-less lockout 401 looks like one). */
+  netFailures: number;
 }
 
 /**
@@ -191,14 +196,24 @@ export function createGate(options: GateOptions): Gate {
     for (const queued of queue.splice(0)) finish(queued, { error: lock });
   };
 
+  const pauseAndRequeue = (e: Entry, ms: number) => {
+    pausedUntil = Math.max(pausedUntil, options.now() + ms);
+    e.state = "queued";
+    queue.unshift(e);
+    void pump();
+  };
+
   const retryLater = (e: Entry, retryAfterS: number, error: Error) => {
     if (e.attempt >= options.maxRetries) return finish(e, { error });
     const backoff = retryAfterS > 0 ? retryAfterS * 1000 : options.backoffMs * 2 ** e.attempt;
     e.attempt++;
-    pausedUntil = Math.max(pausedUntil, options.now() + backoff);
-    e.state = "queued";
-    queue.unshift(e);
-    void pump();
+    pauseAndRequeue(e, backoff);
+  };
+
+  const networkFailed = (e: Entry) => {
+    e.netFailures++;
+    if (lock || e.netFailures >= options.maxNetworkFailures) return enterLock(e, true);
+    pauseAndRequeue(e, options.backoffMs * 2 ** (e.netFailures - 1));
   };
 
   const run = async (e: Entry) => {
@@ -207,8 +222,7 @@ export function createGate(options: GateOptions): Gate {
       res = await options.fetch(e.url, e.controller.signal);
     } catch (error) {
       if (e.controller.signal.aborted) return;
-      if (lock || e.attempt >= 1) return enterLock(e, true);
-      return retryLater(e, 0, error instanceof Error ? error : new Error(String(error)));
+      return networkFailed(e);
     }
     if (res.status === 401 && /live/i.test(await res.text().catch(() => ""))) return enterLock(e, false);
     lock = null;
@@ -241,7 +255,7 @@ export function createGate(options: GateOptions): Gate {
         reject = rej;
       });
       promise.catch(() => undefined);
-      e = { url, promise, resolve, reject, controller: new AbortController(), state: "queued", subscribers: 0, attempt: 0 };
+      e = { url, promise, resolve, reject, controller: new AbortController(), state: "queued", subscribers: 0, attempt: 0, netFailures: 0 };
       cache.set(url, e);
       queue.push(e);
       void pump();
@@ -274,6 +288,7 @@ export const gate: Gate = createGate({
   minIntervalMs: 400,
   perMinute: 30,
   maxRetries: 4,
+  maxNetworkFailures: 4,
   backoffMs: 2000,
   lockProbeMs: 60_000,
 });

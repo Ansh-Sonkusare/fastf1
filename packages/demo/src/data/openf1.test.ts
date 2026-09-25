@@ -28,6 +28,7 @@ function harness(replies: Reply[]) {
     minIntervalMs: 400,
     perMinute: 3,
     maxRetries: 2,
+    maxNetworkFailures: 4,
     backoffMs: 1000,
     lockProbeMs: 60_000,
   });
@@ -133,11 +134,24 @@ describe("createGate", () => {
     expect(calls).toHaveLength(3);
   });
 
-  it("in the browser the lockout is a CORS-less network failure: a second one in a row infers the lock", async () => {
-    const { gate, calls } = harness(["network", "network"]);
+  it("rides out a short outage: three network failures then success, no lock", async () => {
+    const { gate, calls } = harness(["network", "network", "network", { status: 200, body: [5] }]);
+    expect(await gate.get("laps", SK)).toEqual([5]);
+    expect(calls.slice(0, 3).map((c) => c.at)).toEqual([0, 1000, 3000]);
+    expect(calls[3]!.at).toBeGreaterThanOrEqual(7000);
+  });
+
+  it("network failures and 429s count separately", async () => {
+    const { gate, calls } = harness([{ status: 429 }, "network", { status: 429 }, "network", { status: 200, body: [6] }]);
+    expect(await gate.get("laps", SK)).toEqual([6]);
+    expect(calls).toHaveLength(5);
+  });
+
+  it("in the browser the lockout is a CORS-less network failure: four in a row infer the lock", async () => {
+    const { gate, calls } = harness(["network", "network", "network", "network"]);
     await expect(gate.get("sessions" as "laps", SK)).rejects.toMatchObject({ name: "OpenF1LockedError", inferred: true });
     await expect(gate.get("pit", SK)).rejects.toBeInstanceOf(OpenF1LockedError);
-    expect(calls).toHaveLength(2);
+    expect(calls).toHaveLength(4);
   });
 });
 

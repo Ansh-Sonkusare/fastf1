@@ -40,7 +40,11 @@ export function Console({ initialData }: { initialData?: DemoInitialData }) {
     [rawSessions, schedule],
   );
   const [sessionKey, setSessionKey] = useState<number | null>(link.session);
-  const session = sessions.find((s) => s.sessionKey === sessionKey) ?? sessions.at(-1);
+  const [pickedRound, setPickedRound] = useState<number | null>(null);
+  const session =
+    sessions.find((s) => s.sessionKey === sessionKey) ??
+    sessions.find((s) => pickedRound !== null && s.round === pickedRound) ??
+    sessions.at(-1);
 
   const drawer = (round: number, close: () => void, pick?: (round: number) => void) => (
     <SeasonDrawer
@@ -58,7 +62,19 @@ export function Console({ initialData }: { initialData?: DemoInitialData }) {
 
   if (rawSessions.status === "error" && isLocked(rawSessions.error)) {
     const today = new Date().toISOString().slice(0, 10);
-    return <LockedConsole races={(schedule?.Races ?? []).filter((r) => r.date < today)} drawer={drawer} />;
+    const races = (schedule?.Races ?? []).filter((r) => r.date < today);
+    return (
+      <LockedConsole
+        races={races}
+        inferred={rawSessions.error.inferred}
+        round={pickedRound ?? Number(races.at(-1)?.round ?? 1)}
+        onRound={(round) => {
+          setPickedRound(round);
+          setSessionKey(null);
+        }}
+        drawer={drawer}
+      />
+    );
   }
   if (rawSessions.status === "error")
     return (
@@ -226,7 +242,7 @@ function SessionConsole({
           SEASON
         </button>
       </header>
-      {base.status === "error" && isLocked(base.error) && <LockedNote />}
+      {base.status === "error" && isLocked(base.error) && <LockedNote inferred={base.error.inferred} />}
       {base.status === "error" && !isLocked(base.error) && (
         <Fullscreen tone={color.red}>OpenF1 failed · {base.error.message}</Fullscreen>
       )}
@@ -265,19 +281,24 @@ function PanelGrid({ render }: { render: (slot: Slot) => ReactNode }) {
  */
 function LockedConsole({
   races,
+  inferred,
+  round,
+  onRound,
   drawer,
 }: {
   races: readonly Race[];
+  inferred: boolean;
+  round: number;
+  onRound: (round: number) => void;
   drawer: (round: number, close: () => void) => ReactNode;
 }) {
-  const [round, setRound] = useState(Number(races.at(-1)?.round ?? 1));
   const [drawerOpen, setDrawerOpen] = useState(false);
   return (
     <div style={{ minWidth: 1600, padding: 10, display: "flex", flexDirection: "column", gap: 10 }}>
       <header style={headerStyle}>
         <Wordmark />
         <Stat label="Session">
-          <select aria-label="Session" value={round} onChange={(e) => setRound(Number(e.target.value))} style={selectStyle}>
+          <select aria-label="Session" value={round} onChange={(e) => onRound(Number(e.target.value))} style={selectStyle}>
             {races.map((r) => (
               <option key={r.round} value={r.round} style={{ background: color.panel }}>
                 Round {r.round} · {r.raceName} · Race
@@ -289,7 +310,7 @@ function LockedConsole({
           <span style={{ font: type.big, color: color.dim }}>—</span>
         </Stat>
         <div aria-label="Track status" style={{ ...pillStyle, background: color.amber, color: color.bg }}>
-          OPENF1 LOCKED · LIVE SESSION
+          {inferred ? "OPENF1 UNREACHABLE · RETRYING" : "OPENF1 LOCKED · LIVE SESSION"}
         </div>
         <div style={{ flex: 1 }} />
         <button type="button" onClick={() => setDrawerOpen(true)} style={buttonStyle}>
@@ -300,7 +321,7 @@ function LockedConsole({
         render={(slot) =>
           PANELS.filter((p) => p.slot === slot).map((p) => (
             <PanelFrame key={p.num} num={p.num} title={p.title}>
-              <LockedNote />
+              <LockedNote inferred={inferred} />
             </PanelFrame>
           ))
         }

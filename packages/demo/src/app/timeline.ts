@@ -237,8 +237,10 @@ export interface PitStop {
 
 /**
  * The one definition of a real pit stop. Every OpenF1 pit row with a lap counts, except
- * safety-car pit-lane drive-throughs: rows on a pitLanePassLaps lap with no stop_duration
- * and no compound change (the pass itself opens a same-compound, age-0 stint).
+ * safety-car pit-lane drive-throughs: rows on a pitLanePassLaps lap with no stop_duration that no
+ * compound change confirms (the pass itself opens a same-compound, age-0 stint).
+ * A compound change confirms a row when its new stint starts on the pit lap or the lap after
+ * (OpenF1 uses both), and each change confirms one row only; timed stops claim theirs first.
  * A null stop_duration alone never disqualifies a row.
  */
 export function realPitStops(
@@ -246,17 +248,23 @@ export function realPitStops(
   stints: readonly Stint[],
   passLaps: ReadonlySet<number>,
 ): PitStop[] {
-  const newCompoundOn = (driver: DriverNumber, lap: number) => {
-    const next = stints.find((x) => x.driver_number === driver && x.lap_start === lap);
-    const prev = next && stints.find((x) => x.driver_number === driver && x.stint_number === next.stint_number - 1);
-    return !!next && !!prev && next.compound !== prev.compound;
+  const claimed = new Set<Stint>();
+  const claimChange = (driver: DriverNumber, lap: number) => {
+    const change = stints.find((next) => {
+      if (next.driver_number !== driver || claimed.has(next)) return false;
+      if (next.lap_start !== lap && next.lap_start !== lap + 1) return false;
+      const prev = stints.find((x) => x.driver_number === driver && x.stint_number === next.stint_number - 1);
+      return !!prev && prev.compound !== next.compound;
+    });
+    if (change) claimed.add(change);
+    return !!change;
   };
-  return pits
-    .filter(
-      (p): p is OpenF1Pit & { lap_number: number } =>
-        p.lap_number != null &&
-        !(passLaps.has(p.lap_number) && p.stop_duration == null && !newCompoundOn(p.driver_number, p.lap_number)),
-    )
+  const rows = pits.filter((p): p is OpenF1Pit & { lap_number: number } => p.lap_number != null);
+  const onPass = rows.filter((p) => passLaps.has(p.lap_number)).sort((x, y) => x.lap_number - y.lap_number);
+  for (const p of onPass) if (p.stop_duration != null) claimChange(p.driver_number, p.lap_number);
+  const drop = new Set(onPass.filter((p) => p.stop_duration == null && !claimChange(p.driver_number, p.lap_number)));
+  return rows
+    .filter((p) => !drop.has(p))
     .map((p) => ({
       driver: p.driver_number,
       lap: p.lap_number,
