@@ -56,15 +56,9 @@ describe("shapeTyreStints (2025 Abu Dhabi GP, session 9839)", () => {
   });
 
   it("sorts by driver then stint number", () => {
-    for (let i = 1; i < viewModels.length; i++) {
-      const prev = viewModels[i - 1];
-      const curr = viewModels[i];
-      if (prev.driverNumber === curr.driverNumber) {
-        expect(prev.stintNumber).toBeLessThan(curr.stintNumber);
-      } else {
-        expect(prev.driverNumber).toBeLessThan(curr.driverNumber);
-      }
-    }
+    const key = (s: (typeof viewModels)[number]) => s.driverNumber * 1000 + s.stintNumber;
+    const isOrdered = viewModels.every((curr, i) => i === 0 || key(viewModels[i - 1]) < key(curr));
+    expect(isOrdered).toBe(true);
   });
 
   it("used only dry compounds in this race (SOFT/MEDIUM/HARD, no rain)", () => {

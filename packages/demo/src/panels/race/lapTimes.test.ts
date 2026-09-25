@@ -53,13 +53,10 @@ describe("shapeLapTimes (2025 Abu Dhabi GP, session 9839)", () => {
   });
 
   it("sorts by driver then lap number", () => {
-    for (let i = 1; i < viewModels.length; i++) {
-      const prev = viewModels[i - 1];
-      const curr = viewModels[i];
-      if (prev.driverNumber === curr.driverNumber) {
-        expect(prev.lapNumber).toBeLessThanOrEqual(curr.lapNumber);
-      }
-    }
+    const badPair = viewModels
+      .slice(1)
+      .find((curr, i) => curr.driverNumber === viewModels[i].driverNumber && curr.lapNumber < viewModels[i].lapNumber);
+    expect(badPair).toBeUndefined();
   });
 });
 
