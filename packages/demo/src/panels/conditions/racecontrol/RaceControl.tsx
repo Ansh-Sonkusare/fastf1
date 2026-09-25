@@ -25,10 +25,13 @@ export interface RaceControlProps {
  * Displays a merged, time-ordered feed of race control messages and team radio communications.
  * Includes filtering buttons for different event types and a scrollable list.
  *
- * Matches reference panel-09.png layout with filters: ALL, RC, RADIO, OVT
+ * Matches reference panel-09.png layout with filters: ALL, RC, RADIO, OVT.
  *
- * This is a phase 1 presentational component.
- * In phase 2, it will be wired to receive shaped data from the OpenF1 gate.
+ * Purely presentational: `panels/conditions/RaceControl.tsx` is the actual
+ * registry stub (panel 09) — it fetches through B's gate, shapes the rows
+ * via `./shape`, and wraps this component in `<PanelFrame num="09"
+ * title="Race control & radio">`, which is why this component doesn't
+ * render its own numbered title, only the filter tabs and feed body.
  */
 export const RaceControl: React.FC<RaceControlProps> = ({
   events,
@@ -57,18 +60,8 @@ export const RaceControl: React.FC<RaceControlProps> = ({
         minWidth: 0,
       }}
     >
-      {/* Header with filter buttons */}
+      {/* Filter tabs (the numbered title lives in the enclosing PanelFrame) */}
       <div style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 12px", borderBottom: "1px solid #1f242b" }}>
-        <span
-          style={{
-            font: '600 11px/1 "IBM Plex Mono", monospace',
-            letterSpacing: ".08em",
-            textTransform: "uppercase",
-            color: "#e4e7eb",
-          }}
-        >
-          09 Race control &amp; radio
-        </span>
         <div style={{ flex: 1 }} />
         <FilterButton
           label="All"
@@ -265,16 +258,16 @@ const RaceEventItem: React.FC<RaceEventItemProps> = ({
 
         {/* OpenF1's team_radio endpoint has no transcript, only the audio
             clip URL, so radio events render a playable clip instead of a
-            message string. Hidden in phase 1 pending panel wiring; enabled
-            for browser proof in phase 2. */}
+            message string. Real playback pending OpenF1 recovery + browser
+            proof (root's phase-2 constraint: no live OpenF1 calls right
+            now), but the element itself is wired and enabled. */}
         {event.type === "radio" && event.recordingUrl && (
           <audio
             controls
             style={{
               marginTop: "6px",
               maxWidth: "100%",
-              height: "20px",
-              display: "none", // Hide in phase 1, will enable in phase 2
+              height: "24px",
             }}
           >
             <source src={event.recordingUrl} type="audio/mpeg" />
