@@ -1,12 +1,12 @@
 import type { PanelProps } from "../../app/types";
 import { useOpenF1 } from "../../data/useOpenF1";
-import { AsyncView, Label } from "../../ui/primitives";
-import { color } from "../../ui/tokens";
+import { AsyncView, useLayoutMode } from "../../ui/primitives";
 import { shapeWeather, type OpenF1WeatherRow } from "./weather/shape";
 import { Weather as WeatherView } from "./weather/Weather";
 
 /**
- * Panel 08 — Weather. Header-strip panel, no PanelFrame (per CONTRACT.md).
+ * Panel 08 — Weather. Header-strip panel, no PanelFrame (per CONTRACT.md);
+ * `Header.tsx` wraps whatever this renders in the header's bordered cell.
  *
  * Fetches the whole-session `weather` feed once through B's gate (never
  * per-lap — CONTRACT.md requires whole-session fetches for this endpoint)
@@ -21,18 +21,16 @@ import { Weather as WeatherView } from "./weather/Weather";
  * weather/shape.ts for detail; flagged to lane A/B/root separately.
  */
 export default function Weather({ session, lapWindow }: PanelProps) {
+  const mode = useLayoutMode();
   const weather = useOpenF1("weather", session.sessionKey);
   const cutoff = lapWindow?.end ?? lapWindow?.start ?? session.dateStart;
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-      <Label tone={color.dim}>08 WEATHER</Label>
-      <AsyncView state={weather} isEmpty={(rows) => rows.length === 0}>
-        {(rows) => {
-          const shaped = shapeWeather(rows as unknown as OpenF1WeatherRow[], cutoff);
-          return <WeatherView weather={shaped} />;
-        }}
-      </AsyncView>
-    </div>
+    <AsyncView state={weather} isEmpty={(rows) => rows.length === 0}>
+      {(rows) => {
+        const shaped = shapeWeather(rows as unknown as OpenF1WeatherRow[], cutoff);
+        return <WeatherView weather={shaped} big={mode === "wall"} />;
+      }}
+    </AsyncView>
   );
 }

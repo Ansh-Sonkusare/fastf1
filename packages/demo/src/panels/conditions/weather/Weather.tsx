@@ -1,196 +1,125 @@
-import React from "react";
+import { color, font, type } from "../../../ui/tokens";
 import type { WeatherViewModel } from "./shape";
 
 export interface WeatherProps {
-  /**
-   * Array of weather data points to display, ordered by date.
-   * The component shows the most recent entries as mini-cards
-   * with sparkline trends.
-   */
+  /** Weather readings up to the replay's current lap, ordered by date. */
   weather: WeatherViewModel[];
+  /** Wall mode: bigger cells (matches the header's other big-mode cells). */
+  big?: boolean;
+}
+
+interface Metric {
+  readonly key: string;
+  readonly label: string;
+  readonly value: number;
+  readonly unit: string;
+  readonly data: readonly number[];
+  readonly lineColor: string;
 }
 
 /**
- * Weather panel component.
- * Displays current weather conditions (temperature, humidity, wind, rainfall)
- * with sparkline visualizations showing trends over time.
- *
- * Matches reference panel-08.png layout:
- * - Label + 4 key metrics (Air, Track, Wind, Precipitation)
- * - Each shows current value and sparkline chart
- * - Uses IBM Plex Mono and Monza color scheme
- *
- * This is a phase 1 presentational component.
- * In phase 2, it will be wired to receive shaped data from the OpenF1 gate.
+ * The header's AIR/TRACK/WIND/RAIN cells: each a label, the latest reading,
+ * and a sparkline over the session so far with a trend arrow when the value
+ * has moved. Matches undercut-terminal.dc.html's header weather cells,
+ * dividers included; `Header.tsx` supplies the outer left border.
  */
-export const Weather: React.FC<WeatherProps> = ({ weather }) => {
-  if (!weather || weather.length === 0) {
-    return (
-      <div style={{ padding: "12px", color: "#8b939e", fontSize: "12px" }}>
-        No weather data available
-      </div>
-    );
-  }
+export function Weather({ weather, big = false }: WeatherProps) {
+  if (weather.length === 0) return <div style={{ padding: "0 12px", font: type.label, color: color.dim }}>NO WEATHER DATA</div>;
 
-  // Get the latest weather reading
-  const latest = weather[weather.length - 1];
+  const latest = weather[weather.length - 1]!;
+  const candidates: (Metric | false)[] = [
+    latest.airTemperature !== undefined && {
+      key: "air",
+      label: "Air",
+      value: latest.airTemperature,
+      unit: "°C",
+      data: weather.map((w) => w.airTemperature).filter((v): v is number => v !== undefined),
+      lineColor: color.textSoft,
+    },
+    latest.trackTemperature !== undefined && {
+      key: "track",
+      label: "Track",
+      value: latest.trackTemperature,
+      unit: "°C",
+      data: weather.map((w) => w.trackTemperature).filter((v): v is number => v !== undefined),
+      lineColor: color.amber,
+    },
+    latest.windSpeed !== undefined && {
+      key: "wind",
+      label: "Wind",
+      value: latest.windSpeed,
+      unit: " m/s",
+      data: weather.map((w) => w.windSpeed).filter((v): v is number => v !== undefined),
+      lineColor: color.label,
+    },
+    latest.rainfall !== undefined && {
+      key: "rain",
+      label: "Rain",
+      value: latest.rainfall,
+      unit: "",
+      data: weather.map((w) => w.rainfall).filter((v): v is number => v !== undefined),
+      lineColor: color.predicted,
+    },
+  ];
+  const metrics = candidates.filter((m): m is Metric => m !== false);
 
   return (
-    <div style={{ display: "flex", gap: "22px", padding: "8px", alignItems: "center" }}>
-      {latest.airTemperature !== undefined && (
-        <WeatherMetric
-          label="Air"
-          value={latest.airTemperature}
-          unit="°C"
-          data={weather.map((w) => w.airTemperature ?? 0).filter((v) => v > 0)}
-          color="#e4e7eb"
-        />
-      )}
-      {latest.trackTemperature !== undefined && (
-        <WeatherMetric
-          label="Track"
-          value={latest.trackTemperature}
-          unit="°C"
-          data={weather.map((w) => w.trackTemperature ?? 0).filter((v) => v > 0)}
-          color="#f5d020"
-        />
-      )}
-      {latest.windSpeed !== undefined && (
-        <WeatherMetric
-          label="Wind"
-          value={latest.windSpeed}
-          unit="m/s"
-          data={weather.map((w) => w.windSpeed ?? 0)}
-          subtext={getWindDirection(latest.windDirection)}
-          color="#e4e7eb"
-        />
-      )}
-      {latest.rainfall !== undefined && (
-        <WeatherMetric
-          label="Rain"
-          value={latest.rainfall}
-          // OpenF1's `rainfall` is a 0/1 flag, not a percentage or mm figure.
-          unit=""
-          data={weather.map((w) => w.rainfall ?? 0)}
-          color="#6fd3e8"
-        />
-      )}
+    <div style={{ display: "flex", alignItems: "center", height: "100%" }}>
+      {metrics.map((m, i) => (
+        <WeatherCell key={m.key} metric={m} big={big} divider={i > 0} />
+      ))}
     </div>
   );
-};
-
-interface WeatherMetricProps {
-  label: string;
-  value: number;
-  unit: string;
-  data: number[];
-  color?: string;
-  subtext?: string;
 }
 
-/**
- * Individual weather metric display with sparkline.
- * Shows a label, current value, and trend chart.
- */
-const WeatherMetric: React.FC<WeatherMetricProps> = ({
-  label,
-  value,
-  unit,
-  data,
-  color = "#e4e7eb",
-  subtext,
-}) => {
-  // Generate a simple SVG sparkline from the data
-  const sparklinePath = generateSparkline(data);
+function WeatherCell({ metric, big, divider }: { metric: Metric; big: boolean; divider: boolean }) {
+  const { label, value, unit, data, lineColor } = metric;
+  const trendUp = data.length >= 2 ? data[data.length - 1]! >= data[0]! : null;
+  const changed = data.length >= 2 && data[0] !== data[data.length - 1];
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-        <span
-          style={{
-            font: '500 10px/1 "IBM Plex Mono", monospace',
-            letterSpacing: ".08em",
-            color: "#8b939e",
-            textTransform: "uppercase",
-          }}
-        >
-          {label}
-        </span>
-        <span
-          style={{
-            font: '500 14px/1 "IBM Plex Mono", monospace',
-            color: "#e4e7eb",
-          }}
-        >
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        height: "100%",
+        padding: big ? "0 14px" : "0 12px",
+        borderLeft: divider ? `1px solid ${color.border}` : undefined,
+      }}
+    >
+      <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+        <span style={{ font: `500 ${big ? 13 : 10}px/1 ${font.sans}`, letterSpacing: ".07em", textTransform: "uppercase", color: color.label }}>{label}</span>
+        <span style={{ font: `500 ${big ? 22 : 13}px/1 ${font.mono}`, color: color.textSoft, whiteSpace: "nowrap" }}>
           {value.toFixed(1)}
           {unit}
         </span>
-        {subtext && (
-          <span
-            style={{
-              font: '400 9px/1 "IBM Plex Mono", monospace',
-              color: "#8b939e",
-            }}
-          >
-            {subtext}
-          </span>
-        )}
       </div>
-      {/* Sparkline chart */}
-      <svg
-        viewBox="0 0 100 24"
-        preserveAspectRatio="none"
-        style={{
-          width: "84px",
-          height: "26px",
-          display: "block",
-          flexShrink: 0,
-        }}
-      >
-        <path
-          d={sparklinePath}
-          style={{
-            fill: "none",
-            stroke: color,
-            strokeWidth: 1.5,
-            vectorEffect: "non-scaling-stroke",
-          }}
-        />
-      </svg>
+      {changed && (
+        <>
+          <svg
+            viewBox="0 0 100 24"
+            preserveAspectRatio="none"
+            style={{ width: big ? 60 : 40, height: big ? 27 : 18, display: "block", flexShrink: 0 }}
+          >
+            <path d={sparklinePath(data)} style={{ fill: "none", stroke: lineColor, strokeWidth: 1.5, vectorEffect: "non-scaling-stroke" }} />
+          </svg>
+          <span style={{ font: `700 ${big ? 13 : 10}px/1 ${font.mono}`, color: lineColor }}>{trendUp ? "▲" : "▼"}</span>
+        </>
+      )}
     </div>
   );
-};
-
-/**
- * Converts numeric data array into an SVG path for a sparkline.
- * Normalizes data to fit in a 100x24 viewBox.
- */
-function generateSparkline(data: number[]): string {
-  if (data.length < 2) return "M0,12 L100,12"; // Flat line if not enough data
-
-  const min = Math.min(...data);
-  const max = Math.max(...data);
-  const range = max - min || 1;
-
-  const points = data.map((value, index) => {
-    const x = (index / (data.length - 1)) * 100;
-    const y = 24 - ((value - min) / range) * 24;
-    return `${x},${y}`;
-  });
-
-  return `M${points.join(" L")}`;
 }
 
-/**
- * Convert wind direction degrees to compass direction abbreviation.
- */
-function getWindDirection(degrees?: number): string {
-  if (degrees === undefined || degrees === null) return "";
-
-  const directions = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
-                      "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
-  const index = Math.round(degrees / 22.5) % 16;
-  return directions[index];
+/** Normalizes the last 24 readings into a 100x24 sparkline path. */
+function sparklinePath(data: readonly number[]): string {
+  const window = data.slice(-24);
+  const min = Math.min(...window);
+  const max = Math.max(...window);
+  const range = max - min || 1;
+  return window
+    .map((v, i) => `${i ? "L" : "M"}${((i / (window.length - 1 || 1)) * 100).toFixed(1)},${(22 - ((v - min) / range) * 20).toFixed(1)}`)
+    .join("");
 }
 
 export default Weather;
