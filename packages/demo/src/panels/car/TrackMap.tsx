@@ -32,7 +32,7 @@ export default function TrackMap(props: PanelProps) {
   return (
     <PanelFrame
       num="02"
-      title="Track map"
+      title="Track"
       right={
         <>
           <TrackMapLegend />

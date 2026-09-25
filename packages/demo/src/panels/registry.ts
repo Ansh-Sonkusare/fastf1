@@ -17,10 +17,10 @@ export interface PanelDef {
 }
 
 export const PANELS: readonly PanelDef[] = [
-  { num: "01", title: "Timing tower", slot: "timing", load: () => import("./tower/TimingTower") },
+  { num: "01", title: "Timing", slot: "timing", load: () => import("./tower/TimingTower") },
   { num: "10", title: "Strategy predictor", slot: "strategy", load: () => import("./strategy/StrategyPredictor") },
-  { num: "02", title: "Track map", slot: "track", load: () => import("./car/TrackMap") },
-  { num: "09", title: "Race control & radio", slot: "race-control", load: () => import("./conditions/RaceControl") },
+  { num: "02", title: "Track", slot: "track", load: () => import("./car/TrackMap") },
+  { num: "09", title: "Race control", slot: "race-control", load: () => import("./conditions/RaceControl") },
   { num: "03", title: "Telemetry compare", slot: "analysis", tab: "compare", load: () => import("./car/Telemetry") },
   { num: "04", title: "Lap times", slot: "analysis", tab: "compare", load: () => import("./race/LapTimes") },
   { num: "05", title: "Sectors", slot: "analysis", tab: "sectors", load: () => import("./car/Sectors") },

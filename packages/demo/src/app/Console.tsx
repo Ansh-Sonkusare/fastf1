@@ -235,17 +235,19 @@ function SessionConsole({
           weatherSlot={props && <PanelSlot def={PANELS.find((p) => p.slot === "header")!} props={props} />}
           onSeason={() => setDrawerOpen(true)}
         />
-        <TimelineBar
-          mode={mode}
-          label={<TimelineLabel lap={state.lap} totalLaps={state.totalLaps} />}
-          lap={state.lap}
-          totalLaps={state.totalLaps}
-          playing={state.playing}
-          onToggle={() => dispatch({ type: "toggle" })}
-          onSeek={(lap) => dispatch({ type: "seek", lap })}
-          bands={scrub.bands}
-          pitLaps={scrub.pitLaps}
-        />
+        {mode === "desk" && (
+          <TimelineBar
+            mode={mode}
+            label={<TimelineLabel lap={state.lap} totalLaps={state.totalLaps} />}
+            lap={state.lap}
+            totalLaps={state.totalLaps}
+            playing={state.playing}
+            onToggle={() => dispatch({ type: "toggle" })}
+            onSeek={(lap) => dispatch({ type: "seek", lap })}
+            bands={scrub.bands}
+            pitLaps={scrub.pitLaps}
+          />
+        )}
         <div style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateRows: mode === "desk" ? "minmax(0,1fr) 342px" : "1fr", gap: 1, background: color.border }}>
           {base.status === "error" && isLocked(base.error) && <LockedNote inferred={base.error.inferred} />}
           {base.status === "error" && !isLocked(base.error) && <Fullscreen tone={color.red}>OpenF1 failed · {base.error.message}</Fullscreen>}
@@ -253,7 +255,21 @@ function SessionConsole({
           {props && (mode === "desk" ? <DeskMain props={props} /> : <WallMain props={props} />)}
           {props && mode === "desk" && <Analysis props={props} atab={atab} onTab={setAtab} />}
         </div>
-        {mode === "desk" && <Footer onWall={() => setMode("wall")} />}
+        {mode === "desk" ? (
+          <Footer onWall={() => setMode("wall")} />
+        ) : (
+          <TimelineBar
+            mode={mode}
+            label={<RaceLabel />}
+            lap={state.lap}
+            totalLaps={state.totalLaps}
+            playing={state.playing}
+            onToggle={() => dispatch({ type: "toggle" })}
+            onSeek={(lap) => dispatch({ type: "seek", lap })}
+            bands={scrub.bands}
+            pitLaps={scrub.pitLaps}
+          />
+        )}
       </div>
       {drawerOpen && drawer(() => setDrawerOpen(false))}
     </LayoutModeProvider>
@@ -264,6 +280,15 @@ function TimelineLabel({ lap, totalLaps }: { lap: number; totalLaps: number }) {
   return (
     <span style={{ font: type.label, letterSpacing: ".06em", color: color.dim, width: 90, whiteSpace: "nowrap" }}>
       LAP {lap}/{totalLaps}
+    </span>
+  );
+}
+
+function RaceLabel() {
+  return (
+    <span style={{ display: "flex", alignItems: "center", gap: 9, font: type.panelTitle, letterSpacing: ".07em", textTransform: "uppercase", color: color.text, whiteSpace: "nowrap" }}>
+      <span style={{ width: 6, height: 6, background: color.accent }} />
+      Race
     </span>
   );
 }

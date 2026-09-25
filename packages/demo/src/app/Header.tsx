@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { cloneElement, isValidElement, type CSSProperties, type ReactNode } from "react";
 import type { LayoutMode } from "../ui/primitives";
 import { color, font } from "../ui/tokens";
 import type { FlagKind } from "./timeline";
@@ -12,11 +12,18 @@ const flagStyle: Record<FlagKind, { bg: string; fg: string }> = {
   chequered: { bg: color.text, fg: "#000" },
 };
 
-/**
- * The Undercut Terminal header: brand, session, lap, clock, track status, weather, desk/wall.
- * Sized up for `mode: "wall"`; same cells, same aria-labels, in both modes (see PR notes on why
- * the session select and lap stepper stay visible in wall mode, unlike the reference).
- */
+/** The wall keeps the session select and lap stepper the design drops, so both modes stay operable by keyboard and aria-label. */
+/** Wall mode sets the session under the brand, as the design does, so the header fits 1920 px. */
+const wallSelect: CSSProperties = {
+  maxWidth: 210,
+  padding: 0,
+  border: "none",
+  background: "transparent",
+  color: "#000",
+  font: `600 12px/1 ${font.mono}`,
+  letterSpacing: ".04em",
+};
+
 export function Header({
   mode,
   onModeChange,
@@ -47,11 +54,22 @@ export function Header({
   const big = mode === "wall";
   return (
     <div style={{ display: "flex", alignItems: "stretch", background: color.panel, minWidth: 0 }}>
-      <div style={{ display: "flex", alignItems: "center", padding: big ? "0 26px" : "0 16px", background: color.accent, color: "#000" }}>
-        <span style={{ font: `700 ${big ? 26 : 15}px/1 ${font.sans}`, letterSpacing: ".16em" }}>UNDERCUT</span>
-        <span style={{ fontWeight: 500, letterSpacing: ".06em", marginLeft: 10, fontSize: big ? 13 : 11, opacity: 0.7 }}>STRATEGY TERMINAL</span>
-      </div>
-      <Cell big={big}>{sessionSelect}</Cell>
+      {big ? (
+        <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", gap: 6, padding: "0 26px", background: color.accent, color: "#000" }}>
+          <span style={{ font: `700 26px/1 ${font.sans}`, letterSpacing: ".16em" }}>UNDERCUT</span>
+          {isValidElement<{ style?: CSSProperties }>(sessionSelect)
+            ? cloneElement(sessionSelect, { style: { ...sessionSelect.props.style, ...wallSelect } })
+            : sessionSelect}
+        </div>
+      ) : (
+        <>
+          <div style={{ display: "flex", alignItems: "center", padding: "0 16px", background: color.accent, color: "#000" }}>
+            <span style={{ font: `700 15px/1 ${font.sans}`, letterSpacing: ".16em" }}>UNDERCUT</span>
+            <span style={{ fontWeight: 500, letterSpacing: ".06em", marginLeft: 10, fontSize: 11, opacity: 0.7 }}>STRATEGY TERMINAL</span>
+          </div>
+          <Cell big={false}>{sessionSelect}</Cell>
+        </>
+      )}
       <Cell big={big} label="Lap">
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ font: `600 ${big ? 76 : 26}px/1 ${font.mono}`, color: color.text }}>

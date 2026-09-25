@@ -59,7 +59,13 @@ export function PanelFrame({ num, title, right, predicted, children, style }: Pa
         <div style={{ flex: 1 }} />
         {right}
       </header>
-      <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>{children}</div>
+      {/*
+       * overflow auto, not visible: the console fills a fixed 100vh (the reference's 1920x1080
+       * canvas). A panel body taller than its box scrolls in place instead of growing the page and
+       * pushing the footer off-screen; a panel with its own scrolling child is unaffected, since
+       * that child already fills this box exactly.
+       */}
+      <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "auto" }}>{children}</div>
     </section>
   );
 }
