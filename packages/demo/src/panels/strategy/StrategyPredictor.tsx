@@ -309,7 +309,9 @@ const ALERT_STYLE: Record<
   THREAT: (p) =>
     p > 0.6
       ? { level: "HIGH", tone: color.red, bg: "rgba(255,90,79,.07)", bd: "rgba(255,90,79,.35)" }
-      : { level: "MED", tone: color.amber, bg: "rgba(255,181,71,.06)", bd: "rgba(255,181,71,.3)" },
+      : p >= 0.3
+        ? { level: "MED", tone: color.amber, bg: "rgba(255,181,71,.06)", bd: "rgba(255,181,71,.3)" }
+        : { level: "LOW", tone: color.label, bg: "rgba(255,255,255,.02)", bd: color.border },
   OPPORTUNITY: () => ({
     level: "OPP",
     tone: color.predicted,
