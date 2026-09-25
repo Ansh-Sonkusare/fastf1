@@ -5,7 +5,7 @@ export interface PitStopViewModel {
   driverNumber: number;
   lapNumber: number;
   stopNumber: number;
-  stationaryDuration: number; // seconds, stop_duration (never null: see shapePitStops)
+  stationaryDuration: number | null | undefined; // seconds, stop_duration
   laneDuration: number | null | undefined; // seconds, lane_duration
   totalDuration: number | null | undefined; // seconds, pit_duration
 }
@@ -13,14 +13,16 @@ export interface PitStopViewModel {
 /**
  * Shape pit stop data from OpenF1 into view model.
  * Each pit stop shows stationary time vs lane time.
- * Ranked fastest stationary time first, per the reference design (panel 07).
+ * Ranked fastest stationary time first, per the reference design (panel 07);
+ * a stop with no recorded stationary time sorts last but is still shown.
  *
- * Excludes rows with no `stop_duration`: CONTRACT.md notes the `pit` feed
- * also logs every car's mandatory drive-through during an SC-through-the-
- * pit-lane period (null `stop_duration`, ~13s lane time, no real stop), and
- * says to exclude exactly those rows the same way the tower's stop count
- * does. "Every completed pit stop" (the reference spec) means a real,
- * timed one.
+ * A null `stop_duration` is NOT proof of a non-stop: real 2025 stops
+ * sometimes have it null too (Vegas HUL L30, Zandvoort ANT L53, Abu Dhabi
+ * HUL L7 — see pitStops.test.ts). Only a genuine SC-pit-lane drive-through
+ * should be excluded, and that takes a compound-change check against
+ * `stints` that this function doesn't have the data for. TODO: once B
+ * publishes `realPitStops(pits, stints, passLaps)` in `app/`, filter through
+ * it here instead of passing every row.
  */
 export function shapePitStops(
   pits: OpenF1Pit[],
@@ -28,8 +30,8 @@ export function shapePitStops(
 ): PitStopViewModel[] {
   const bySessionAndLap = pits
     .filter(
-      (p): p is OpenF1Pit & { lap_number: number; stop_duration: number } =>
-        p.session_key === sessionKey && p.lap_number != null && p.stop_duration != null
+      (p): p is OpenF1Pit & { lap_number: number } =>
+        p.session_key === sessionKey && p.lap_number != null
     )
     .sort((a, b) => a.lap_number - b.lap_number);
 
@@ -51,7 +53,11 @@ export function shapePitStops(
         totalDuration: p.pit_duration,
       };
     })
-    .sort((a, b) => a.stationaryDuration - b.stationaryDuration)
+    .sort((a, b) => {
+      if (a.stationaryDuration == null) return 1;
+      if (b.stationaryDuration == null) return -1;
+      return a.stationaryDuration - b.stationaryDuration;
+    })
     .map((stop, idx) => ({ ...stop, rank: idx + 1 }));
 }
 

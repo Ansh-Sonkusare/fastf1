@@ -60,10 +60,15 @@ function isInSCPeriod(lapNumber: number, scPeriods: Array<[number, number]>): bo
  * `stints`: CONTRACT.md warns stints can open a new stint on consecutive
  * laps for one stop (Vegas 9858, RUS L18/L19) or open a stint per car during
  * an SC pit-lane pass with no real stop, so inferring stops from stint
- * boundaries double-counts or invents them. Every `pit` row still marks its
- * lap as pit-affected here (even a null-`stop_duration` SC drive-through
- * lap is not a normal-pace lap); `stop_duration` nullness only matters for
- * counting real stops, not for clipping the lap-time chart.
+ * boundaries double-counts or invents them. Every `pit` row marks its lap as
+ * pit-affected here, real stop or SC drive-through alike: either way the car
+ * was in the pit lane that lap, so it's not a normal-pace lap for the chart.
+ * `stop_duration` is not a reliable real-stop/drive-through signal by
+ * itself (real 2025 stops sometimes have it null too, e.g. Abu Dhabi HUL
+ * L7 — see pitStops.test.ts), so this function doesn't try to distinguish
+ * the two; TODO: once B publishes `realPitStops(pits, stints, passLaps)` in
+ * `app/`, use it here too if the two consumers need to agree on which laps
+ * are "real stops" specifically.
  */
 export function identifyPitLaps(
   pits: OpenF1Pit[],

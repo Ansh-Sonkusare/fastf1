@@ -44,17 +44,19 @@ function PitStopsList({
             <span style={{ width: 3, height: 14, background: driver?.color ?? color.dim, display: "inline-block" }} />
             <Label tone={color.text}>{driver?.code ?? s.driverNumber}</Label>
             <div style={{ flex: 1, height: 8, background: color.rowDivider, borderRadius: 2 }}>
-              <div
-                style={{
-                  width: `${(s.stationaryDuration / max) * 100}%`,
-                  height: "100%",
-                  background: tone,
-                  borderRadius: 2,
-                }}
-              />
+              {s.stationaryDuration != null && (
+                <div
+                  style={{
+                    width: `${(s.stationaryDuration / max) * 100}%`,
+                    height: "100%",
+                    background: tone,
+                    borderRadius: 2,
+                  }}
+                />
+              )}
             </div>
             <Label>L{s.lapNumber}</Label>
-            <Measured tone={tone}>{s.stationaryDuration.toFixed(2)}</Measured>
+            <Measured tone={tone}>{s.stationaryDuration?.toFixed(2) ?? "—"}</Measured>
             <Label>{s.laneDuration?.toFixed(1) ?? "—"}</Label>
           </div>
         );

@@ -7,9 +7,19 @@ const ABU_DHABI = 9839;
 describe("shapePitStops (2025 Abu Dhabi GP, session 9839)", () => {
   const viewModels = shapePitStops(abuDhabiPits, ABU_DHABI);
 
-  it("shapes 26 of the 27 fetched rows: excludes driver 27's null-duration row", () => {
-    expect(viewModels).toHaveLength(26);
-    expect(viewModels.some((s) => s.driverNumber === 27 && s.lapNumber === 7)).toBe(false);
+  it("shapes every fetched stop (27 completed stops)", () => {
+    expect(viewModels).toHaveLength(27);
+  });
+
+  it("keeps HUL's real L7 stop despite its null stop_duration", () => {
+    // A null stop_duration isn't proof of a non-stop: this is a real, timed
+    // pit visit that OpenF1 just didn't record a stationary time for (same
+    // as Vegas HUL L30 and Zandvoort ANT L53). Only a genuine SC-pit-lane
+    // drive-through should be excluded, which needs a stints-based check
+    // this function doesn't have (see the TODO in pitStops.ts for B's
+    // upcoming realPitStops helper).
+    const hul = viewModels.find((s) => s.driverNumber === 27 && s.lapNumber === 7);
+    expect(hul).toMatchObject({ stationaryDuration: null, laneDuration: 21.6, totalDuration: 21.6 });
   });
 
   it("ranks by real stationary time, fastest first: #16 lap 39 then #23 lap 8", () => {
@@ -36,10 +46,11 @@ describe("shapePitStops (2025 Abu Dhabi GP, session 9839)", () => {
     });
   });
 
-  it("assigns contiguous ranks 1..26", () => {
+  it("assigns contiguous ranks 1..27, with HUL's null-duration stop sorted last", () => {
     expect(viewModels.map((s) => s.rank)).toEqual(
-      Array.from({ length: 26 }, (_, i) => i + 1)
+      Array.from({ length: 27 }, (_, i) => i + 1)
     );
+    expect(viewModels[26]).toMatchObject({ driverNumber: 27, lapNumber: 7 });
   });
 
   it("filters by session key", () => {
