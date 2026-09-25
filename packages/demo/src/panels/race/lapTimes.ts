@@ -1,4 +1,4 @@
-import { OpenF1Lap, Stint, RaceControl } from "@f1/core";
+import { OpenF1Lap, OpenF1Pit, RaceControl } from "@f1/core";
 
 export interface LapTimeViewModel {
   lapNumber: number;
@@ -63,30 +63,28 @@ function isInSCPeriod(lapNumber: number, scPeriods: Array<[number, number]>): bo
 }
 
 /**
- * Identify each driver's pit-in laps from stint data: the last lap of every
- * stint but their final one (a driver's last stint runs to the flag, not a
- * pit stop). Keyed per driver, since a real multi-driver field means one
- * driver's pit lap is an ordinary green-flag lap for everyone else.
+ * Identify each driver's pit-in laps from the `pit` endpoint, keyed per
+ * driver (a real multi-driver field means one driver's pit lap is an
+ * ordinary green-flag lap for everyone else). Sourced from `pit`, not
+ * `stints`: CONTRACT.md warns stints can open a new stint on consecutive
+ * laps for one stop (Vegas 9858, RUS L18/L19) or open a stint per car during
+ * an SC pit-lane pass with no real stop, so inferring stops from stint
+ * boundaries double-counts or invents them. Every `pit` row still marks its
+ * lap as pit-affected here (even a null-`stop_duration` SC drive-through
+ * lap is not a normal-pace lap); `stop_duration` nullness only matters for
+ * counting real stops, not for clipping the lap-time chart.
  */
 export function identifyPitLaps(
-  stints: Stint[],
+  pits: OpenF1Pit[],
   sessionKey: number
 ): Map<number, Set<number>> {
-  const byDriver = new Map<number, Stint[]>();
-  stints
-    .filter((s) => s.session_key === sessionKey)
-    .forEach((s) => {
-      if (!byDriver.has(s.driver_number)) byDriver.set(s.driver_number, []);
-      byDriver.get(s.driver_number)!.push(s);
-    });
-
   const pitLaps = new Map<number, Set<number>>();
-  for (const [driverNumber, driverStints] of byDriver) {
-    const sorted = [...driverStints].sort((a, b) => a.stint_number - b.stint_number);
-    // The last stint runs to the flag; its lap_end is the finish, not a stop.
-    const stopLaps = sorted.slice(0, -1).map((s) => s.lap_end);
-    pitLaps.set(driverNumber, new Set(stopLaps));
-  }
+  pits
+    .filter((p) => p.session_key === sessionKey && p.lap_number != null)
+    .forEach((p) => {
+      if (!pitLaps.has(p.driver_number)) pitLaps.set(p.driver_number, new Set());
+      pitLaps.get(p.driver_number)!.add(p.lap_number!);
+    });
   return pitLaps;
 }
 
@@ -97,11 +95,11 @@ export function identifyPitLaps(
 export function shapeLapTimes(
   laps: OpenF1Lap[],
   sessionKey: number,
-  stints: Stint[] = [],
+  pits: OpenF1Pit[] = [],
   raceControl: RaceControl[] = []
 ): LapTimeViewModel[] {
   const scPeriods = identifySCPeriods(raceControl, sessionKey);
-  const pitLaps = identifyPitLaps(stints, sessionKey);
+  const pitLaps = identifyPitLaps(pits, sessionKey);
 
   return laps
     .filter((lap) => lap.session_key === sessionKey)

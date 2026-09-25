@@ -7,7 +7,7 @@ import {
   getDriverLapStats,
 } from "./lapTimes";
 import { abuDhabiLaps, monzaLaps } from "./__fixtures__/laps";
-import { abuDhabiStints } from "./__fixtures__/stints";
+import { abuDhabiPits } from "./__fixtures__/pits";
 import { abuDhabiRaceControl, monzaRaceControl } from "./__fixtures__/raceControl";
 import type { RaceControl } from "@f1/core";
 
@@ -17,7 +17,7 @@ const VER = 1;
 const NOR = 4;
 
 describe("shapeLapTimes (2025 Abu Dhabi GP, session 9839)", () => {
-  const viewModels = shapeLapTimes(abuDhabiLaps, ABU_DHABI, abuDhabiStints, abuDhabiRaceControl);
+  const viewModels = shapeLapTimes(abuDhabiLaps, ABU_DHABI, abuDhabiPits, abuDhabiRaceControl);
 
   it("shapes every fetched lap for VER and NOR", () => {
     expect(viewModels).toHaveLength(116); // 58 laps VER + 58 laps NOR
@@ -38,7 +38,7 @@ describe("shapeLapTimes (2025 Abu Dhabi GP, session 9839)", () => {
     const lap24 = viewModels.find((l) => l.driverNumber === VER && l.lapNumber === 24);
     const lap22 = viewModels.find((l) => l.driverNumber === VER && l.lapNumber === 22);
 
-    expect(lap23?.isPitLap).toBe(true); // stint 1 (MEDIUM) ends lap 23
+    expect(lap23?.isPitLap).toBe(true); // VER's real pit row, lap 23
     expect(lap24?.isPitLap).toBe(true); // is_pit_out_lap from OpenF1
     expect(lap22?.isPitLap).toBe(false);
   });
@@ -67,7 +67,7 @@ describe("SC/VSC periods, real race_control", () => {
   });
 
   it("consequently marks no lap as SC/VSC-slowed in either race", () => {
-    const ad = shapeLapTimes(abuDhabiLaps, ABU_DHABI, abuDhabiStints, abuDhabiRaceControl);
+    const ad = shapeLapTimes(abuDhabiLaps, ABU_DHABI, abuDhabiPits, abuDhabiRaceControl);
     const mz = shapeLapTimes(monzaLaps, MONZA, [], monzaRaceControl);
     expect(ad.length).toBeGreaterThan(0);
     expect(mz.length).toBeGreaterThan(0);
@@ -125,7 +125,7 @@ describe("SC/VSC periods, real race_control", () => {
 
 describe("identifyPitLaps", () => {
   it("identifies VER's and NOR's real pit-in laps, per driver only", () => {
-    const pitLaps = identifyPitLaps(abuDhabiStints, ABU_DHABI);
+    const pitLaps = identifyPitLaps(abuDhabiPits, ABU_DHABI);
     expect(pitLaps.get(VER)).toEqual(new Set([23]));
     expect(pitLaps.get(NOR)).toEqual(new Set([16, 40]));
     expect(pitLaps.get(VER)?.has(58)).toBe(false); // VER's last lap of the race
@@ -133,14 +133,14 @@ describe("identifyPitLaps", () => {
     expect(pitLaps.get(VER)?.has(39)).toBe(false);
   });
 
-  it("handles empty stints", () => {
+  it("handles empty pit rows", () => {
     expect(identifyPitLaps([], ABU_DHABI).size).toBe(0);
   });
 });
 
 describe("filterChartLaps", () => {
   it("clips VER's real pit laps from the chart series", () => {
-    const viewModels = shapeLapTimes(abuDhabiLaps, ABU_DHABI, abuDhabiStints, abuDhabiRaceControl);
+    const viewModels = shapeLapTimes(abuDhabiLaps, ABU_DHABI, abuDhabiPits, abuDhabiRaceControl);
     const chartLaps = filterChartLaps(viewModels).filter((l) => l.driverNumber === VER);
 
     expect(chartLaps.some((l) => l.lapNumber === 23 || l.lapNumber === 24)).toBe(false);
@@ -150,7 +150,7 @@ describe("filterChartLaps", () => {
 
 describe("getDriverLapStats", () => {
   it("computes VER's real best/avg/last lap over the fetched race laps", () => {
-    const viewModels = shapeLapTimes(abuDhabiLaps, ABU_DHABI, abuDhabiStints, abuDhabiRaceControl);
+    const viewModels = shapeLapTimes(abuDhabiLaps, ABU_DHABI, abuDhabiPits, abuDhabiRaceControl);
     const stats = getDriverLapStats(viewModels, VER);
 
     expect(stats.bestLap).toBe(87.625);

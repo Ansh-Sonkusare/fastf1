@@ -7,8 +7,9 @@ const ABU_DHABI = 9839;
 describe("shapePitStops (2025 Abu Dhabi GP, session 9839)", () => {
   const viewModels = shapePitStops(abuDhabiPits, ABU_DHABI);
 
-  it("shapes every fetched stop (27 completed stops)", () => {
-    expect(viewModels).toHaveLength(27);
+  it("shapes 26 of the 27 fetched rows: excludes driver 27's null-duration row", () => {
+    expect(viewModels).toHaveLength(26);
+    expect(viewModels.some((s) => s.driverNumber === 27 && s.lapNumber === 7)).toBe(false);
   });
 
   it("ranks by real stationary time, fastest first: #16 lap 39 then #23 lap 8", () => {
@@ -35,14 +36,9 @@ describe("shapePitStops (2025 Abu Dhabi GP, session 9839)", () => {
     });
   });
 
-  it("sorts a stop with no recorded stationary time (driver 27, lap 7) last", () => {
-    const last = viewModels[viewModels.length - 1];
-    expect(last).toMatchObject({ rank: 27, driverNumber: 27, lapNumber: 7, stationaryDuration: null });
-  });
-
-  it("assigns contiguous ranks 1..27", () => {
+  it("assigns contiguous ranks 1..26", () => {
     expect(viewModels.map((s) => s.rank)).toEqual(
-      Array.from({ length: 27 }, (_, i) => i + 1)
+      Array.from({ length: 26 }, (_, i) => i + 1)
     );
   });
 

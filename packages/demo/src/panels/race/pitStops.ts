@@ -5,7 +5,7 @@ export interface PitStopViewModel {
   driverNumber: number;
   lapNumber: number;
   stopNumber: number;
-  stationaryDuration: number | null | undefined; // seconds, stop_duration
+  stationaryDuration: number; // seconds, stop_duration (never null: see shapePitStops)
   laneDuration: number | null | undefined; // seconds, lane_duration
   totalDuration: number | null | undefined; // seconds, pit_duration
 }
@@ -13,8 +13,14 @@ export interface PitStopViewModel {
 /**
  * Shape pit stop data from OpenF1 into view model.
  * Each pit stop shows stationary time vs lane time.
- * Ranked fastest stationary time first, per the reference design (panel 07);
- * a stop with no recorded stationary time sorts last.
+ * Ranked fastest stationary time first, per the reference design (panel 07).
+ *
+ * Excludes rows with no `stop_duration`: CONTRACT.md notes the `pit` feed
+ * also logs every car's mandatory drive-through during an SC-through-the-
+ * pit-lane period (null `stop_duration`, ~13s lane time, no real stop), and
+ * says to exclude exactly those rows the same way the tower's stop count
+ * does. "Every completed pit stop" (the reference spec) means a real,
+ * timed one.
  */
 export function shapePitStops(
   pits: OpenF1Pit[],
@@ -22,8 +28,8 @@ export function shapePitStops(
 ): PitStopViewModel[] {
   const bySessionAndLap = pits
     .filter(
-      (p): p is OpenF1Pit & { lap_number: number } =>
-        p.session_key === sessionKey && p.lap_number != null
+      (p): p is OpenF1Pit & { lap_number: number; stop_duration: number } =>
+        p.session_key === sessionKey && p.lap_number != null && p.stop_duration != null
     )
     .sort((a, b) => a.lap_number - b.lap_number);
 
@@ -45,11 +51,7 @@ export function shapePitStops(
         totalDuration: p.pit_duration,
       };
     })
-    .sort((a, b) => {
-      if (a.stationaryDuration == null) return 1;
-      if (b.stationaryDuration == null) return -1;
-      return a.stationaryDuration - b.stationaryDuration;
-    })
+    .sort((a, b) => a.stationaryDuration - b.stationaryDuration)
     .map((stop, idx) => ({ ...stop, rank: idx + 1 }));
 }
 
