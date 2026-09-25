@@ -1,11 +1,10 @@
 import { describe, expect, it } from "vitest";
-import abu from "./__fixtures__/abu-dhabi-2025.json";
+import { abuRace } from "./__fixtures__/races";
 import { bandPath, degradationChart, linePath, linear, ticks, windowChart } from "./chart";
 import { computeStrategy } from "./model";
-import { parseRace } from "./race";
 import type { Strategy } from "./types";
 
-const ver20 = computeStrategy(parseRace(abu), {
+const ver20 = computeStrategy(abuRace, {
   lap: 20,
   focus: 1,
   pitLoss: 21.4,
