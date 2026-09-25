@@ -104,7 +104,10 @@ export default function TimingTower({ session, lap, focus, drivers, setFocus }: 
                     <span style={{ textAlign: "right" }}>TYRE</span>
                   </ColumnHeader>
                 ))}
-              <div role="list" style={{ display: "flex", flexDirection: "column", padding: big ? undefined : "0 6px 8px" }}>
+              <div
+                role="list"
+                style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, overflow: "auto", padding: big ? undefined : "0 6px 8px" }}
+              >
                 {rows.map((r) => {
                   const code = drivers.get(r.driver)?.code ?? String(r.driver);
                   const team = drivers.get(r.driver)?.color ?? color.label;
