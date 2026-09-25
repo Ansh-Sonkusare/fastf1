@@ -1,4 +1,5 @@
 import type { OpenF1Lap, Stint } from "@f1/core";
+import type { Standing as LineStanding } from "../../app/timing";
 import { lapsDoneAt, type Crossings, type PitStop } from "../../app/timeline";
 import type { DriverNumber } from "../../app/types";
 
@@ -114,4 +115,18 @@ export function buildTower({ lap, crossings, laps, stints, stops, retired }: Tow
       pits: stops.filter((p) => p.driver === s.driver && p.lap <= onLap).length,
     };
   });
+}
+
+/** The rows re-ranked at an instant: order, gap and interval from the timing lines passed so far. OUT cars stay last. */
+export function atInstant(rows: readonly TowerRow[], standings: readonly LineStanding[]): TowerRow[] {
+  const byDriver = new Map(rows.map((r) => [r.driver, r]));
+  const running = standings.filter((s) => byDriver.has(s.driver) && byDriver.get(s.driver)?.gap !== "OUT");
+  const ranked = running.map((s, i): TowerRow => ({
+    ...(byDriver.get(s.driver) as TowerRow),
+    position: i + 1,
+    gap: i === 0 ? "LEADER" : s.lapsDown > 0 ? `+${s.lapsDown} L` : s.gap === null ? "—" : `+${s.gap.toFixed(3)}`,
+    interval: i === 0 ? null : s.interval,
+  }));
+  const out = rows.filter((r) => r.gap === "OUT").map((r, i) => ({ ...r, position: ranked.length + i + 1 }));
+  return [...ranked, ...out];
 }

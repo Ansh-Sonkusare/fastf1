@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { lapCrossings, pitLanePassLaps, realPitStops } from "../../app/timeline";
 import { laps, pits, stints } from "../../app/__fixtures__/race";
 import type { OpenF1Lap, OpenF1Pit, RaceControl, Stint } from "@f1/core";
-import { buildTower } from "./shape";
+import { standingsAt, timingLines } from "../../app/timing";
+import { atInstant, buildTower } from "./shape";
 import australia from "./__fixtures__/australia.json";
 import vegas from "./__fixtures__/vegas.json";
 import zandvoort from "./__fixtures__/zandvoort.json";
@@ -121,5 +122,25 @@ describe("stop count", () => {
   });
   it("Vegas 9858: RUS stopped once", () => {
     expect(stops(vegas as unknown as Full, 50)(63)).toBe(1);
+  });
+});
+
+describe("atInstant", () => {
+  const T0 = Date.UTC(2025, 0, 1);
+  const lap = (driver: number, n: number, start: number, s1: number, s2: number, s3: number): OpenF1Lap => ({
+    session_key: 1, meeting_key: 1, driver_number: driver, lap_number: n,
+    date_start: new Date(T0 + start * 1000).toISOString(),
+    duration_sector_1: s1, duration_sector_2: s2, duration_sector_3: s3, lap_duration: s1 + s2 + s3,
+  }) as OpenF1Lap;
+  const rows = [lap(1, 1, 0, 30, 30, 30), lap(1, 2, 90, 31, 30, 30), lap(4, 1, 1, 30, 30, 30), lap(4, 2, 91, 29.5, 30, 30)];
+  const towerAt = (s: number) => {
+    const c = lapCrossings(rows);
+    const lapRows = buildTower({ lap: 2, crossings: c, laps: rows, stints: [], stops: [], retired: null });
+    return atInstant(lapRows, standingsAt(timingLines(c, rows), T0 + s * 1000)).map((r) => [r.driver, r.gap]);
+  };
+
+  it("reorders when a car passes the other before the next timing line", () => {
+    expect(towerAt(110)).toEqual([[1, "LEADER"], [4, "+1.000"]]);
+    expect(towerAt(120.6)).toEqual([[4, "LEADER"], [1, "+0.100"]]);
   });
 });
