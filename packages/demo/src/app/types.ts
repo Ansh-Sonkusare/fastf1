@@ -50,9 +50,11 @@ export interface PanelProps {
   readonly drivers: ReadonlyMap<DriverNumber, DriverInfo>;
   /** The race lap `lap` as the leader ran it (first car to start it to first car to finish it). */
   readonly lapWindow: LapWindow | null;
-  /** One driver's own lap. Use this, not lapWindow, for anything per driver. */
+  /** The lap `driver` was on when the leader completed replay lap `lap` (lower for lapped cars). */
+  readonly ownLapOf: (driver: DriverNumber, lap: number) => number;
+  /** Time bounds of that own lap. Pass the replay `lap`; use this, not lapWindow, for anything per driver. */
   readonly lapWindowOf: (driver: DriverNumber, lap: number) => LapWindow | null;
-  /** The fixed 10-lap block containing `lap` for one driver. Fetch car_data/location by this window. */
+  /** The fixed 10-own-lap block containing that own lap. Pass the replay `lap`. Fetch car_data/location by its window. */
   readonly lapBlockOf: (driver: DriverNumber, lap: number) => LapBlock | null;
   readonly setFocus: (focus: Focus) => void;
 }

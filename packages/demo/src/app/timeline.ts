@@ -73,9 +73,28 @@ export function lapAt(timeline: LapTimeline, at: number): number {
   return i === -1 ? Math.max(1, timeline.totalLaps) : i + 1;
 }
 
-/** One driver's own lap `lap`: from their crossing of lap-1 to their crossing of lap. */
-export function driverLapWindow(crossings: Crossings, driver: DriverNumber, lap: number): LapWindow | null {
+/**
+ * The lap `driver` was running when the leader completed replay lap `cursor`: laps they had
+ * completed by then, plus one. Equals `cursor` on the lead lap; lower for lapped cars.
+ */
+export function ownLap(crossings: Crossings, timeline: LapTimeline, driver: DriverNumber, cursor: number): number {
+  const t = crossings.get(driver) ?? [];
+  const w = timeline.windows[cursor - 1];
+  const at = w ? Date.parse(w.end ?? w.start) : Number.POSITIVE_INFINITY;
+  let done = 0;
+  for (let n = 1; n < t.length; n++) if ((t[n] as number) <= at) done = n;
+  return Math.min(done + 1, cursor);
+}
+
+/** The lap `driver` was on at replay lap `cursor` (see ownLap), from their crossing into it to their crossing out. */
+export function driverLapWindow(
+  crossings: Crossings,
+  timeline: LapTimeline,
+  driver: DriverNumber,
+  cursor: number,
+): LapWindow | null {
   const t = crossings.get(driver);
+  const lap = ownLap(crossings, timeline, driver, cursor);
   const start = t?.[lap - 1];
   if (start === undefined) return null;
   const end = t?.[lap];
@@ -85,19 +104,26 @@ export function driverLapWindow(crossings: Crossings, driver: DriverNumber, lap:
 export const TELEMETRY_BLOCK_LAPS = 10;
 
 export interface LapBlock {
+  /** In the driver's own laps. */
   readonly fromLap: number;
   readonly toLap: number;
   readonly window: LapWindow;
 }
 
 /**
- * The fixed block of TELEMETRY_BLOCK_LAPS laps containing `lap`, for one driver.
- * Its window is stable for every lap in the block, so car_data/location URLs change once per block.
- * Null when the driver never completed a lap of the block.
+ * The fixed block of TELEMETRY_BLOCK_LAPS of the driver's own laps containing the lap they were on
+ * at replay lap `cursor`. Its window is stable across the block, so car_data/location URLs change
+ * once per block. Null when the driver completed no lap of the block.
  */
-export function driverLapBlock(crossings: Crossings, driver: DriverNumber, lap: number): LapBlock | null {
+export function driverLapBlock(
+  crossings: Crossings,
+  timeline: LapTimeline,
+  driver: DriverNumber,
+  cursor: number,
+): LapBlock | null {
   const t = crossings.get(driver);
   if (!t) return null;
+  const lap = ownLap(crossings, timeline, driver, cursor);
   const fromLap = Math.floor((lap - 1) / TELEMETRY_BLOCK_LAPS) * TELEMETRY_BLOCK_LAPS + 1;
   if (t.length - 1 < fromLap) return null;
   const toLap = Math.min(fromLap + TELEMETRY_BLOCK_LAPS - 1, t.length - 1);

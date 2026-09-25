@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { buildTimeline, driverLapBlock, driverLapWindow, flagAt, lapAt, lapCrossings, raceClockAt } from "./timeline";
+import { buildTimeline, driverLapBlock, driverLapWindow, flagAt, lapAt, lapCrossings, ownLap, raceClockAt } from "./timeline";
+import vegas from "../panels/tower/__fixtures__/vegas.json";
+import zandvoort from "../panels/tower/__fixtures__/zandvoort.json";
 import australia from "../panels/tower/__fixtures__/australia.json";
 import type { OpenF1Lap } from "@f1/core";
 import { iso, laps, rc } from "./__fixtures__/race";
@@ -55,12 +57,30 @@ describe("real race timeline", () => {
 
 describe("per-driver windows", () => {
   const crossings = lapCrossings(laps);
+  const tl = buildTimeline(crossings);
   it("a driver's lap window is their own crossings", () => {
-    expect(driverLapWindow(crossings, 4, 2)).toEqual({ start: iso(91.5), end: iso(179) });
+    expect(driverLapWindow(crossings, tl, 4, 2)).toEqual({ start: iso(91.5), end: iso(179) });
   });
   it("blocks are 10 laps, stable across the block, and null without a completed lap", () => {
-    expect(driverLapBlock(crossings, 4, 3)).toEqual({ fromLap: 1, toLap: 3, window: { start: iso(0.3), end: iso(179 + 88.2) } });
-    expect(driverLapBlock(crossings, 27, 3)).toBeNull();
-    expect(driverLapBlock(crossings, 4, 11)).toBeNull();
+    expect(driverLapBlock(crossings, tl, 4, 3)).toEqual({ fromLap: 1, toLap: 3, window: { start: iso(0.3), end: iso(179 + 88.2) } });
+    expect(driverLapBlock(crossings, tl, 27, 3)).toBeNull();
+  });
+});
+
+describe("replay cursor to a lapped driver's own lap", () => {
+  const vc = lapCrossings(vegas.laps as OpenF1Lap[]);
+  const vt = buildTimeline(vc);
+  it("Vegas 9858: when the leader completes lap 49, lapped LAW is on his lap 48", () => {
+    expect(ownLap(vc, vt, 30, 49)).toBe(48);
+    expect(ownLap(vc, vt, 1, 49)).toBe(49);
+    const w = driverLapWindow(vc, vt, 30, 49)!;
+    expect([Date.parse(w.start), Date.parse(w.end!)]).toEqual([vc.get(30)![47], vc.get(30)![48]]);
+  });
+  it("Zandvoort 9920: at the leader's lap-31 boundary SAI stays in his own 21..30 block", () => {
+    const zc = lapCrossings(zandvoort.laps as OpenF1Lap[]);
+    const zt = buildTimeline(zc);
+    expect(ownLap(zc, zt, 55, 31)).toBe(30);
+    expect(driverLapBlock(zc, zt, 55, 31)).toMatchObject({ fromLap: 21, toLap: 30 });
+    expect(driverLapBlock(zc, zt, 55, 32)).toMatchObject({ fromLap: 31, toLap: 40 });
   });
 });

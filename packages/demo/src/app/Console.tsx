@@ -20,6 +20,7 @@ import {
   flagAt,
   lapAt,
   lapCrossings,
+  ownLap,
   raceClockAt,
   type FlagKind,
 } from "./timeline";
@@ -152,8 +153,9 @@ function SessionConsole({
     focus: state.focus,
     drivers: derived.drivers,
     lapWindow,
-    lapWindowOf: (driver, lap) => driverLapWindow(derived.crossings, driver, lap),
-    lapBlockOf: (driver, lap) => driverLapBlock(derived.crossings, driver, lap),
+    ownLapOf: (driver, lap) => ownLap(derived.crossings, derived.timeline, driver, lap),
+    lapWindowOf: (driver, lap) => driverLapWindow(derived.crossings, derived.timeline, driver, lap),
+    lapBlockOf: (driver, lap) => driverLapBlock(derived.crossings, derived.timeline, driver, lap),
     setFocus: (focus) => dispatch({ type: "focus", focus }),
   };
 
