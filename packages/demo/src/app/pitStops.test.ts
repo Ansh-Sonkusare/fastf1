@@ -44,13 +44,17 @@ describe("realPitStops pass-lap confirmation (hand-built)", () => {
     const stops = realPitStops([pit(20, null)], [stint(1, 1, 20, "MEDIUM"), stint(2, 21, 50, "HARD")], new Set([20]));
     expect(stops.map((s) => s.lap)).toEqual([20]);
   });
-  it("a multi-lap pass with one compound change counts one stop, not two", () => {
+  it("a multi-lap pass with one compound change counts one stop, on the lap the change actually confirms (review-sonnet #3)", () => {
+    // Pass on laps 2,3,4; the real stop is on lap 3, and its new stint is dated to lap 3 itself
+    // (the exact-lap-start convention, as in Australia 9693). Laps 2 and 4 are drive-throughs
+    // with no stint of their own. Scanning ascending, lap 2's lap+1 guess also lands on lap 3's
+    // change, so the fix must let lap 3's own exact match win instead of lap 2's guess stealing it.
     const stops = realPitStops(
       [pit(2, null), pit(3, null), pit(4, null)],
       [stint(1, 1, 2, "INTERMEDIATE"), stint(2, 3, 30, "HARD")],
       new Set([2, 3, 4]),
     );
-    expect(stops.map((s) => s.lap)).toEqual([2]);
+    expect(stops.map((s) => s.lap)).toEqual([3]);
   });
   it("a timed stop claims its compound change before an untimed pass row can", () => {
     const stops = realPitStops(

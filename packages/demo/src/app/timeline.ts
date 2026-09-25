@@ -240,7 +240,11 @@ export interface PitStop {
  * safety-car pit-lane drive-throughs: rows on a pitLanePassLaps lap with no stop_duration that no
  * compound change confirms (the pass itself opens a same-compound, age-0 stint).
  * A compound change confirms a row when its new stint starts on the pit lap or the lap after
- * (OpenF1 uses both), and each change confirms one row only. Timed stops first claim the latest
+ * (OpenF1 uses both), and each change confirms one row only. Among pass-lap rows, an exact match
+ * (stint starts on the row's own lap) is claimed before any row's lap+1 guess, so a real stop in
+ * the middle of a multi-lap pass isn't stolen by an earlier drive-through's lap+1 guess for the
+ * same change (a genuine stop on lap 3 of a 2-4 pass, dated to lap 3 itself, must not be
+ * attributed to lap 2 just because lap 2 is scanned first). Timed stops first claim the latest
  * change at or before their lap+1, because OpenF1 sometimes dates a stint's start too early
  * (Australia 9693 BOR: MEDIUM "from lap 4", fitted at his timed lap-33 stop).
  * A null stop_duration alone never disqualifies a row.
@@ -268,21 +272,20 @@ export function realPitStops(
         .filter((c) => c.driver_number === p.driver_number && !claimed.has(c) && c.lap_start <= p.lap_number + 1)
         .at(-1),
     );
-  const drop = new Set(
-    rows.filter(
-      (p) =>
-        passLaps.has(p.lap_number) &&
-        p.stop_duration == null &&
-        !claim(
-          changes.find(
-            (c) =>
-              c.driver_number === p.driver_number &&
-              !claimed.has(c) &&
-              (c.lap_start === p.lap_number || c.lap_start === p.lap_number + 1),
-          ),
-        ),
-    ),
-  );
+  const passRows = rows.filter((p) => passLaps.has(p.lap_number) && p.stop_duration == null);
+  const unresolved = new Set(passRows);
+  // Pass 1: exact matches (stint starts on the row's own lap) win first, so the row nearest the
+  // evidence claims it before any other row's lap+1 guess can.
+  for (const p of passRows) {
+    if (claim(changes.find((c) => c.driver_number === p.driver_number && !claimed.has(c) && c.lap_start === p.lap_number)))
+      unresolved.delete(p);
+  }
+  // Pass 2: only rows still unconfirmed fall back to the lap+1 convention.
+  for (const p of unresolved) {
+    if (claim(changes.find((c) => c.driver_number === p.driver_number && !claimed.has(c) && c.lap_start === p.lap_number + 1)))
+      unresolved.delete(p);
+  }
+  const drop = unresolved;
   return rows
     .filter((p) => !drop.has(p))
     .map((p) => ({
