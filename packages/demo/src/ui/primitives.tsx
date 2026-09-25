@@ -1,11 +1,11 @@
-import type { CSSProperties, ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { isLocked } from "../data/openf1";
 import type { Async } from "../data/useOpenF1";
 import { formatEstimate, type Estimate } from "./format";
 import { color, font, predictedHatch, predictedHatchFaint, type } from "./tokens";
 
 export interface PanelFrameProps {
-  /** "01".."10" */
+  /** "01".."10", kept as the `data-panel` hook for browser-proof automation. Not shown in the header. */
   readonly num: string;
   readonly title: ReactNode;
   /** Right side of the header: legends, hints, toggles. */
@@ -16,6 +16,7 @@ export interface PanelFrameProps {
   readonly style?: CSSProperties;
 }
 
+/** The Undercut Terminal panel chrome: a lime bullet, an uppercase title, no radius. */
 export function PanelFrame({ num, title, right, predicted, children, style }: PanelFrameProps) {
   return (
     <section
@@ -23,10 +24,10 @@ export function PanelFrame({ num, title, right, predicted, children, style }: Pa
       style={{
         background: color.panel,
         border: `1px solid ${predicted ? color.borderPredicted : color.border}`,
-        borderRadius: 4,
         display: "flex",
         flexDirection: "column",
         minWidth: 0,
+        minHeight: 0,
         ...style,
       }}
     >
@@ -34,22 +35,26 @@ export function PanelFrame({ num, title, right, predicted, children, style }: Pa
         style={{
           display: "flex",
           alignItems: "center",
-          gap: 10,
-          padding: "10px 12px",
+          gap: 9,
+          minHeight: 28,
+          padding: "0 12px",
+          background: color.panelHeader,
           borderBottom: `1px solid ${color.border}`,
+          flexShrink: 0,
           flexWrap: "wrap",
         }}
       >
+        <span style={{ width: 6, height: 6, flexShrink: 0, background: color.accent }} />
         <h2
           style={{
             margin: 0,
             font: type.panelTitle,
-            letterSpacing: ".08em",
+            letterSpacing: ".07em",
             textTransform: "uppercase",
             color: color.text,
           }}
         >
-          {num} {title}
+          {title}
         </h2>
         <div style={{ flex: 1 }} />
         {right}
@@ -57,6 +62,89 @@ export function PanelFrame({ num, title, right, predicted, children, style }: Pa
       <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>{children}</div>
     </section>
   );
+}
+
+export interface Tab {
+  readonly key: string;
+  readonly label: string;
+  readonly active: boolean;
+  readonly onClick?: () => void;
+}
+
+/**
+ * The numbered tab strip from the reference (analysis tabs, footer key hints): a keycap digit in
+ * `dim`/black, an uppercase label, lime fill when active. `onClick` omitted renders an inert hint.
+ */
+export function TabStrip({ tabs, right }: { tabs: readonly Tab[]; right?: ReactNode }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "stretch",
+        minHeight: 28,
+        background: color.panelHeader,
+        borderBottom: `1px solid ${color.border}`,
+        flexShrink: 0,
+      }}
+    >
+      {tabs.map((t) => (
+        <button
+          key={t.key}
+          type="button"
+          onClick={t.onClick}
+          aria-pressed={t.active}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "0 14px",
+            border: "none",
+            borderRight: `1px solid ${color.border}`,
+            background: t.active ? color.accent : "transparent",
+            color: t.active ? "#000" : color.label,
+            font: `600 11px/1 ${font.sans}`,
+            letterSpacing: ".06em",
+            textTransform: "uppercase",
+            cursor: t.onClick ? "pointer" : "default",
+          }}
+        >
+          <span style={{ color: t.active ? "#000" : color.dim }}>{t.key}</span>
+          {t.label}
+        </button>
+      ))}
+      <div style={{ flex: 1 }} />
+      {right}
+    </div>
+  );
+}
+
+/**
+ * Global hotkey, ignoring form inputs and modified keys (mirrors the reference's `onKey`).
+ * `key` is a single character (case-insensitive) or a named key ("ArrowLeft", " ").
+ */
+export function useHotkey(key: string, handler: () => void): void {
+  const ref = useRef(handler);
+  ref.current = handler;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || e.metaKey || e.ctrlKey || e.altKey) return;
+      const pressed = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+      if (pressed !== key) return;
+      e.preventDefault();
+      ref.current();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [key]);
+}
+
+export type LayoutMode = "desk" | "wall";
+const LayoutModeContext = createContext<LayoutMode>("desk");
+/** Wrap the console so panels can later read `useLayoutMode()` and adapt to wall's bigger, sparser view. */
+export const LayoutModeProvider = LayoutModeContext.Provider;
+export function useLayoutMode(): LayoutMode {
+  return useContext(LayoutModeContext);
 }
 
 /** Small uppercase mono label used in headers and legends. */

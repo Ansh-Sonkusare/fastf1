@@ -36,7 +36,7 @@ cmd_up() {
   # setsid may fork, so $! is not reliable; record the listener's pgid once it is up.
   (cd "$REPO/packages/demo" && setsid pnpm exec vite --host 127.0.0.1 --port "$PORT" --strictPort >"$LOG" 2>&1 &)
   for _ in $(seq 1 60); do
-    if curl -fsS "$URL" 2>/dev/null | grep -Eq '<title>(F1 Telemetry Demo|PITWALL[^<]*)</title>'; then
+    if curl -fsS "$URL" 2>/dev/null | grep -Eq '<title>(F1 Telemetry Demo|PITWALL[^<]*|UNDERCUT[^<]*)</title>'; then
       ps -o pgid= -p "$(port_pid)" | tr -d ' ' >"$PIDFILE"
       echo "up: $URL (pgid $(cat "$PIDFILE"), log $LOG)"
       return 0
@@ -61,7 +61,7 @@ cmd_doctor() {
   if [ -z "$lp" ]; then echo "port:     nothing listening"; ok=0
   elif [ -n "$pid" ] && [ "$(ps -o pgid= -p "$lp" | tr -d ' ')" = "$pid" ]; then echo "port:     owned by our vite (pid $lp)"
   else echo "port:     owned by pid $lp, NOT ours — do not drive"; ok=0; fi
-  if curl -fsS "$URL" 2>/dev/null | grep -Eq '<title>(F1 Telemetry Demo|PITWALL[^<]*)</title>'; then echo "http:     serves the demo page"
+  if curl -fsS "$URL" 2>/dev/null | grep -Eq '<title>(F1 Telemetry Demo|PITWALL[^<]*|UNDERCUT[^<]*)</title>'; then echo "http:     serves the demo page"
   else echo "http:     no F1 Telemetry Demo at $URL"; ok=0; fi
   if [ -f "$REPO/packages/react/dist/index.js" ]; then echo "build:    @f1/react dist present ($(date -r "$REPO/packages/react/dist/index.js" '+%F %T'))"
   else echo "build:    @f1/react dist MISSING — run setup"; ok=0; fi

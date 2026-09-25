@@ -23,10 +23,10 @@ describe("AsyncView", () => {
   };
   it("a readable live-session 401 shows the definite lockout message inside the panel frame", async () => {
     const el = await render(false);
-    expect(el.textContent).toBe(`04 Lap times${LOCKED_MESSAGE}`);
+    expect(el.textContent).toBe(`Lap times${LOCKED_MESSAGE}`);
     expect(el.querySelector("section[data-panel='04'] [role='status']")).not.toBeNull();
   });
   it("an inferred lock (browser only saw network failures) doesn't claim a live session", async () => {
-    expect((await render(true)).textContent).toBe(`04 Lap times${UNREACHABLE_MESSAGE}`);
+    expect((await render(true)).textContent).toBe(`Lap times${UNREACHABLE_MESSAGE}`);
   });
 });
