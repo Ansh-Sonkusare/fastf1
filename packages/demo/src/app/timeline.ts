@@ -1,5 +1,6 @@
 import type { OpenF1Lap, OpenF1Pit, RaceControl, Stint } from "@f1/core";
 import type { DriverNumber, LapWindow } from "./types";
+import type { Cursor } from "../data/cutoff";
 
 /**
  * Per driver, epoch ms at which lap n was completed (`crossings[n]`); index 0 = lap 1 start.
@@ -330,4 +331,23 @@ export function realPitStops(
       stationary: p.stop_duration ?? null,
       lane: p.lane_duration ?? p.pit_duration ?? null,
     }));
+}
+
+/** The lap `driver` is running at epoch ms `at`: 0 before their start, else completed laps + 1. */
+export function lapRunningAt(crossings: Crossings, driver: DriverNumber, at: number): number {
+  const t = crossings.get(driver);
+  if (!t || t[0] === undefined || at < t[0]) return 0;
+  let done = 0;
+  for (let n = 1; n < t.length; n++) if ((t[n] ?? Number.POSITIVE_INFINITY) <= at) done = n;
+  return done + 1;
+}
+
+/** What is known at `at`. The flag falls when the leader completes the last lap. */
+export function cursorAt(crossings: Crossings, timeline: LapTimeline, at: number): Cursor {
+  const flag = timeline.windows.at(-1)?.end;
+  return {
+    at,
+    lapOf: (driver) => lapRunningAt(crossings, driver, at),
+    finished: flag != null && at >= Date.parse(flag),
+  };
 }
