@@ -58,8 +58,9 @@ describe("per-driver windows", () => {
   it("a driver's lap window is their own crossings", () => {
     expect(driverLapWindow(crossings, 4, 2)).toEqual({ start: iso(91.5), end: iso(179) });
   });
-  it("blocks are 10 laps, stable across the block, and open when unfinished", () => {
+  it("blocks are 10 laps, stable across the block, and null without a completed lap", () => {
     expect(driverLapBlock(crossings, 4, 3)).toEqual({ fromLap: 1, toLap: 3, window: { start: iso(0.3), end: iso(179 + 88.2) } });
-    expect(driverLapBlock(crossings, 27, 3)).toEqual({ fromLap: 1, toLap: 1, window: { start: iso(0.5), end: null } });
+    expect(driverLapBlock(crossings, 27, 3)).toBeNull();
+    expect(driverLapBlock(crossings, 4, 11)).toBeNull();
   });
 });

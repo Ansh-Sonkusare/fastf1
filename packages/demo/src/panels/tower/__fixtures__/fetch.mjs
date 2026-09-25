@@ -31,6 +31,7 @@ for (const [key, name] of Object.entries(SESSIONS)) {
   }));
   const stints = await get(`stints?session_key=${key}`);
   const raceControl = (await get(`race_control?session_key=${key}`)).filter((r) => r.message.includes("SAFETY CAR"));
-  writeFileSync(new URL(`./${name}.json`, import.meta.url), `${JSON.stringify({ laps, result, stints, raceControl })}\n`);
+  const pits = await get(`pit?session_key=${key}`);
+  writeFileSync(new URL(`./${name}.json`, import.meta.url), `${JSON.stringify({ laps, result, stints, raceControl, pits })}\n`);
   console.log(name, laps.length, "laps", result.length, "results");
 }

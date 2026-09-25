@@ -93,12 +93,14 @@ export interface LapBlock {
 /**
  * The fixed block of TELEMETRY_BLOCK_LAPS laps containing `lap`, for one driver.
  * Its window is stable for every lap in the block, so car_data/location URLs change once per block.
+ * Null when the driver never completed a lap of the block.
  */
 export function driverLapBlock(crossings: Crossings, driver: DriverNumber, lap: number): LapBlock | null {
   const t = crossings.get(driver);
   if (!t) return null;
   const fromLap = Math.floor((lap - 1) / TELEMETRY_BLOCK_LAPS) * TELEMETRY_BLOCK_LAPS + 1;
-  const toLap = Math.min(fromLap + TELEMETRY_BLOCK_LAPS - 1, Math.max(fromLap, t.length - 1));
+  if (t.length - 1 < fromLap) return null;
+  const toLap = Math.min(fromLap + TELEMETRY_BLOCK_LAPS - 1, t.length - 1);
   const start = t[fromLap - 1];
   if (start === undefined) return null;
   const end = t[toLap];

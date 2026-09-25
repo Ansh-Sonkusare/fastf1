@@ -16,6 +16,7 @@ export default function TimingTower({ session, lap, focus, drivers, setFocus }: 
     useOpenF1("laps", session.sessionKey),
     useOpenF1("stints", session.sessionKey),
     useOpenF1("race_control", session.sessionKey),
+    useOpenF1("pit", session.sessionKey),
   );
   const result = useOpenF1("session_result", session.sessionKey);
   const retired = useMemo(
@@ -49,9 +50,9 @@ export default function TimingTower({ session, lap, focus, drivers, setFocus }: 
         <span style={{ textAlign: "right" }}>PIT</span>
       </div>
       <AsyncView state={data}>
-        {([laps, stints, raceControl]) => {
+        {([laps, stints, raceControl, pits]) => {
           if (!crossings) return null;
-          const rows = buildTower({ lap, crossings, laps, stints, passLaps: pitLanePassLaps(raceControl), retired });
+          const rows = buildTower({ lap, crossings, laps, stints, pits, passLaps: pitLanePassLaps(raceControl), retired });
           return (
             <div role="list" style={{ display: "flex", flexDirection: "column", padding: "0 6px 8px" }}>
               {rows.map((r) => (

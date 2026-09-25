@@ -1,4 +1,4 @@
-import type { OpenF1Lap, Stint } from "@f1/core";
+import type { OpenF1Lap, OpenF1Pit, Stint } from "@f1/core";
 import type { Crossings } from "../../app/timeline";
 import type { DriverNumber } from "../../app/types";
 
@@ -25,7 +25,8 @@ export interface TowerInput {
   readonly crossings: Crossings;
   readonly laps: readonly OpenF1Lap[];
   readonly stints: readonly Stint[];
-  /** Laps the field was routed through the pit lane (see pitLanePassLaps); stint changes there aren't stops. */
+  readonly pits: readonly OpenF1Pit[];
+  /** Laps the field was routed through the pit lane (see pitLanePassLaps). */
   readonly passLaps: ReadonlySet<number>;
   /** Classified DNF/DNS from session_result; null falls back to a timing heuristic. */
   readonly retired: ReadonlySet<DriverNumber> | null;
@@ -44,12 +45,12 @@ const INF = Number.POSITIVE_INFINITY;
  * Running order once the leader completes `lap`.
  * - A car has "done" lap n if it crossed the line for lap n before the leader completed lap+1,
  *   so a lapped car counts one lap fewer on every lap, not only at the flag.
- * - PIT counts stints begun, minus those begun on safety-car pit-lane pass laps.
+ * - PIT counts pit rows, except drive-throughs (no stop_duration) on safety-car pit-lane pass laps.
  * - OUT = retired and never completed this lap (including the lap it retired on).
  *   Without classification, retired = last crossing more than one leader lap before the flag
  *   (a running lapped car always takes the flag after the leader).
  */
-export function buildTower({ lap, crossings, laps, stints, passLaps, retired }: TowerInput): TowerRow[] {
+export function buildTower({ lap, crossings, laps, stints, pits, passLaps, retired }: TowerInput): TowerRow[] {
   const all = [...crossings.values()];
   const firstAt = (n: number) => Math.min(...all.map((t) => t[n] ?? INF));
   const nextEnd = firstAt(lap + 1);
@@ -120,8 +121,12 @@ export function buildTower({ lap, crossings, laps, stints, passLaps, retired }: 
       bestIsOverall: best !== null && best === overall,
       compound: stint?.compound ?? null,
       tyreAge: stint ? (stint.tyre_age_at_start ?? 0) + onLap - stint.lap_start + 1 : null,
-      pits: stints.filter(
-        (x) => x.driver_number === s.driver && x.stint_number > 1 && x.lap_start <= onLap + 1 && !passLaps.has(x.lap_start),
+      pits: pits.filter(
+        (p) =>
+          p.driver_number === s.driver &&
+          p.lap_number != null &&
+          p.lap_number <= lap &&
+          !(passLaps.has(p.lap_number) && p.stop_duration == null),
       ).length,
     };
   });

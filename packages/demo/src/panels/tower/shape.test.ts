@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { lapCrossings, pitLanePassLaps } from "../../app/timeline";
-import { laps, stints } from "../../app/__fixtures__/race";
-import type { OpenF1Lap, RaceControl, Stint } from "@f1/core";
+import { laps, pits, stints } from "../../app/__fixtures__/race";
+import type { OpenF1Lap, OpenF1Pit, RaceControl, Stint } from "@f1/core";
 import { buildTower } from "./shape";
 import australia from "./__fixtures__/australia.json";
 import vegas from "./__fixtures__/vegas.json";
 import zandvoort from "./__fixtures__/zandvoort.json";
 
 const crossings = lapCrossings(laps);
-const tower = (lap: number) => buildTower({ lap, crossings, laps, stints, passLaps: new Set(), retired: null });
+const tower = (lap: number) => buildTower({ lap, crossings, laps, stints, pits, passLaps: new Set(), retired: null });
 
 describe("buildTower", () => {
   it("orders by laps done then completion time, with gaps and intervals", () => {
@@ -37,7 +37,7 @@ type Fixture = { laps: OpenF1Lap[]; result: { driver_number: number; dnf: boolea
 const real = (f: Fixture, lap: number) => {
   const c = lapCrossings(f.laps);
   const retired = new Set(f.result.filter((r) => r.dnf || r.dns).map((r) => r.driver_number));
-  return buildTower({ lap, crossings: c, laps: f.laps, stints: [], passLaps: new Set(), retired });
+  return buildTower({ lap, crossings: c, laps: f.laps, stints: [], pits: [], passLaps: new Set(), retired });
 };
 const row = (rows: ReturnType<typeof buildTower>, driver: number) => rows.find((r) => r.driver === driver);
 
@@ -68,7 +68,7 @@ describe("OUT vs lapped without classification", () => {
       lap_duration: i === starts.length - 1 ? (lastDur ?? undefined) : 90,
     }));
   const tower = (rows: OpenF1Lap[], lap: number) =>
-    buildTower({ lap, crossings: lapCrossings(rows), laps: rows, stints: [], passLaps: new Set(), retired: null });
+    buildTower({ lap, crossings: lapCrossings(rows), laps: rows, stints: [], pits: [], passLaps: new Set(), retired: null });
 
   it("a running lapped car takes the flag after the leader and is +1 L", () => {
     const rows = [...t(1, [0, 90, 180], 90), ...t(27, [45, 150], 100)];
@@ -86,15 +86,28 @@ describe("OUT vs lapped without classification", () => {
 });
 
 describe("stop count", () => {
-  it("SC pit-lane passes aren't stops: Australia 9693 NOR stopped twice (laps 34, 44)", () => {
-    const f = australia as unknown as { laps: OpenF1Lap[]; stints: Stint[]; raceControl: RaceControl[] };
-    const passLaps = pitLanePassLaps(f.raceControl);
-    const at = (lap: number) =>
-      buildTower({ lap, crossings: lapCrossings(f.laps), laps: f.laps, stints: f.stints, passLaps, retired: null }).find(
-        (r) => r.driver === 4,
-      );
-    expect([...passLaps]).toEqual([2, 3, 4]);
-    expect([at(10)?.pits, at(40)?.pits, at(57)?.pits]).toEqual([0, 1, 2]);
-    expect(at(57)).toMatchObject({ compound: "INTERMEDIATE", tyreAge: 14 });
+  type Full = { laps: OpenF1Lap[]; stints: Stint[]; raceControl: RaceControl[]; pits: OpenF1Pit[] };
+  const stops = (f: Full, lap: number) => {
+    const rows = buildTower({
+      lap,
+      crossings: lapCrossings(f.laps),
+      laps: f.laps,
+      stints: f.stints,
+      pits: f.pits,
+      passLaps: pitLanePassLaps(f.raceControl),
+      retired: null,
+    });
+    return (driver: number) => rows.find((r) => r.driver === driver)?.pits;
+  };
+
+  it("Australia 9693: SC pit-lane drive-throughs aren't stops, real stops on those laps are", () => {
+    const aus = australia as unknown as Full;
+    expect([...pitLanePassLaps(aus.raceControl)]).toEqual([2, 3, 4]);
+    const end = stops(aus, 57);
+    expect({ NOR: end(4), BEA: end(87), OCO: end(31), LAW: end(30) }).toEqual({ NOR: 2, BEA: 3, OCO: 3, LAW: 2 });
+    expect(stops(aus, 1)(30)).toBe(0);
+  });
+  it("Vegas 9858: RUS stopped once", () => {
+    expect(stops(vegas as unknown as Full, 50)(63)).toBe(1);
   });
 });
