@@ -16,10 +16,13 @@ import monzaFixture from "./__fixtures__/monza-race-2025.json";
 // https://api.openf1.org/v1/team_radio?session_key=9839 (2025 Abu Dhabi GP
 // race), plus session_key=9912 (2025 Monza/Italian GP race), via
 // packages/demo/src/panels/conditions/__fixtures__/fetch.mjs. Not
-// hand-written. Real 2025 race control data for these sessions has no
-// "YELLOW"/safety-car flag events — only GREEN, DOUBLE YELLOW, BLUE,
-// BLACK AND WHITE and CHEQUERED — so tests below assert on what the races
-// actually produced instead of an invented SC scenario.
+// hand-written. The API returns 109/73 race_control rows; fetch.mjs trims
+// each down to 30 evenly-spaced real rows (always keeping the first and
+// last). Team radio (22/32 rows) is kept in full. Real 2025 race control
+// data for these sessions has no "YELLOW"/safety-car flag events — only
+// GREEN, BLACK AND WHITE, BLUE WAVED and DOUBLE YELLOW — so tests below
+// assert on what the races actually produced instead of an invented SC
+// scenario.
 const abuDhabiRaceControl = abuDhabiFixture.raceControl as OpenF1RaceControlRow[];
 const abuDhabiTeamRadio = abuDhabiFixture.teamRadio as OpenF1TeamRadioRow[];
 const monzaRaceControl = monzaFixture.raceControl as OpenF1RaceControlRow[];
@@ -32,12 +35,10 @@ describe("Race Control and Team Radio shaping", () => {
       expect(result).toEqual([]);
     });
 
-    it("has the documented row counts for both real sessions", () => {
-      // DATA.md: Abu Dhabi 109 race control events / 22 team radio recordings,
-      // Monza 73 race control events / 32 team radio recordings.
-      expect(abuDhabiRaceControl).toHaveLength(109);
+    it("has the trimmed/full row counts for both real sessions", () => {
+      expect(abuDhabiRaceControl).toHaveLength(30);
       expect(abuDhabiTeamRadio).toHaveLength(22);
-      expect(monzaRaceControl).toHaveLength(73);
+      expect(monzaRaceControl).toHaveLength(30);
       expect(monzaTeamRadio).toHaveLength(32);
     });
 
@@ -118,18 +119,19 @@ describe("Race Control and Team Radio shaping", () => {
       expect(result.every((e) => e.category === "Flag")).toBe(true);
     });
 
-    it("transforms the real DOUBLE YELLOW flag event correctly", () => {
+    it("transforms the real BLACK AND WHITE flag event correctly", () => {
       const result = shapeRaceEvents(
         abuDhabiRaceControl,
         [],
-        "2025-12-07T12:51:46+00:00"
+        "2025-12-07T13:48:58+00:00"
       );
-      const flagEvent = result.find((e) => e.flag === "DOUBLE YELLOW");
+      const flagEvent = result.find((e) => e.flag === "BLACK AND WHITE");
       expect(flagEvent).toBeDefined();
       expect(flagEvent!.type).toBe("race-control");
-      expect(flagEvent!.message).toBe("DOUBLE YELLOW IN TRACK SECTOR 14");
-      expect(flagEvent!.scope).toBe("Sector");
-      expect(flagEvent!.sector).toBe(14);
+      expect(flagEvent!.date).toBe("2025-12-07T13:48:58+00:00");
+      expect(flagEvent!.message).toBe(
+        "BLACK AND WHITE FLAG FOR CAR 44 (HAM) - TRACK LIMITS"
+      );
     });
 
     it("transforms real team radio events without inventing a transcript", () => {

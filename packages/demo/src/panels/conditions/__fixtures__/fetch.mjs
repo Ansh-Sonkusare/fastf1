@@ -4,9 +4,12 @@
  *
  * Pulls real OpenF1 rows for the two lanes-shared 2025 race sessions
  * (session_key 9839 = Abu Dhabi GP, session_key 9912 = Monza / Italian GP,
- * per .claude/autopilot/pitwall/OWNER-PROTOCOL.md and DATA.md) and writes
- * them, unmodified aside from JSON pretty-printing, into the panel
- * fixtures directories consumed by shape.test.ts.
+ * per .claude/autopilot/pitwall/OWNER-PROTOCOL.md and DATA.md), trims
+ * weather and race_control down to an evenly-spaced subset (see `trim`)
+ * to keep fixture size sane, and writes the result, values otherwise
+ * unmodified, into the panel fixtures directories consumed by
+ * shape.test.ts. Team radio rows are kept in full since both sessions
+ * only have 22/32 of them.
  *
  * Run with: node packages/demo/src/panels/conditions/__fixtures__/fetch.mjs
  *
@@ -41,18 +44,43 @@ async function fetchEndpoint(endpoint, sessionKey) {
   return data;
 }
 
+/**
+ * Trims a real row array down to at most `max` rows for fixture size,
+ * picking evenly spaced indices (always keeping the first and last row)
+ * so the trimmed set stays a genuine, ordered subset of what the API
+ * returned rather than a synthetic edit. No values are altered.
+ */
+function trim(rows, max) {
+  if (rows.length <= max) return rows;
+  const picked = [];
+  for (let i = 0; i < max; i++) {
+    const idx = Math.round((i * (rows.length - 1)) / (max - 1));
+    picked.push(idx);
+  }
+  const uniqueIdx = [...new Set(picked)].sort((a, b) => a - b);
+  return uniqueIdx.map((idx) => rows[idx]);
+}
+
 async function writeJson(relPath, data) {
   const outPath = path.join(__dirname, "..", relPath);
   await writeFile(outPath, JSON.stringify(data, null, 2) + "\n", "utf8");
   console.log(`wrote ${outPath}`);
 }
 
+// Fixture size caps (see `trim`). Team radio counts (22/32) are already
+// small enough to keep in full.
+const MAX_WEATHER_ROWS = 20;
+const MAX_RACE_CONTROL_ROWS = 30;
+
 async function main() {
   for (const [label, { sessionKey, slug }] of Object.entries(SESSIONS)) {
     console.log(`--- ${label} (session_key=${sessionKey}) ---`);
 
     const weather = await fetchEndpoint("weather", sessionKey);
-    await writeJson(`weather/__fixtures__/${slug}-2025.json`, weather);
+    await writeJson(
+      `weather/__fixtures__/${slug}-2025.json`,
+      trim(weather, MAX_WEATHER_ROWS)
+    );
     await sleep(PACE_MS);
 
     const raceControl = await fetchEndpoint("race_control", sessionKey);
@@ -60,7 +88,7 @@ async function main() {
 
     const teamRadio = await fetchEndpoint("team_radio", sessionKey);
     await writeJson(`racecontrol/__fixtures__/${slug}-race-2025.json`, {
-      raceControl,
+      raceControl: trim(raceControl, MAX_RACE_CONTROL_ROWS),
       teamRadio,
     });
     await sleep(PACE_MS);

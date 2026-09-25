@@ -8,7 +8,9 @@ import monzaFixture from "./__fixtures__/monza-2025.json";
 // and session_key=9912 (2025 Monza/Italian GP race) via
 // packages/demo/src/panels/conditions/__fixtures__/fetch.mjs — see
 // .claude/autopilot/pitwall/OWNER-PROTOCOL.md and DATA.md for the session
-// keys. Not hand-written.
+// keys. Not hand-written. The API returns 154/144 rows respectively;
+// fetch.mjs trims each down to 20 evenly-spaced real rows (always keeping
+// the first and last) to keep fixture size sane.
 const abuDhabiWeather = abuDhabiFixture as OpenF1WeatherRow[];
 const monzaWeather = monzaFixture as OpenF1WeatherRow[];
 
@@ -19,30 +21,29 @@ describe("Weather shaping", () => {
       expect(result).toEqual([]);
     });
 
-    it("has the documented row counts for both real sessions", () => {
-      // DATA.md: Abu Dhabi 154 weather records, Monza 144.
-      expect(abuDhabiWeather).toHaveLength(154);
-      expect(monzaWeather).toHaveLength(144);
+    it("has the trimmed row counts for both real sessions", () => {
+      expect(abuDhabiWeather).toHaveLength(20);
+      expect(monzaWeather).toHaveLength(20);
     });
 
     it("filters weather by cutoff time (inclusive)", () => {
       const result = shapeWeather(
         abuDhabiWeather,
-        "2025-12-07T12:07:07.186000+00:00"
+        "2025-12-07T12:14:07.269000+00:00"
       );
       expect(result).toHaveLength(2);
       expect(result[0].date).toBe("2025-12-07T12:06:07.170000+00:00");
-      expect(result[1].date).toBe("2025-12-07T12:07:07.186000+00:00");
+      expect(result[1].date).toBe("2025-12-07T12:14:07.269000+00:00");
     });
 
     it("excludes weather after cutoff time", () => {
       const result = shapeWeather(
         abuDhabiWeather,
-        "2025-12-07T12:08:07.193000+00:00"
+        "2025-12-07T12:22:07.298000+00:00"
       );
       expect(result).toHaveLength(3);
       expect(
-        result.every((w) => w.date <= "2025-12-07T12:08:07.193000+00:00")
+        result.every((w) => w.date <= "2025-12-07T12:22:07.298000+00:00")
       ).toBe(true);
     });
 
@@ -116,7 +117,7 @@ describe("Weather shaping", () => {
       );
       expect(result[0].date).toBe("2025-12-07T12:06:07.170000+00:00");
       expect(result[result.length - 1].date).toBe(
-        "2025-12-07T12:08:07.193000+00:00"
+        "2025-12-07T12:22:07.298000+00:00"
       );
     });
   });
@@ -141,10 +142,10 @@ describe("Weather shaping", () => {
     it("returns the latest weather strictly before a mid-race cutoff", () => {
       const result = getLatestWeather(
         abuDhabiWeather,
-        "2025-12-07T12:07:30.000000+00:00"
+        "2025-12-07T12:15:00.000000+00:00"
       );
       expect(result).toBeDefined();
-      expect(result!.date).toBe("2025-12-07T12:07:07.186000+00:00");
+      expect(result!.date).toBe("2025-12-07T12:14:07.269000+00:00");
     });
 
     it("works with real Monza fixtures", () => {
