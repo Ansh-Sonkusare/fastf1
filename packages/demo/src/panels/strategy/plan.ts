@@ -10,7 +10,7 @@ import {
   type Race,
 } from "./types";
 
-const SC_LAPS = 3;
+export const SC_LAPS = 3;
 const SC_PACE = 1.4;
 // The reference's factor: a stop behind the safety car loses about half the green-flag pit loss.
 
