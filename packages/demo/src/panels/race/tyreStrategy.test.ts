@@ -73,31 +73,21 @@ describe("shapeTyreStints (2025 Abu Dhabi GP, session 9839)", () => {
 });
 
 describe("Compound utilities", () => {
-  it("returns the reference design's tyre compound colors", () => {
+  it("returns the reference design's tyre compound colors, case-insensitively", () => {
     expect(getCompoundColor("SOFT")).toBe("#ee4a3f");
+    expect(getCompoundColor("soft")).toBe("#ee4a3f");
     expect(getCompoundColor("MEDIUM")).toBe("#f2c230");
     expect(getCompoundColor("HARD")).toBe("#e8e8e3");
     expect(getCompoundColor("INTERMEDIATE")).toBe("#3fb56a");
+    expect(getCompoundColor("UNKNOWN")).toBe("#aeb5bf"); // default
   });
 
-  it("returns default color for unknown compound", () => {
-    expect(getCompoundColor("UNKNOWN")).toBe("#aeb5bf");
-  });
-
-  it("is case-insensitive", () => {
-    expect(getCompoundColor("soft")).toBe("#ee4a3f");
-    expect(getCompoundColor("Soft")).toBe("#ee4a3f");
-  });
-
-  it("returns correct abbreviation for each compound", () => {
+  it("returns correct abbreviation for each compound, first letter otherwise", () => {
     expect(getCompoundAbbr("SOFT")).toBe("S");
     expect(getCompoundAbbr("MEDIUM")).toBe("M");
     expect(getCompoundAbbr("HARD")).toBe("H");
     expect(getCompoundAbbr("INTERMEDIATE")).toBe("I");
     expect(getCompoundAbbr("WET")).toBe("W");
-  });
-
-  it("returns first letter for unknown compound", () => {
     expect(getCompoundAbbr("UNKNOWN")).toBe("U");
   });
 });
