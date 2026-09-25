@@ -1,1 +1,2 @@
 docs/design/** linguist-vendored
+packages/demo/src/panels/**/__fixtures__/*.json linguist-generated
