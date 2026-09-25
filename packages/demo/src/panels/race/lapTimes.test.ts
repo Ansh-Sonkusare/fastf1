@@ -61,7 +61,7 @@ describe("shapeLapTimes (2025 Abu Dhabi GP, session 9839)", () => {
 });
 
 describe("SC/VSC periods, real race_control", () => {
-  it("finds no SC/VSC period in either real race (only local sector yellows)", () => {
+  it("finds no SC/VSC period in either real race (no SafetyCar-category row at all)", () => {
     expect(identifySCPeriods(abuDhabiRaceControl, ABU_DHABI)).toEqual([]);
     expect(identifySCPeriods(monzaRaceControl, MONZA)).toEqual([]);
   });
@@ -74,37 +74,33 @@ describe("SC/VSC periods, real race_control", () => {
     expect([...ad, ...mz].every((l) => !l.isSlowed)).toBe(true);
   });
 
-  // Neither real race exercises the positive branch (no SC/VSC was called),
-  // so the algorithm itself is verified here against a constructed track-wide
-  // yellow-to-green pair, using the real schema's field shape.
-  it("detects a track-wide yellow-to-green pair as one SC/VSC period", () => {
+  // Neither real race exercises the positive branch (no SafetyCar row at
+  // all), so the algorithm is verified against the same category/message
+  // shape app/timeline.ts's flagAt uses on real SC sessions.
+  it("detects a DEPLOYED-to-ENDING pair as one SC/VSC period", () => {
     const raceControl: RaceControl[] = [
       {
         session_key: ABU_DHABI,
         meeting_key: 1276,
         date: "2025-12-07T13:40:00+00:00",
-        category: "Flag",
-        flag: "YELLOW",
-        scope: "Track",
-        lap_number: 25,
+        category: "SafetyCar",
         message: "SAFETY CAR DEPLOYED",
+        lap_number: 25,
       },
       {
         session_key: ABU_DHABI,
         meeting_key: 1276,
         date: "2025-12-07T13:44:00+00:00",
-        category: "Flag",
-        flag: "GREEN",
-        scope: "Track",
+        category: "SafetyCar",
+        message: "SAFETY CAR ENDING",
         lap_number: 27,
-        message: "GREEN LIGHT - PIT EXIT OPEN",
       },
     ];
 
     expect(identifySCPeriods(raceControl, ABU_DHABI)).toEqual([[25, 27]]);
   });
 
-  it("does not treat a local sector double-yellow as a field-wide period", () => {
+  it("ignores an ordinary local sector double-yellow (category Flag, not SafetyCar)", () => {
     const raceControl: RaceControl[] = [
       {
         session_key: ABU_DHABI,
