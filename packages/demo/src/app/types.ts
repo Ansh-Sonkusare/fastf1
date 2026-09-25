@@ -1,3 +1,4 @@
+import type { LapBlock } from "./timeline";
 import type { SessionKey } from "../data/openf1";
 
 export type DriverNumber = number;
@@ -32,7 +33,7 @@ export interface Focus {
   readonly b: DriverNumber | null;
 }
 
-/** ISO time bounds of the current lap, from the race leader's lap. `end` is null if no car completed it. */
+/** ISO time bounds of a lap. `end` is null if the lap was never completed. */
 export interface LapWindow {
   readonly start: string;
   readonly end: string | null;
@@ -47,6 +48,11 @@ export interface PanelProps {
   readonly playing: boolean;
   readonly focus: Focus;
   readonly drivers: ReadonlyMap<DriverNumber, DriverInfo>;
+  /** The race lap `lap` as the leader ran it (first car to start it to first car to finish it). */
   readonly lapWindow: LapWindow | null;
+  /** One driver's own lap. Use this, not lapWindow, for anything per driver. */
+  readonly lapWindowOf: (driver: DriverNumber, lap: number) => LapWindow | null;
+  /** The fixed 10-lap block containing `lap` for one driver. Fetch car_data/location by this window. */
+  readonly lapBlockOf: (driver: DriverNumber, lap: number) => LapBlock | null;
   readonly setFocus: (focus: Focus) => void;
 }

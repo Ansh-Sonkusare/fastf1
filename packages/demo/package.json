@@ -13,15 +13,16 @@
   "dependencies": {
     "@f1/core": "workspace:*",
     "@f1/react": "workspace:*",
-    "recharts": "^2.15.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "recharts": "^2.15.0"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.0",
     "effect": "^3.21.4",
+    "jsdom": "^25.0.1",
     "vite": "^6.0.0",
     "vitest": "^2.0.0"
   }

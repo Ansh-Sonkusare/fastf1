@@ -17,6 +17,14 @@ export default function TimingTower({ session, lap, focus, drivers, setFocus }: 
     useOpenF1("stints", session.sessionKey),
     useOpenF1("pit", session.sessionKey),
   );
+  const result = useOpenF1("session_result", session.sessionKey);
+  const retired = useMemo(
+    () =>
+      result.status === "ok" && result.data.length
+        ? new Set(result.data.filter((r) => r.dnf || r.dns).map((r) => r.driver_number))
+        : null,
+    [result],
+  );
   const laps = data.status === "ok" ? data.data[0] : null;
   const crossings = useMemo(() => (laps ? lapCrossings(laps) : null), [laps]);
   const onPick = (driver: number, compare: boolean) => setFocus(pick(focus, driver, compare));
@@ -43,7 +51,7 @@ export default function TimingTower({ session, lap, focus, drivers, setFocus }: 
       <AsyncView state={data}>
         {([laps, stints, pits]) => {
           if (!crossings) return null;
-          const rows = buildTower({ lap, crossings, laps, stints, pits });
+          const rows = buildTower({ lap, crossings, laps, stints, pits, retired });
           return (
             <div role="list" style={{ display: "flex", flexDirection: "column", padding: "0 6px 8px" }}>
               {rows.map((r) => (

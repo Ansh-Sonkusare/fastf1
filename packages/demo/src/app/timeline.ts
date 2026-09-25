@@ -1,7 +1,11 @@
 import type { OpenF1Lap, RaceControl } from "@f1/core";
 import type { DriverNumber, LapWindow } from "./types";
 
-/** Per driver, epoch ms at which lap n was completed (`crossings[n]`); index 0 = lap 1 start. */
+/**
+ * Per driver, epoch ms at which lap n was completed (`crossings[n]`); index 0 = lap 1 start.
+ * Trailing laps that were never completed (cool-down lap after the flag, the lap a car retired on)
+ * are trimmed, so `crossings.length - 1` is the laps the car completed.
+ */
 export type Crossings = ReadonlyMap<DriverNumber, readonly (number | undefined)[]>;
 
 export function lapCrossings(laps: readonly OpenF1Lap[]): Crossings {
@@ -28,6 +32,7 @@ export function lapCrossings(laps: readonly OpenF1Lap[]): Crossings {
         next ??
         (start !== undefined && own?.lap_duration != null ? start + own.lap_duration * 1000 : undefined);
     }
+    while (t.length > 1 && t[t.length - 1] === undefined) t.pop();
     out.set(driver, t);
   }
   return out;
@@ -62,6 +67,48 @@ export function buildTimeline(crossings: Crossings): LapTimeline {
   return { totalLaps, windows, raceStart: minOf(rows.map((t) => t[0])) ?? null };
 }
 
+/** The race lap in progress at epoch ms `at` (1..totalLaps). */
+export function lapAt(timeline: LapTimeline, at: number): number {
+  const i = timeline.windows.findIndex((w) => w.end !== null && at < Date.parse(w.end));
+  return i === -1 ? Math.max(1, timeline.totalLaps) : i + 1;
+}
+
+/** One driver's own lap `lap`: from their crossing of lap-1 to their crossing of lap. */
+export function driverLapWindow(crossings: Crossings, driver: DriverNumber, lap: number): LapWindow | null {
+  const t = crossings.get(driver);
+  const start = t?.[lap - 1];
+  if (start === undefined) return null;
+  const end = t?.[lap];
+  return { start: new Date(start).toISOString(), end: end === undefined ? null : new Date(end).toISOString() };
+}
+
+export const TELEMETRY_BLOCK_LAPS = 10;
+
+export interface LapBlock {
+  readonly fromLap: number;
+  readonly toLap: number;
+  readonly window: LapWindow;
+}
+
+/**
+ * The fixed block of TELEMETRY_BLOCK_LAPS laps containing `lap`, for one driver.
+ * Its window is stable for every lap in the block, so car_data/location URLs change once per block.
+ */
+export function driverLapBlock(crossings: Crossings, driver: DriverNumber, lap: number): LapBlock | null {
+  const t = crossings.get(driver);
+  if (!t) return null;
+  const fromLap = Math.floor((lap - 1) / TELEMETRY_BLOCK_LAPS) * TELEMETRY_BLOCK_LAPS + 1;
+  const toLap = Math.min(fromLap + TELEMETRY_BLOCK_LAPS - 1, Math.max(fromLap, t.length - 1));
+  const start = t[fromLap - 1];
+  if (start === undefined) return null;
+  const end = t[toLap];
+  return {
+    fromLap,
+    toLap,
+    window: { start: new Date(start).toISOString(), end: end === undefined ? null : new Date(end).toISOString() },
+  };
+}
+
 /** Elapsed race seconds once the leader completes `lap`. */
 export function raceClockAt(timeline: LapTimeline, lap: number): number {
   const w = timeline.windows[lap - 1];
@@ -77,10 +124,16 @@ export interface FlagState {
 
 /**
  * Track status as of `at` (ISO) on `lap`, replayed from race control messages.
+ * `lapOf` places messages that omit lap_number on the lap timeline.
  * OpenF1 never sends a track GREEN after a safety car, only "... IN THIS LAP" / "... ENDING",
  * so neutralisation ends once the replay is past that message's lap.
  */
-export function flagAt(rows: readonly RaceControl[], at: string, lap: number): FlagState {
+export function flagAt(
+  rows: readonly RaceControl[],
+  at: string,
+  lap: number,
+  lapOf: (epochMs: number) => number,
+): FlagState {
   const cutoff = Date.parse(at);
   let track: FlagKind = "green";
   let neutral: "sc" | "vsc" | null = null;
@@ -95,7 +148,7 @@ export function flagAt(rows: readonly RaceControl[], at: string, lap: number): F
         neutral = msg.includes("VIRTUAL") ? "vsc" : "sc";
         neutralEndsLap = Number.POSITIVE_INFINITY;
       } else if (msg.includes("IN THIS LAP") || msg.includes("ENDING")) {
-        neutralEndsLap = r.lap_number ?? lap;
+        neutralEndsLap = r.lap_number ?? lapOf(Date.parse(r.date));
       }
       continue;
     }

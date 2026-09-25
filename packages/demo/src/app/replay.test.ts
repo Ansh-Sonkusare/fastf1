@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pick, replayReducer, type ReplayState } from "./replay";
+import { pick, replayReducer, resolveFocus, type ReplayState } from "./replay";
 
 const base: ReplayState = { lap: 10, totalLaps: 58, playing: false, focus: { a: 1, b: 4 } };
 
@@ -26,4 +26,14 @@ describe("replayReducer", () => {
   it("load clamps a deep-linked lap to the session length", () => {
     expect(replayReducer({ ...base, lap: 70, totalLaps: 1 }, { type: "load", totalLaps: 53 }).lap).toBe(53);
   });
+});
+
+describe("resolveFocus", () => {
+  const known = new Set([1, 4, 81, 44]);
+  const order = [4, 1, 81, 44];
+  it("keeps a valid deep link", () => expect(resolveFocus({ a: 44, b: 1 }, known, order)).toEqual({ a: 44, b: 1 }));
+  it("drops unknown drivers and defaults from the classification", () =>
+    expect(resolveFocus({ a: 999, b: null }, known, order)).toEqual({ a: 4, b: 1 }));
+  it("never lets B equal A", () => expect(resolveFocus({ a: 1, b: 1 }, known, order)).toEqual({ a: 1, b: 4 }));
+  it("keeps a lone B and fills A", () => expect(resolveFocus({ a: null, b: 44 }, known, order)).toEqual({ a: 4, b: 44 }));
 });

@@ -10,32 +10,36 @@ import {
 
 export type Async<T> =
   | { readonly status: "loading" }
-  | { readonly status: "error"; readonly error: Error }
+  | { readonly status: "error"; readonly error: Error; readonly retry: () => void }
   | { readonly status: "ok"; readonly data: T };
 
-/** Promise -> Async state. `key === null` stays loading (e.g. waiting on a dependency). */
-export function useAsync<T>(key: string | null, load: () => Promise<T>): Async<T> {
-  const [state, setState] = useState<{ key: string | null; value: Async<T> }>({
-    key,
-    value: { status: "loading" },
-  });
+const LOADING: Async<never> = { status: "loading" };
+
+/**
+ * Promise -> Async state, keyed. `key === null` stays loading (e.g. waiting on a dependency).
+ * Changing the key or unmounting aborts the previous load, which drops it from the gate's queue.
+ */
+export function useAsync<T>(key: string | null, load: (signal: AbortSignal) => Promise<T>): Async<T> {
+  const [attempt, setAttempt] = useState(0);
+  const [state, setState] = useState<{ key: string; attempt: number; value: Async<T> } | null>(null);
   useEffect(() => {
     if (key === null) return;
-    let live = true;
-    load().then(
-      (data) => live && setState({ key, value: { status: "ok", data } }),
+    const controller = new AbortController();
+    const settle = (value: Async<T>) => {
+      if (!controller.signal.aborted) setState({ key, attempt, value });
+    };
+    load(controller.signal).then(
+      (data) => settle({ status: "ok", data }),
       (error: unknown) =>
-        live &&
-        setState({
-          key,
-          value: { status: "error", error: error instanceof Error ? error : new Error(String(error)) },
+        settle({
+          status: "error",
+          error: error instanceof Error ? error : new Error(String(error)),
+          retry: () => setAttempt((n) => n + 1),
         }),
     );
-    return () => {
-      live = false;
-    };
-  }, [key]);
-  return state.key === key ? state.value : { status: "loading" };
+    return () => controller.abort();
+  }, [key, attempt]);
+  return state && state.key === key && state.attempt === attempt ? state.value : LOADING;
 }
 
 /**
@@ -48,7 +52,7 @@ export function useOpenF1<E extends OpenF1Endpoint>(
   filters: OpenF1Filters | null = {},
 ): Async<OpenF1Rows[E][]> {
   const url = filters === null ? null : openF1Url(endpoint, { ...filters, session_key: sessionKey });
-  return useAsync(url, () => gate.get(endpoint, sessionKey, filters ?? {}));
+  return useAsync(url, (signal) => gate.get(endpoint, sessionKey, filters ?? {}, signal));
 }
 
 type OkData<T> = { [K in keyof T]: T[K] extends Async<infer D> ? D : never };

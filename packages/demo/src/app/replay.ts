@@ -43,3 +43,18 @@ export function pick(focus: Focus, driver: DriverNumber, compare: boolean): Focu
   if (compare) return driver === focus.a ? focus : { a: focus.a, b: driver };
   return { a: driver, b: focus.b === driver ? focus.a : focus.b };
 }
+
+/**
+ * Focus from a deep link, validated against the session: unknown drivers are dropped, B never equals A,
+ * and missing slots default to the first drivers in `order` (the classification).
+ */
+export function resolveFocus(
+  link: { readonly a: DriverNumber | null; readonly b: DriverNumber | null },
+  known: ReadonlySet<DriverNumber>,
+  order: readonly DriverNumber[],
+): Focus {
+  const a = link.a !== null && known.has(link.a) ? link.a : (order[0] ?? null);
+  const b =
+    link.b !== null && known.has(link.b) && link.b !== a ? link.b : (order.find((d) => d !== a) ?? null);
+  return { a, b };
+}

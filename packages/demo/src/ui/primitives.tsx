@@ -139,7 +139,25 @@ export function AsyncView<T>({
     <div style={{ padding: 16, font: type.label, letterSpacing: ".06em", color: tone }}>{text}</div>
   );
   if (state.status === "loading") return note("LOADING…");
-  if (state.status === "error") return note(`ERROR · ${state.error.message}`, color.red);
+  if (state.status === "error")
+    return (
+      <div style={{ padding: 16, display: "flex", gap: 10, alignItems: "center", font: type.label, color: color.red }}>
+        ERROR · {state.error.message}
+        <button type="button" onClick={state.retry} style={retryStyle}>
+          RETRY
+        </button>
+      </div>
+    );
   if (isEmpty?.(state.data)) return note("NO DATA FOR THIS SESSION");
   return <>{children(state.data)}</>;
 }
+
+export const retryStyle = {
+  padding: "4px 8px",
+  borderRadius: 3,
+  border: `1px solid ${color.border}`,
+  background: color.panelRaised,
+  color: color.text,
+  font: type.label,
+  cursor: "pointer",
+} as const;

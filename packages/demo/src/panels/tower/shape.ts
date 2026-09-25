@@ -9,7 +9,7 @@ export interface TowerRow {
   readonly position: number;
   /** "LEADER", "+1.234", "+1 L", "OUT" */
   readonly gap: string;
-  /** Seconds to the car ahead on the same lap; null for the leader or a lapped/out car. */
+  /** Seconds since the car ahead last crossed the line; null for the leader or an OUT car. */
   readonly interval: number | null;
   readonly last: number | null;
   readonly lastTone: LapTone;
@@ -26,6 +26,8 @@ export interface TowerInput {
   readonly laps: readonly OpenF1Lap[];
   readonly stints: readonly Stint[];
   readonly pits: readonly OpenF1Pit[];
+  /** Classified DNF/DNS from session_result; null falls back to a timing heuristic. */
+  readonly retired: ReadonlySet<DriverNumber> | null;
 }
 
 interface Standing {
@@ -35,25 +37,40 @@ interface Standing {
   out: boolean;
 }
 
-/** Running order at the end of `lap`, from lap-completion times. */
-export function buildTower({ lap, crossings, laps, stints, pits }: TowerInput): TowerRow[] {
-  const lapEnd = Math.min(
-    ...[...crossings.values()].map((t) => t[lap] ?? Number.POSITIVE_INFINITY),
-  );
+const INF = Number.POSITIVE_INFINITY;
+
+/**
+ * Running order once the leader completes `lap`.
+ * - A car has "done" lap n if it crossed the line for lap n before the leader completed lap+1,
+ *   so a lapped car counts one lap fewer on every lap, not only at the flag.
+ * - OUT = retired and never completed this lap (including the lap it retired on).
+ *   Without classification, retired = last crossing more than one leader lap before the flag
+ *   (a running lapped car always takes the flag after the leader).
+ */
+export function buildTower({ lap, crossings, laps, stints, pits, retired }: TowerInput): TowerRow[] {
+  const all = [...crossings.values()];
+  const firstAt = (n: number) => Math.min(...all.map((t) => t[n] ?? INF));
+  const nextEnd = firstAt(lap + 1);
+  const raceLaps = Math.max(0, ...all.map((t) => t.length - 1));
+  const flag = firstAt(raceLaps);
+  const leaderLastLap = flag - firstAt(raceLaps - 1);
+  const isRetired = (driver: DriverNumber, t: readonly (number | undefined)[]) =>
+    retired ? retired.has(driver) : (t[t.length - 1] ?? -INF) < flag - leaderLastLap;
+
   const standings: Standing[] = [];
   for (const [driver, t] of crossings) {
     let done = 0;
     for (let n = Math.min(lap, t.length - 1); n >= 1; n--) {
-      if (t[n] !== undefined) {
+      const at = t[n];
+      if (at !== undefined && at < nextEnd) {
         done = n;
         break;
       }
     }
-    const final = t[t.length - 1] ?? Number.NEGATIVE_INFINITY;
-    const out = t.length - 1 < lap && final < lapEnd;
-    standings.push({ driver, done, at: t[done] ?? Number.POSITIVE_INFINITY, out });
+    const out = isRetired(driver, t) && t.length - 1 < lap;
+    standings.push({ driver, done, at: t[done] ?? INF, out });
   }
-  standings.sort((x, y) => y.done - x.done || x.at - y.at);
+  standings.sort((x, y) => Number(x.out) - Number(y.out) || y.done - x.done || x.at - y.at);
 
   const lapTimes = new Map<DriverNumber, Map<number, number>>();
   for (const l of laps) {
@@ -75,7 +92,9 @@ export function buildTower({ lap, crossings, laps, stints, pits }: TowerInput): 
     const ahead = standings[i - 1];
     const lapsDown = leader ? leader.done - s.done : 0;
     const gapS = leaderT?.[s.done] !== undefined ? (s.at - (leaderT[s.done] as number)) / 1000 : null;
-    const aheadAt = ahead ? crossings.get(ahead.driver)?.[s.done] : undefined;
+    const aheadAt = ahead
+      ? Math.max(...(crossings.get(ahead.driver) ?? []).map((x) => (x !== undefined && x <= s.at ? x : -INF)))
+      : -INF;
     const last = lapTimes.get(s.driver)?.get(s.done) ?? null;
     const best = bestOf(s.driver);
     const onLap = Math.max(1, Math.min(lap, s.done));
@@ -92,7 +111,7 @@ export function buildTower({ lap, crossings, laps, stints, pits }: TowerInput): 
             : gapS === null
               ? "—"
               : `+${gapS.toFixed(3)}`,
-      interval: i > 0 && !s.out && lapsDown === 0 && aheadAt !== undefined ? (s.at - aheadAt) / 1000 : null,
+      interval: i > 0 && !s.out && Number.isFinite(aheadAt) ? (s.at - aheadAt) / 1000 : null,
       last,
       lastTone: last === null ? "plain" : last === overall ? "overall" : last === best ? "personal" : "plain",
       best,

@@ -1,18 +1,28 @@
 import { useF1Schedule } from "@f1/react";
-import { Suspense, useEffect, useMemo, useReducer, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useReducer, useState, type ReactNode } from "react";
 import type { DemoInitialData } from "../data/initial";
 import { getRaceSessions } from "../data/openf1";
 import { combine, useAsync, useOpenF1 } from "../data/useOpenF1";
-import { PANELS, type PanelSlot } from "../panels/registry";
+import { PANELS, type PanelSlot as Slot } from "../panels/registry";
 import { buildTower } from "../panels/tower/shape";
 import { formatClock } from "../ui/format";
 import { Label } from "../ui/primitives";
+import { PanelSlot } from "./PanelSlot";
 import { color, font, type } from "../ui/tokens";
 import { formatDeepLink, parseDeepLink } from "./deepLink";
-import { replayReducer } from "./replay";
+import { replayReducer, resolveFocus } from "./replay";
 import { SeasonDrawer, buttonStyle } from "./SeasonDrawer";
 import { sessionTitle, toConsoleSessions, toDriverMap } from "./session";
-import { buildTimeline, flagAt, lapCrossings, raceClockAt, type FlagKind } from "./timeline";
+import {
+  buildTimeline,
+  driverLapBlock,
+  driverLapWindow,
+  flagAt,
+  lapAt,
+  lapCrossings,
+  raceClockAt,
+  type FlagKind,
+} from "./timeline";
 import type { ConsoleSession, PanelProps } from "./types";
 
 const YEAR = 2025;
@@ -22,7 +32,7 @@ const NO_LINK = parseDeepLink("");
 export function Console({ initialData }: { initialData?: DemoInitialData }) {
   const link = useMemo(() => parseDeepLink(window.location.search), []);
   const { data: schedule } = useF1Schedule(YEAR, { initialData: initialData?.schedule });
-  const rawSessions = useAsync(`sessions:${YEAR}`, () => getRaceSessions(YEAR));
+  const rawSessions = useAsync(`sessions:${YEAR}`, (signal) => getRaceSessions(YEAR, signal));
   const sessions = useMemo(
     () => (rawSessions.status === "ok" ? toConsoleSessions(rawSessions.data, schedule?.Races ?? [], Date.now()) : []),
     [rawSessions, schedule],
@@ -30,7 +40,15 @@ export function Console({ initialData }: { initialData?: DemoInitialData }) {
   const [sessionKey, setSessionKey] = useState<number | null>(link.session);
   const session = sessions.find((s) => s.sessionKey === sessionKey) ?? sessions.at(-1);
 
-  if (rawSessions.status === "error") return <Fullscreen tone={color.red}>OpenF1 sessions failed · {rawSessions.error.message}</Fullscreen>;
+  if (rawSessions.status === "error")
+    return (
+      <Fullscreen tone={color.red}>
+        OpenF1 sessions failed · {rawSessions.error.message}{" "}
+        <button type="button" onClick={rawSessions.retry} style={buttonStyle}>
+          RETRY
+        </button>
+      </Fullscreen>
+    );
   if (!session) return <Fullscreen>LOADING SESSIONS…</Fullscreen>;
   return (
     <SessionConsole
@@ -74,12 +92,13 @@ function SessionConsole({
   const driversQ = useOpenF1("drivers", session.sessionKey);
   const lapsQ = useOpenF1("laps", session.sessionKey);
   const raceControlQ = useOpenF1("race_control", session.sessionKey);
+  const resultQ = useOpenF1("session_result", session.sessionKey);
   const base = combine(driversQ, lapsQ);
   const [state, dispatch] = useReducer(replayReducer, {
     lap: link.lap ?? 1,
     totalLaps: link.lap ?? 1,
     playing: false,
-    focus: { a: link.a, b: link.b },
+    focus: { a: null, b: null },
   });
 
   const derived = useMemo(() => {
@@ -87,16 +106,23 @@ function SessionConsole({
     const laps = lapsQ.data;
     const crossings = lapCrossings(laps);
     const timeline = buildTimeline(crossings);
-    const finish = buildTower({ lap: timeline.totalLaps, crossings, laps, stints: [], pits: [] });
-    return { drivers: toDriverMap(driversQ.data), timeline, podium: finish.map((r) => r.driver) };
+    return { drivers: toDriverMap(driversQ.data), crossings, timeline, laps };
   }, [driversQ, lapsQ]);
 
+  const classified = useMemo(
+    () => (resultQ.status === "loading" ? null : resultQ.status === "ok" ? resultQ.data : []),
+    [resultQ],
+  );
   useEffect(() => {
-    if (!derived) return;
-    dispatch({ type: "load", totalLaps: derived.timeline.totalLaps });
-    if (link.lap === null) dispatch({ type: "seek", lap: derived.timeline.totalLaps });
-    if (link.a === null) dispatch({ type: "focus", focus: { a: derived.podium[0] ?? null, b: derived.podium[1] ?? null } });
-  }, [derived, link]);
+    if (!derived || classified === null) return;
+    const { crossings, timeline, laps, drivers } = derived;
+    const order = classified.length
+      ? [...classified].sort((x, y) => x.position - y.position).map((r) => r.driver_number)
+      : buildTower({ lap: timeline.totalLaps, crossings, laps, stints: [], pits: [], retired: null }).map((r) => r.driver);
+    dispatch({ type: "load", totalLaps: timeline.totalLaps });
+    if (link.lap === null) dispatch({ type: "seek", lap: timeline.totalLaps });
+    dispatch({ type: "focus", focus: resolveFocus(link, new Set(drivers.keys()), order) });
+  }, [derived, classified, link]);
 
   useEffect(() => {
     if (!state.playing) return;
@@ -113,7 +139,9 @@ function SessionConsole({
   const lapWindow = derived?.timeline.windows[state.lap - 1] ?? null;
   const flag =
     raceControlQ.status === "ok" && lapWindow
-      ? flagAt(raceControlQ.data, lapWindow.end ?? lapWindow.start, state.lap)
+      ? flagAt(raceControlQ.data, lapWindow.end ?? lapWindow.start, state.lap, (at) =>
+          derived ? lapAt(derived.timeline, at) : state.lap,
+        )
       : null;
 
   const props: PanelProps | null = derived && {
@@ -124,6 +152,8 @@ function SessionConsole({
     focus: state.focus,
     drivers: derived.drivers,
     lapWindow,
+    lapWindowOf: (driver, lap) => driverLapWindow(derived.crossings, driver, lap),
+    lapBlockOf: (driver, lap) => driverLapBlock(derived.crossings, driver, lap),
     setFocus: (focus) => dispatch({ type: "focus", focus }),
   };
 
@@ -192,7 +222,7 @@ function SessionConsole({
         </Stat>
         {flag && <FlagPill kind={flag.kind} label={flag.label} />}
         <div style={{ flex: 1 }} />
-        {props && <Slot slot="header" props={props} />}
+        {props && <SlotView slot="header" props={props} />}
         <button type="button" onClick={() => setDrawerOpen(true)} style={buttonStyle}>
           SEASON
         </button>
@@ -202,20 +232,20 @@ function SessionConsole({
       {props && (
         <>
           <div style={{ display: "grid", gridTemplateColumns: "440px minmax(0,1fr) 420px", gap: 10 }}>
-            <Slot slot="top-left" props={props} />
-            <Slot slot="top-center" props={props} />
+            <SlotView slot="top-left" props={props} />
+            <SlotView slot="top-center" props={props} />
             <div style={{ display: "flex", flexDirection: "column", gap: 10, minWidth: 0 }}>
-              <Slot slot="top-right" props={props} />
+              <SlotView slot="top-right" props={props} />
             </div>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 10 }}>
-            <Slot slot="mid-left" props={props} />
-            <Slot slot="mid-right" props={props} />
+            <SlotView slot="mid-left" props={props} />
+            <SlotView slot="mid-right" props={props} />
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.25fr) minmax(0,1.15fr) minmax(0,.6fr)", gap: 10 }}>
-            <Slot slot="bottom-left" props={props} />
-            <Slot slot="bottom-center" props={props} />
-            <Slot slot="bottom-right" props={props} />
+            <SlotView slot="bottom-left" props={props} />
+            <SlotView slot="bottom-center" props={props} />
+            <SlotView slot="bottom-right" props={props} />
           </div>
         </>
       )}
@@ -224,13 +254,11 @@ function SessionConsole({
   );
 }
 
-function Slot({ slot, props }: { slot: PanelSlot; props: PanelProps }) {
+function SlotView({ slot, props }: { slot: Slot; props: PanelProps }) {
   return (
     <>
-      {PANELS.filter((p) => p.slot === slot).map(({ num, component: Panel }) => (
-        <Suspense key={num} fallback={<Label tone={color.dim}>{num} loading…</Label>}>
-          <Panel {...props} />
-        </Suspense>
+      {PANELS.filter((p) => p.slot === slot).map((def) => (
+        <PanelSlot key={def.num} def={def} props={props} />
       ))}
     </>
   );

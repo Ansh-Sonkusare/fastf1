@@ -70,16 +70,18 @@ export class OpenF1Error extends Error {
 }
 
 export interface GateOptions {
-  fetch: (url: string) => Promise<Response>;
+  fetch: (url: string, signal: AbortSignal) => Promise<Response>;
   sleep: (ms: number) => Promise<void>;
   now: () => number;
+  /** Defers cancellation so an immediate re-subscribe (StrictMode, fast remount) keeps the request. */
+  defer: (fn: () => void) => void;
   /** Minimum spacing between request starts. */
   minIntervalMs: number;
   /** Max request starts in any rolling 60 s window. */
   perMinute: number;
-  /** Retries after a 429 before giving up. */
+  /** Retries after a 429 or network failure before giving up. */
   maxRetries: number;
-  /** First 429 backoff; doubles each retry. Retry-After wins when present. */
+  /** First backoff; doubles each retry. Retry-After wins when present. */
   backoffMs: number;
 }
 
@@ -88,81 +90,155 @@ export interface Gate {
     endpoint: E,
     sessionKey: SessionKey,
     filters?: OpenF1Filters,
+    signal?: AbortSignal,
   ): Promise<OpenF1Rows[E][]>;
-  getUrl<T>(url: string): Promise<T[]>;
+  getUrl<T>(url: string, signal?: AbortSignal): Promise<T[]>;
+}
+
+interface Entry {
+  readonly url: string;
+  readonly promise: Promise<unknown[]>;
+  readonly resolve: (rows: unknown[]) => void;
+  readonly reject: (error: Error) => void;
+  readonly controller: AbortController;
+  state: "queued" | "inflight" | "done";
+  subscribers: number;
+  attempt: number;
 }
 
 /**
- * One queue for every OpenF1 request in the app. Identical URLs share one
- * promise for the life of the page; failures are evicted so they can retry.
+ * One FIFO queue for every OpenF1 request in the app.
+ * - Identical URLs share one entry for the life of the page.
+ * - An entry whose every subscriber aborted is dropped from the queue (or aborted in flight).
+ * - A 429 or network failure pauses the whole queue, then retries that request first.
+ * - Failed entries are evicted so a later call starts fresh.
  */
 export function createGate(options: GateOptions): Gate {
-  const cache = new Map<string, Promise<unknown[]>>();
+  const cache = new Map<string, Entry>();
+  const queue: Entry[] = [];
   const starts: number[] = [];
-  let chain: Promise<void> = Promise.resolve();
+  let pausedUntil = 0;
+  let pumping = false;
 
-  const waitForSlot = async () => {
+  const finish = (e: Entry, outcome: { rows: unknown[] } | { error: Error }) => {
+    if (e.state === "done") return;
+    e.state = "done";
+    if ("rows" in outcome) e.resolve(outcome.rows);
+    else {
+      if (cache.get(e.url) === e) cache.delete(e.url);
+      e.reject(outcome.error);
+    }
+  };
+
+  const waitForSlot = async (): Promise<boolean> => {
     for (;;) {
+      if (!queue.length) return false;
       const t = options.now();
       while (starts.length && t - (starts[0] as number) >= 60_000) starts.shift();
       const last = starts[starts.length - 1];
-      const spacing = last === undefined ? 0 : last + options.minIntervalMs - t;
-      const window =
-        starts.length >= options.perMinute ? (starts[0] as number) + 60_000 - t : 0;
-      const wait = Math.max(spacing, window);
-      if (wait <= 0) {
-        starts.push(t);
-        return;
-      }
+      const wait = Math.max(
+        last === undefined ? 0 : last + options.minIntervalMs - t,
+        starts.length >= options.perMinute ? (starts[0] as number) + 60_000 - t : 0,
+        pausedUntil - t,
+      );
+      if (wait <= 0) return true;
       await options.sleep(wait);
     }
   };
 
-  const slot = () => {
-    const turn = chain.then(waitForSlot);
-    chain = turn.catch(() => undefined);
-    return turn;
-  };
-
-  const load = async (url: string): Promise<unknown[]> => {
-    for (let attempt = 0; ; attempt++) {
-      await slot();
-      const res = await options.fetch(url);
-      if (res.status === 429 && attempt < options.maxRetries) {
-        const retryAfter = Number(res.headers.get("retry-after"));
-        await options.sleep(
-          retryAfter > 0 ? retryAfter * 1000 : options.backoffMs * 2 ** attempt,
-        );
-        continue;
+  const pump = async () => {
+    if (pumping) return;
+    pumping = true;
+    try {
+      while (await waitForSlot()) {
+        const e = queue.shift() as Entry;
+        starts.push(options.now());
+        e.state = "inflight";
+        void run(e);
       }
-      if (res.status === 404) return [];
-      if (!res.ok) throw new OpenF1Error(url, res.status);
+    } finally {
+      pumping = false;
+    }
+    if (queue.length) void pump();
+  };
+
+  const retryLater = (e: Entry, retryAfterS: number, error: Error) => {
+    if (e.attempt >= options.maxRetries) return finish(e, { error });
+    const backoff = retryAfterS > 0 ? retryAfterS * 1000 : options.backoffMs * 2 ** e.attempt;
+    e.attempt++;
+    pausedUntil = Math.max(pausedUntil, options.now() + backoff);
+    e.state = "queued";
+    queue.unshift(e);
+    void pump();
+  };
+
+  const run = async (e: Entry) => {
+    let res: Response;
+    try {
+      res = await options.fetch(e.url, e.controller.signal);
+    } catch (error) {
+      if (e.controller.signal.aborted) return;
+      return retryLater(e, 0, error instanceof Error ? error : new Error(String(error)));
+    }
+    if (res.status === 429) return retryLater(e, Number(res.headers.get("retry-after")), new OpenF1Error(e.url, 429));
+    if (res.status === 404) return finish(e, { rows: [] });
+    if (!res.ok) return finish(e, { error: new OpenF1Error(e.url, res.status) });
+    try {
       const body: unknown = await res.json();
-      return Array.isArray(body) ? body : [];
+      finish(e, { rows: Array.isArray(body) ? body : [] });
+    } catch (error) {
+      if (!e.controller.signal.aborted) retryLater(e, 0, error instanceof Error ? error : new Error(String(error)));
     }
   };
 
-  const getUrl = <T>(url: string): Promise<T[]> => {
-    let hit = cache.get(url);
-    if (!hit) {
-      hit = load(url);
-      cache.set(url, hit);
-      hit.catch(() => cache.delete(url));
+  const cancel = (e: Entry) => {
+    if (e.subscribers > 0 || e.state === "done") return;
+    const i = queue.indexOf(e);
+    if (i >= 0) queue.splice(i, 1);
+    e.controller.abort();
+    finish(e, { error: new DOMException("cancelled", "AbortError") });
+  };
+
+  const getUrl = <T>(url: string, signal?: AbortSignal): Promise<T[]> => {
+    let e = cache.get(url);
+    if (!e) {
+      let resolve!: Entry["resolve"];
+      let reject!: Entry["reject"];
+      const promise = new Promise<unknown[]>((res, rej) => {
+        resolve = res;
+        reject = rej;
+      });
+      promise.catch(() => undefined);
+      e = { url, promise, resolve, reject, controller: new AbortController(), state: "queued", subscribers: 0, attempt: 0 };
+      cache.set(url, e);
+      queue.push(e);
+      void pump();
     }
-    return hit as Promise<T[]>;
+    const entry = e;
+    entry.subscribers++;
+    signal?.addEventListener(
+      "abort",
+      () => {
+        entry.subscribers--;
+        options.defer(() => cancel(entry));
+      },
+      { once: true },
+    );
+    return entry.promise as Promise<T[]>;
   };
 
   return {
     getUrl,
-    get: (endpoint, sessionKey, filters = {}) =>
-      getUrl(openF1Url(endpoint, { ...filters, session_key: sessionKey })),
+    get: (endpoint, sessionKey, filters = {}, signal) =>
+      getUrl(openF1Url(endpoint, { ...filters, session_key: sessionKey }), signal),
   };
 }
 
 export const gate: Gate = createGate({
-  fetch: (url) => fetch(url),
+  fetch: (url, signal) => fetch(url, { signal }),
   sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
   now: () => Date.now(),
+  defer: (fn) => setTimeout(fn, 0),
   minIntervalMs: 400,
   perMinute: 30,
   maxRetries: 4,
@@ -170,5 +246,5 @@ export const gate: Gate = createGate({
 });
 
 /** Race sessions of a season, for the session picker. Not session-keyed. */
-export const getRaceSessions = (year: number) =>
-  gate.getUrl<Session>(openF1Url("sessions", { year, session_name: "Race" }));
+export const getRaceSessions = (year: number, signal?: AbortSignal) =>
+  gate.getUrl<Session>(openF1Url("sessions", { year, session_name: "Race" }), signal);
