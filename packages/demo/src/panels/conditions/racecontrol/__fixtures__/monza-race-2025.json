@@ -1,0 +1,95 @@
+{
+  "raceControl": [
+    {
+      "session_key": 9481,
+      "meeting_key": 1208,
+      "date": "2025-09-05T13:00:00",
+      "category": "SessionStatus",
+      "message": "GREEN FLAG",
+      "flag": null,
+      "scope": null,
+      "sector": null,
+      "lap_number": 1,
+      "driver_number": null,
+      "qualifying_phase": null
+    },
+    {
+      "session_key": 9481,
+      "meeting_key": 1208,
+      "date": "2025-09-05T13:06:00",
+      "category": "Drs",
+      "message": "DRS ENABLED",
+      "flag": null,
+      "scope": null,
+      "sector": null,
+      "lap_number": 3,
+      "driver_number": null,
+      "qualifying_phase": null
+    },
+    {
+      "session_key": 9481,
+      "meeting_key": 1208,
+      "date": "2025-09-05T13:12:30",
+      "category": "Flag",
+      "message": "YELLOW FLAG",
+      "flag": "YELLOW",
+      "scope": "Track",
+      "sector": 2,
+      "lap_number": 6,
+      "driver_number": null,
+      "qualifying_phase": null
+    },
+    {
+      "session_key": 9481,
+      "meeting_key": 1208,
+      "date": "2025-09-05T13:14:00",
+      "category": "SessionStatus",
+      "message": "SAFETY CAR DEPLOYED",
+      "flag": null,
+      "scope": null,
+      "sector": null,
+      "lap_number": 7,
+      "driver_number": null,
+      "qualifying_phase": null
+    },
+    {
+      "session_key": 9481,
+      "meeting_key": 1208,
+      "date": "2025-09-05T13:20:00",
+      "category": "SessionStatus",
+      "message": "SAFETY CAR IN",
+      "flag": null,
+      "scope": null,
+      "sector": null,
+      "lap_number": 10,
+      "driver_number": null,
+      "qualifying_phase": null
+    }
+  ],
+  "teamRadio": [
+    {
+      "session_key": 9481,
+      "meeting_key": 1208,
+      "driver_number": 16,
+      "date": "2025-09-05T13:02:00",
+      "message": "Good start, managing tire temps",
+      "driver_id": "charles_leclerc"
+    },
+    {
+      "session_key": 9481,
+      "meeting_key": 1208,
+      "driver_number": 55,
+      "date": "2025-09-05T13:05:00",
+      "message": "Copy, watching fuel consumption",
+      "driver_id": "carlos_sainz"
+    },
+    {
+      "session_key": 9481,
+      "meeting_key": 1208,
+      "driver_number": 16,
+      "date": "2025-09-05T13:10:00",
+      "message": "Coming through turn 1, losing grip on the front",
+      "driver_id": "charles_leclerc"
+    }
+  ]
+}

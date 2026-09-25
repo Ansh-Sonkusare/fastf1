@@ -1,0 +1,54 @@
+[
+  {
+    "session_key": 9563,
+    "meeting_key": 1236,
+    "date": "2024-12-07T14:00:00",
+    "air_temperature": 28.5,
+    "track_temperature": 42.3,
+    "humidity": 45,
+    "pressure": 1015,
+    "wind_speed": 4.2,
+    "wind_direction": 120,
+    "precipitation": 0,
+    "track_surface_temperature": 43.8
+  },
+  {
+    "session_key": 9563,
+    "meeting_key": 1236,
+    "date": "2024-12-07T14:15:00",
+    "air_temperature": 29.1,
+    "track_temperature": 43.2,
+    "humidity": 44,
+    "pressure": 1015,
+    "wind_speed": 4.5,
+    "wind_direction": 118,
+    "precipitation": 0,
+    "track_surface_temperature": 44.5
+  },
+  {
+    "session_key": 9563,
+    "meeting_key": 1236,
+    "date": "2024-12-07T14:30:00",
+    "air_temperature": 29.8,
+    "track_temperature": 44.1,
+    "humidity": 43,
+    "pressure": 1015,
+    "wind_speed": 4.8,
+    "wind_direction": 115,
+    "precipitation": 0,
+    "track_surface_temperature": 45.2
+  },
+  {
+    "session_key": 9563,
+    "meeting_key": 1236,
+    "date": "2024-12-07T14:45:00",
+    "air_temperature": 30.2,
+    "track_temperature": 44.8,
+    "humidity": 42,
+    "pressure": 1014,
+    "wind_speed": 5.1,
+    "wind_direction": 120,
+    "precipitation": 0,
+    "track_surface_temperature": 46.0
+  }
+]

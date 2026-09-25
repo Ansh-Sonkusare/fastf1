@@ -1,0 +1,103 @@
+{
+  "raceControl": [
+    {
+      "session_key": 9563,
+      "meeting_key": 1236,
+      "date": "2024-12-07T14:00:00",
+      "category": "SessionStatus",
+      "message": "GREEN FLAG",
+      "flag": null,
+      "scope": null,
+      "sector": null,
+      "lap_number": 1,
+      "driver_number": null,
+      "qualifying_phase": null
+    },
+    {
+      "session_key": 9563,
+      "meeting_key": 1236,
+      "date": "2024-12-07T14:05:30",
+      "category": "Flag",
+      "message": "YELLOW FLAG",
+      "flag": "YELLOW",
+      "scope": "Track",
+      "sector": 1,
+      "lap_number": 3,
+      "driver_number": null,
+      "qualifying_phase": null
+    },
+    {
+      "session_key": 9563,
+      "meeting_key": 1236,
+      "date": "2024-12-07T14:08:00",
+      "category": "Drs",
+      "message": "DRS ENABLED",
+      "flag": null,
+      "scope": null,
+      "sector": null,
+      "lap_number": 4,
+      "driver_number": null,
+      "qualifying_phase": null
+    },
+    {
+      "session_key": 9563,
+      "meeting_key": 1236,
+      "date": "2024-12-07T14:12:15",
+      "category": "Penalty",
+      "message": "PENALTY TO CAR 1: 5S TIME PENALTY",
+      "flag": null,
+      "scope": null,
+      "sector": null,
+      "lap_number": 6,
+      "driver_number": 1,
+      "qualifying_phase": null
+    },
+    {
+      "session_key": 9563,
+      "meeting_key": 1236,
+      "date": "2024-12-07T14:18:45",
+      "category": "CarEvent",
+      "message": "CAR 44 RETIRES",
+      "flag": null,
+      "scope": null,
+      "sector": null,
+      "lap_number": 10,
+      "driver_number": 44,
+      "qualifying_phase": null
+    }
+  ],
+  "teamRadio": [
+    {
+      "session_key": 9563,
+      "meeting_key": 1236,
+      "driver_number": 1,
+      "date": "2024-12-07T14:04:00",
+      "message": "Copy box, tire pressure looking good",
+      "driver_id": "max_verstappen"
+    },
+    {
+      "session_key": 9563,
+      "meeting_key": 1236,
+      "driver_number": 1,
+      "date": "2024-12-07T14:09:30",
+      "message": "Ugh, heavy understeer into turn 3",
+      "driver_id": "max_verstappen"
+    },
+    {
+      "session_key": 9563,
+      "meeting_key": 1236,
+      "driver_number": 44,
+      "date": "2024-12-07T14:16:00",
+      "message": "I've got a hydraulic issue, it's not looking good",
+      "driver_id": "lewis_hamilton"
+    },
+    {
+      "session_key": 9563,
+      "meeting_key": 1236,
+      "driver_number": 81,
+      "date": "2024-12-07T14:17:00",
+      "message": "Box box, box box",
+      "driver_id": "oscar_piastri"
+    }
+  ]
+}
