@@ -91,14 +91,22 @@ describe("computeStrategy", () => {
   });
 
   it("warns of the undercut from the car behind in the reference's voice", () => {
-    const [threat, opportunity, degradation] = run(abuRace, 20, 4).alerts;
+    const [threat, degradation] = run(abuRace, 20, 1).alerts;
     expect(threat).toMatchObject({
       kind: "THREAT",
-      title: "Undercut threat · LEC +1.7s",
-      body: "LEC on HARD 4 laps. A stop this lap leaves them ≈1.5s behind after two laps on fresh tyres.",
+      title: "Undercut threat · PIA +2.0s",
+      body: "PIA on HARD 20 laps. A stop this lap puts them ≈0.6s ahead after two laps on fresh tyres.",
     });
-    expect(opportunity.title).toBe("Undercut on TSU · gap 2.8s");
-    expect(degradation.title).toBe("HARD losing ≈0.7s by age 15");
+    expect(threat.probability).toBeCloseTo(0.9, 1);
+    expect(degradation.title).toBe("MEDIUM losing ≈2.2s by age 31");
+  });
+
+  it("drops a duel that will not happen and keeps the likely one", () => {
+    const alerts = run(abuRace, 20, 4).alerts;
+    expect(alerts.map((a) => a.title)).toEqual([
+      "Undercut on TSU · gap 2.8s",
+      "HARD losing ≈0.7s by age 15",
+    ]);
   });
 
   it("returns null once the focus car has retired", () => {

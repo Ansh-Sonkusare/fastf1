@@ -30,6 +30,8 @@ const ZONE_S = 2.5;
 const CLEAR_AIR_S = 1.2;
 const FIELD_S = 6;
 const DEG_HORIZON = 11;
+// Below this a duel is noise: the card would say "threat" about something that will not happen.
+const MIN_ALERT_P = 0.1;
 
 interface RivalFinish {
   readonly code: string;
@@ -153,7 +155,7 @@ function alertsFor(
       : `Degradation model fitted to ${f.cleanLaps} clean laps. The confidence band widens past the measured range.`,
     probability: phi(f.slope.value / f.slope.sd),
   });
-  return out;
+  return out.filter((a) => a.kind === "DEGRADATION" || a.probability >= MIN_ALERT_P);
 }
 
 /**
