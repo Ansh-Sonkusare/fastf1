@@ -5,7 +5,7 @@ const SK = asSessionKey(9839);
 type Reply = { status: number; body?: unknown; retryAfter?: string } | "network";
 const LIVE_401 = { status: 401, body: { detail: "Live F1 session in progress. Global API access (including past sessions) is restricted" } };
 
-function harness(replies: Reply[]) {
+function harness(replies: Reply[], overrides: Partial<Parameters<typeof createGate>[0]> = {}) {
   let clock = 0;
   const calls: Array<{ url: string; at: number }> = [];
   const deferred: Array<() => void> = [];
@@ -31,6 +31,7 @@ function harness(replies: Reply[]) {
     maxNetworkFailures: 4,
     backoffMs: 1000,
     lockProbeMs: 60_000,
+    ...overrides,
   });
   const advance = (ms: number) => {
     clock += ms;
@@ -152,6 +153,18 @@ describe("createGate", () => {
     await expect(gate.get("sessions" as "laps", SK)).rejects.toMatchObject({ name: "OpenF1LockedError", inferred: true });
     await expect(gate.get("pit", SK)).rejects.toBeInstanceOf(OpenF1LockedError);
     expect(calls).toHaveLength(4);
+  });
+
+  it("with production pacing (2/4/8/16 s), waits the full ~30 s over 4 retries before locking", async () => {
+    const { gate, calls } = harness(["network", "network", "network", "network", "network"], {
+      backoffMs: 2000,
+      maxNetworkFailures: 5,
+      minIntervalMs: 0,
+      perMinute: 1000,
+    });
+    await expect(gate.get("laps", SK)).rejects.toMatchObject({ name: "OpenF1LockedError", inferred: true });
+    expect(calls.map((c) => c.at)).toEqual([0, 2000, 6000, 14000, 30000]);
+    expect(calls).toHaveLength(5);
   });
 });
 

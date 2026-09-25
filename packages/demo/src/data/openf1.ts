@@ -288,7 +288,7 @@ export const gate: Gate = createGate({
   minIntervalMs: 400,
   perMinute: 30,
   maxRetries: 4,
-  maxNetworkFailures: 4,
+  maxNetworkFailures: 5,
   backoffMs: 2000,
   lockProbeMs: 60_000,
 });
