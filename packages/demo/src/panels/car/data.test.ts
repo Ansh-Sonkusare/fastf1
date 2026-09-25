@@ -1,7 +1,15 @@
-import { describe, expect, it } from "vitest";
+import type { Session } from "@f1/core";
+import { describe, expect, it, vi } from "vitest";
 import type { ConsoleSession } from "../../app/types";
+import { asSessionKey } from "../../data/openf1";
+import * as openf1 from "../../data/openf1";
 import { MONZA } from "./__fixtures__";
-import { blockFilter, parseCircuit } from "./data";
+import { blockFilter, getCircuit, parseCircuit } from "./data";
+
+vi.mock("../../data/openf1", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../data/openf1")>()),
+  getRaceSessions: vi.fn(),
+}));
 
 describe("parseCircuit", () => {
   it("keeps Monza's rotation and 17 marshal sectors", () => {
@@ -35,5 +43,24 @@ describe("blockFilter", () => {
 
   it("holds the request without a driver or a block", () => {
     expect([blockFilter({ session, lapBlockOf }, null, 44), blockFilter({ session, lapBlockOf }, 4, 44)]).toEqual([null, null]);
+  });
+});
+
+describe("getCircuit", () => {
+  it("resolves to null, not a rejection, when the MultiViewer fetch fails, so the map can fall back to 'sector positions unavailable'", async () => {
+    vi.mocked(openf1.getRaceSessions).mockResolvedValue([{ session_key: 9839, circuit_key: 70 } as Session]);
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockRejectedValue(new TypeError("network down"));
+    const session = { sessionKey: asSessionKey(9839), year: 2025 } as ConsoleSession;
+
+    await expect(getCircuit(session, new AbortController().signal)).resolves.toBe(null);
+
+    fetchSpy.mockRestore();
+  });
+
+  it("resolves to null when the session's circuit can't be matched", async () => {
+    vi.mocked(openf1.getRaceSessions).mockResolvedValue([{ session_key: 1, circuit_key: 70 } as Session]);
+    const session = { sessionKey: asSessionKey(9839), year: 2025 } as ConsoleSession;
+
+    await expect(getCircuit(session, new AbortController().signal)).resolves.toBe(null);
   });
 });
