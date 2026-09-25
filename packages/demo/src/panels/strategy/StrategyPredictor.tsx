@@ -7,7 +7,7 @@ import { color, font, type } from "../../ui/tokens";
 import { CLIFF_PER_LAP, FUEL_PER_LAP } from "./fit";
 import { approx, approxPos } from "./format";
 import { computeStrategy } from "./model";
-import { SC_PIT_FACTOR } from "./plan";
+import { SC_LAPS, SC_PIT_FACTOR } from "./plan";
 import { parseRace } from "./race";
 import type { AlertKind, Strategy, StrategyAlert } from "./types";
 import { Bar, DegradationSvg, Ghost, PitWindowSvg, Section, mono, pct } from "./views";
@@ -75,7 +75,7 @@ export default function StrategyPredictor({ session, lap, focus, drivers, ownLap
           background: safetyCar ? color.predicted : "transparent",
         }}
       />
-      SC L{ownLap + 1}–{ownLap + 3}
+      SC L{ownLap + 1}–{ownLap + SC_LAPS}
     </button>
   );
 
