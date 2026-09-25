@@ -3,7 +3,7 @@ import { pick } from "../../app/replay";
 import { lapCrossings } from "../../app/timeline";
 import type { PanelProps } from "../../app/types";
 import { combine, useOpenF1 } from "../../data/useOpenF1";
-import { formatLapTime } from "../../ui/format";
+import { formatGap, formatLapTime } from "../../ui/format";
 import { AsyncView, PanelFrame } from "../../ui/primitives";
 import { color, font, tyreOf, type } from "../../ui/tokens";
 import { buildTower, type LapTone, type TowerRow } from "./shape";
@@ -94,6 +94,7 @@ function Row({
         padding: "0 6px",
         borderRadius: 3,
         cursor: "pointer",
+        userSelect: "none",
         background: mark === "A" ? "rgba(255,255,255,.08)" : mark === "B" ? "rgba(255,255,255,.04)" : "transparent",
         font: type.cell,
         opacity: row.gap === "OUT" ? 0.45 : 1,
@@ -119,7 +120,7 @@ function Row({
       </span>
       <span style={{ textAlign: "right", color: color.textSoft }}>{row.gap}</span>
       <span style={{ textAlign: "right", color: row.interval !== null && row.interval < 1 ? color.personal : color.textSoft }}>
-        {row.interval === null ? "" : row.interval.toFixed(1)}
+        {row.position === 1 ? "—" : row.interval === null ? "" : formatGap(row.interval)}
       </span>
       <span style={{ textAlign: "right", color: toneColor[row.lastTone] }}>{formatLapTime(row.last)}</span>
       <span style={{ textAlign: "right", color: row.bestIsOverall ? color.overall : color.text }}>{formatLapTime(row.best)}</span>

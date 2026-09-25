@@ -78,7 +78,8 @@ export function buildTower({ lap, crossings, laps, stints, pits }: TowerInput): 
     const aheadAt = ahead ? crossings.get(ahead.driver)?.[s.done] : undefined;
     const last = lapTimes.get(s.driver)?.get(s.done) ?? null;
     const best = bestOf(s.driver);
-    const stint = stints.find((x) => x.driver_number === s.driver && x.lap_start <= lap && lap <= x.lap_end);
+    const onLap = Math.max(1, Math.min(lap, s.done));
+    const stint = stints.find((x) => x.driver_number === s.driver && x.lap_start <= onLap && onLap <= x.lap_end);
     return {
       driver: s.driver,
       position: i + 1,
@@ -97,7 +98,7 @@ export function buildTower({ lap, crossings, laps, stints, pits }: TowerInput): 
       best,
       bestIsOverall: best !== null && best === overall,
       compound: stint?.compound ?? null,
-      tyreAge: stint ? (stint.tyre_age_at_start ?? 0) + Math.min(lap, s.done) - stint.lap_start + 1 : null,
+      tyreAge: stint ? (stint.tyre_age_at_start ?? 0) + onLap - stint.lap_start + 1 : null,
       pits: pits.filter((p) => p.driver_number === s.driver && p.lap_number != null && p.lap_number <= lap).length,
     };
   });

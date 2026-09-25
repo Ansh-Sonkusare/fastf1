@@ -138,5 +138,6 @@ export const buttonStyle = {
   color: color.text,
   font: `600 11px/1 ${font.mono}`,
   letterSpacing: ".06em",
+  whiteSpace: "nowrap",
   cursor: "pointer",
 } as const;
