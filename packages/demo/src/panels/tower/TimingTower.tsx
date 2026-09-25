@@ -33,7 +33,7 @@ export default function TimingTower({ session, lap, focus, drivers, setFocus }: 
   return (
     <PanelFrame
       num="01"
-      title="Timing tower"
+      title="Timing"
       right={<span style={{ font: `400 10px/1 ${font.mono}`, color: color.dim }}>CLICK = FOCUS A · SHIFT-CLICK = COMPARE B</span>}
     >
       <div

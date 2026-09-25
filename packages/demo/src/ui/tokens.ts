@@ -1,16 +1,21 @@
-/** Design tokens lifted from docs/design/pitwall-console.dc.html. */
+/** Design tokens lifted from docs/design/undercut-terminal.dc.html. */
 export const color = {
-  bg: "#0b0d10",
-  panel: "#12151a",
-  panelRaised: "#1a1f25",
-  border: "#1f242b",
-  borderPredicted: "#2a3a40",
-  rowDivider: "#181c21",
-  text: "#e4e7eb",
-  textSoft: "#c3c9d1",
-  textMuted: "#aeb5bf",
-  label: "#8b939e",
-  dim: "#5b636e",
+  bg: "#070b14",
+  panel: "#0b1220",
+  panelRaised: "#101a2c",
+  panelHeader: "#101a2c",
+  border: "#1b2740",
+  /** Buttons and toggles that sit inside a panel (not the grid divider). */
+  borderMuted: "#26334f",
+  borderPredicted: "#26445a",
+  rowDivider: "#142036",
+  text: "#e8edf6",
+  textSoft: "#c9d2e1",
+  textMuted: "#aab5c7",
+  label: "#8a97ad",
+  dim: "#56637b",
+  /** Brand mark and active-state fill. */
+  accent: "#c6ff3d",
   /** Predicted / ≈ values, and links. */
   predicted: "#6fd3e8",
   predictedBorder: "#3d6d78",
@@ -36,14 +41,14 @@ export const tyreOf = (compound: string | null | undefined) =>
   tyre[(compound ?? "").toUpperCase()] ?? { code: "?", color: color.label };
 
 export const font = {
-  sans: "'IBM Plex Sans Condensed', sans-serif",
-  mono: "'IBM Plex Mono', monospace",
+  sans: "'Barlow Semi Condensed', sans-serif",
+  mono: "'JetBrains Mono', monospace",
 } as const;
 
 /** `font` shorthands used across the reference. */
 export const type = {
   label: `500 10px/1 ${font.mono}`,
-  panelTitle: `600 11px/1 ${font.mono}`,
+  panelTitle: `600 12px/1 ${font.sans}`,
   cell: `500 12.5px/1 ${font.mono}`,
   big: `600 20px/1 ${font.mono}`,
 } as const;
@@ -53,3 +58,6 @@ export const predictedHatch =
   "repeating-linear-gradient(135deg,rgba(111,211,232,.45) 0 2px,transparent 2px 5px)";
 export const predictedHatchFaint =
   "repeating-linear-gradient(135deg,rgba(111,211,232,.035) 0 2px,transparent 2px 7px)";
+/** Marks the replay's unplayed laps on the timeline scrubber. */
+export const futureHatch =
+  "repeating-linear-gradient(135deg,rgba(255,255,255,.05) 0 1px,transparent 1px 6px)";

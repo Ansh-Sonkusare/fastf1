@@ -37,7 +37,7 @@ export default function RaceControl({ session, lapWindow, focus }: PanelProps) {
   const cutoff = lapWindow?.end ?? lapWindow?.start ?? session.dateStart;
 
   return (
-    <PanelFrame num="09" title="Race control & radio" style={{ flex: 1, minHeight: 0 }}>
+    <PanelFrame num="09" title="Race control" style={{ flex: 1, minHeight: 0 }}>
       <AsyncView state={combined} isEmpty={([rc, tr]) => rc.length === 0 && tr.length === 0}>
         {([rc, tr]) => {
           const events = shapeRaceEvents(
