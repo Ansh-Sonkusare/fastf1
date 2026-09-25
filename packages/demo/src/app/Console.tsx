@@ -28,11 +28,10 @@ export function Console({ initialData }: { initialData?: DemoInitialData }) {
     [rawSessions, schedule],
   );
   const [sessionKey, setSessionKey] = useState<number | null>(link.session);
-  const session =
-    sessions.find((s) => s.sessionKey === sessionKey) ?? (sessionKey === null ? sessions.at(-1) : undefined);
+  const session = sessions.find((s) => s.sessionKey === sessionKey) ?? sessions.at(-1);
 
   if (rawSessions.status === "error") return <Fullscreen tone={color.red}>OpenF1 sessions failed · {rawSessions.error.message}</Fullscreen>;
-  if (!session) return <Fullscreen>{sessions.length ? `Unknown session ${sessionKey}` : "LOADING SESSIONS…"}</Fullscreen>;
+  if (!session) return <Fullscreen>LOADING SESSIONS…</Fullscreen>;
   return (
     <SessionConsole
       key={session.sessionKey}

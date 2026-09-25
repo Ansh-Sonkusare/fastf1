@@ -1,7 +1,6 @@
 import type {
   CarData,
   Interval,
-  Meeting,
   OpenF1Driver,
   OpenF1Lap,
   OpenF1Location,
@@ -173,6 +172,3 @@ export const gate: Gate = createGate({
 /** Race sessions of a season, for the session picker. Not session-keyed. */
 export const getRaceSessions = (year: number) =>
   gate.getUrl<Session>(openF1Url("sessions", { year, session_name: "Race" }));
-
-export const getMeetings = (year: number) =>
-  gate.getUrl<Meeting>(openF1Url("meetings", { year }));

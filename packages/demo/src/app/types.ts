@@ -32,7 +32,7 @@ export interface Focus {
   readonly b: DriverNumber | null;
 }
 
-/** ISO time bounds of the current lap, from the race leader's lap. `end` is null on the last lap. */
+/** ISO time bounds of the current lap, from the race leader's lap. `end` is null if no car completed it. */
 export interface LapWindow {
   readonly start: string;
   readonly end: string | null;

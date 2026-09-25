@@ -13,7 +13,7 @@ export type Async<T> =
   | { readonly status: "error"; readonly error: Error }
   | { readonly status: "ok"; readonly data: T };
 
-/** Promise -> Async state. `load === null` stays loading (e.g. waiting on a dependency). */
+/** Promise -> Async state. `key === null` stays loading (e.g. waiting on a dependency). */
 export function useAsync<T>(key: string | null, load: () => Promise<T>): Async<T> {
   const [state, setState] = useState<{ key: string | null; value: Async<T> }>({
     key,

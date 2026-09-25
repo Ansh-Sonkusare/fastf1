@@ -12,7 +12,6 @@ export type ReplayAction =
   | { readonly type: "seek"; readonly lap: number }
   | { readonly type: "tick" }
   | { readonly type: "toggle" }
-  | { readonly type: "pick"; readonly driver: DriverNumber; readonly compare: boolean }
   | { readonly type: "focus"; readonly focus: Focus };
 
 const clampLap = (lap: number, total: number) => Math.min(Math.max(1, Math.round(lap)), Math.max(1, total));
@@ -34,8 +33,6 @@ export function replayReducer(state: ReplayState, action: ReplayAction): ReplayS
         playing: !state.playing,
         lap: !state.playing && state.lap >= state.totalLaps ? 1 : state.lap,
       };
-    case "pick":
-      return { ...state, focus: pick(state.focus, action.driver, action.compare) };
     case "focus":
       return { ...state, focus: action.focus };
   }
