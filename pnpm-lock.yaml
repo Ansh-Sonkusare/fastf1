@@ -98,6 +98,9 @@ importers:
       vite:
         specifier: ^6.0.0
         version: 6.4.3(@types/node@22.19.17)(tsx@4.21.0)
+      vitest:
+        specifier: ^2.0.0
+        version: 2.1.9(@types/node@22.19.17)(jsdom@29.1.1(canvas@3.2.3))
 
   packages/react:
     dependencies:

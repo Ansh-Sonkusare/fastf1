@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0;background:#0b0d10;color:#e4e7eb;font-family:'IBM Plex Sans Condensed',sans-serif;-webkit-font-smoothing:antialiased}*{box-sizing:border-box}a{color:#6fd3e8}a:hover{color:#a6e6f2}</style>
+</helmet>
+<div style="min-width:1600px;padding:10px;display:flex;flex-direction:column;gap:10px;font-variant-numeric:tabular-nums">
+
+  <div style="display:flex;align-items:center;gap:22px;padding:10px 16px;background:#12151a;border:1px solid #1f242b;border-radius:4px">
+    <div style="display:flex;align-items:baseline;gap:10px">
+      <span style="font-weight:700;font-size:21px;letter-spacing:.16em">PITWALL</span>
+      <span style="font:500 10px/1 'IBM Plex Mono',monospace;letter-spacing:.1em;color:#8b939e">STRATEGY CONSOLE</span>
+    </div>
+    <div style="width:1px;align-self:stretch;background:#1f242b"></div>
+    <div style="display:flex;flex-direction:column;gap:4px">
+      <span style="font:500 10px/1 'IBM Plex Mono',monospace;letter-spacing:.08em;color:#8b939e;text-transform:uppercase">Session</span>
+      <span style="font-size:15px;font-weight:600;white-space:nowrap">Round 17 · Norte Grand Prix · Race</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:4px">
+      <span style="font:500 10px/1 'IBM Plex Mono',monospace;letter-spacing:.08em;color:#8b939e;text-transform:uppercase">Lap</span>
+      <span style="font:600 20px/1 'IBM Plex Mono',monospace">38<span style="color:#5b636e">/57</span></span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:4px">
+      <span style="font:500 10px/1 'IBM Plex Mono',monospace;letter-spacing:.08em;color:#8b939e;text-transform:uppercase">Race time</span>
+      <span style="font:500 20px/1 'IBM Plex Mono',monospace">{{ clock }}</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#f5d020;color:#0b0d10;border-radius:3px;font:700 12px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;white-space:nowrap;flex-shrink:0">
+      <span style="width:8px;height:8px;background:#0b0d10;border-radius:50%"></span>YELLOW · SECTOR 2
+    </div>
+    <div style="flex:1"></div>
+    <span style="font:500 10px/1 'IBM Plex Mono',monospace;letter-spacing:.08em;color:#5b636e;text-transform:uppercase">08 Weather</span>
+    <div style="display:flex;gap:22px">
+      <sc-for list="{{ weather }}" as="w" hint-placeholder-count="4">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <span style="font:500 10px/1 'IBM Plex Mono',monospace;letter-spacing:.08em;color:#8b939e;text-transform:uppercase">{{ w.label }}</span>
+            <span style="font:500 14px/1 'IBM Plex Mono',monospace">{{ w.val }}</span>
+          </div>
+          <svg viewBox="0 0 100 24" preserveAspectRatio="none" style="width:84px;height:26px;display:block;flex-shrink:0">
+            <path d="{{ w.path }}" style="fill:none;stroke:{{ w.color }};stroke-width:1.5;vector-effect:non-scaling-stroke"></path>
+          </svg>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:440px minmax(0,1fr) 420px;gap:10px">
+
+    <div data-screen-label="Timing tower" style="background:#12151a;border:1px solid #1f242b;border-radius:4px;display:flex;flex-direction:column;min-width:0">
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid #1f242b">
+        <span style="font:600 11px/1 'IBM Plex Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:#e4e7eb">01 Timing tower</span>
+        <div style="flex:1"></div>
+        <span style="font:400 10px/1 'IBM Plex Mono',monospace;color:#5b636e">CLICK = FOCUS A · SHIFT-CLICK = COMPARE B</span>
+      </div>
+      <div style="display:grid;grid-template-columns:20px 3px 52px 62px 52px 64px 64px 44px 16px;gap:4px;padding:8px 12px;font:500 10px/1 'IBM Plex Mono',monospace;color:#5b636e;letter-spacing:.06em">
+        <span>P</span><span></span><span>DRV</span><span style="text-align:right">GAP</span><span style="text-align:right">INT</span><span style="text-align:right">LAST</span><span style="text-align:right">BEST</span><span>TYRE</span><span style="text-align:right">PIT</span>
+      </div>
+      <div style="display:flex;flex-direction:column;padding:0 6px 8px">
+        <sc-for list="{{ rows }}" as="r" hint-placeholder-count="20">
+          <div onClick="{{ r.onClick }}" style="display:grid;grid-template-columns:20px 3px 52px 62px 52px 64px 64px 44px 16px;gap:4px;align-items:center;height:31px;padding:0 6px;border-radius:3px;cursor:pointer;background:{{ r.bg }};font:500 12.5px/1 'IBM Plex Mono',monospace" style-hover="background:rgba(255,255,255,.05)">
+            <span style="color:#8b939e">{{ r.pos }}</span>
+            <span style="height:18px;background:{{ r.color }}"></span>
+            <span style="display:flex;align-items:center;gap:5px;font-family:'IBM Plex Sans Condensed';font-weight:700;font-size:14px;letter-spacing:.04em">{{ r.code }}<sc-if value="{{ r.hasBadge }}" hint-placeholder-val="{{ false }}"><span style="font:700 9px/1 'IBM Plex Mono',monospace;padding:2px 4px;border-radius:2px;background:{{ r.badgeBg }};color:#0b0d10">{{ r.badge }}</span></sc-if></span>
+            <span style="text-align:right;color:#c3c9d1">{{ r.gap }}</span>
+            <span style="text-align:right;color:{{ r.intColor }}">{{ r.int }}</span>
+            <span style="text-align:right;color:{{ r.lastColor }}">{{ r.last }}</span>
+            <span style="text-align:right;color:{{ r.bestColor }}">{{ r.best }}</span>
+            <span style="display:flex;align-items:center;gap:6px"><span style="width:18px;height:18px;border-radius:50%;border:2px solid {{ r.tyreColor }};color:{{ r.tyreColor }};display:flex;align-items:center;justify-content:center;font:700 9px/1 'IBM Plex Mono',monospace">{{ r.tyre }}</span><span style="color:#aeb5bf">{{ r.age }}</span></span>
+            <span style="text-align:right;color:#8b939e">{{ r.pits }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div data-screen-label="Strategy predictor" style="background:#12151a;border:1px solid #2a3a40;border-radius:4px;display:flex;flex-direction:column;min-width:0">
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid #1f242b;flex-wrap:wrap">
+        <span style="font:600 11px/1 'IBM Plex Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:#e4e7eb">10 Strategy predictor</span>
+        <span style="display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:3px;background:#1a1f25;font-weight:700;font-size:14px"><span style="width:3px;height:14px;background:{{ fA.color }}"></span>{{ fA.code }}<span style="font:500 11px/1 'IBM Plex Mono',monospace;color:#8b939e">P{{ fA.pos }} · {{ fA.tyre }} {{ fA.age }} laps</span></span>
+        <div style="flex:1"></div>
+        <span style="display:flex;align-items:center;gap:6px;font:500 10px/1 'IBM Plex Mono',monospace;color:#aeb5bf"><span style="width:18px;height:2px;background:#e4e7eb"></span>MEASURED</span>
+        <span style="display:flex;align-items:center;gap:6px;font:500 10px/1 'IBM Plex Mono',monospace;color:#6fd3e8"><span style="width:18px;height:10px;border:1px dashed #6fd3e8;background:repeating-linear-gradient(135deg,rgba(111,211,232,.45) 0 2px,transparent 2px 5px)"></span>≈ PREDICTED ± CONFIDENCE</span>
+        <div style="width:1px;height:18px;background:#1f242b"></div>
+        <span style="font:500 10px/1 'IBM Plex Mono',monospace;color:#5b636e">WHAT-IF</span>
+        <sc-for list="{{ toggles }}" as="t" hint-placeholder-count="2">
+          <button onClick="{{ t.onClick }}" style="display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:3px;border:1px solid {{ t.bd }};background:{{ t.bg }};color:{{ t.fg }};font:600 11px/1 'IBM Plex Mono',monospace;cursor:pointer"><span style="width:8px;height:8px;border-radius:2px;border:1px solid {{ t.fg }};background:{{ t.dot }}"></span>{{ t.label }}</button>
+        </sc-for>
+      </div>
+      <div style="padding:14px;display:flex;flex-direction:column;gap:14px;flex:1">
+
+        <div style="display:grid;grid-template-columns:260px minmax(0,1fr);gap:18px;padding:14px 16px;border:1px dashed #3d6d78;border-radius:4px;background:repeating-linear-gradient(135deg,rgba(111,211,232,.035) 0 2px,transparent 2px 7px)">
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <span style="font:500 10px/1 'IBM Plex Mono',monospace;letter-spacing:.08em;color:#6fd3e8;text-transform:uppercase">Ghost projection · pit now, L38</span>
+            <div style="display:flex;align-items:baseline;gap:10px;color:#6fd3e8">
+              <span style="font-size:15px;font-weight:600">Rejoin</span>
+              <span style="font:600 44px/1 'IBM Plex Mono',monospace">≈P{{ ghost.pos }}</span>
+            </div>
+            <span style="font:500 12px/1.4 'IBM Plex Mono',monospace;color:#aeb5bf">{{ ghost.line }}</span>
+            <span style="font:500 12px/1.4 'IBM Plex Mono',monospace;color:{{ ghost.airColor }}">{{ ghost.air }}</span>
+            <div style="display:flex;align-items:center;gap:8px;font:500 11px/1 'IBM Plex Mono',monospace;color:#6fd3e8">
+              <span style="width:90px;height:5px;background:#1f2a2e;border-radius:3px;overflow:hidden"><span style="display:block;height:100%;width:{{ ghost.prob }}%;background:#6fd3e8"></span></span>{{ ghost.prob }}% · ±{{ ghost.sigma }}s
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;justify-content:center">
+            <div style="display:flex;justify-content:space-between;font:500 10px/1 'IBM Plex Mono',monospace;color:#5b636e"><span>← AHEAD</span><span>GAP TO LEADER AFTER STOP (S)</span><span>BEHIND →</span></div>
+            <div style="position:relative;height:96px">
+              <div style="position:absolute;left:0;right:0;top:37px;height:1px;background:#2a3038"></div>
+              <div style="position:absolute;top:27px;height:21px;left:{{ ghost.bandL }}%;width:{{ ghost.bandW }}%;border:1px dashed #6fd3e8;background:repeating-linear-gradient(135deg,rgba(111,211,232,.3) 0 2px,transparent 2px 5px);border-radius:2px"></div>
+              <sc-for list="{{ ghost.cars }}" as="c" hint-placeholder-count="5">
+                <div style="position:absolute;top:30px;left:{{ c.left }}%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:4px">
+                  <span style="width:13px;height:13px;border-radius:50%;background:{{ c.color }};border:2px solid #12151a;opacity:{{ c.o }}"></span>
+                  <span style="font:600 11px/1 'IBM Plex Mono',monospace;color:#c3c9d1;height:11px">{{ c.code }}</span>
+                  <span style="font:400 10px/1 'IBM Plex Mono',monospace;color:#5b636e;height:10px">{{ c.gap }}</span>
+                </div>
+              </sc-for>
+              <div style="position:absolute;top:0;left:{{ ghost.left }}%;transform:translateX(-50%);display:flex;align-items:baseline;gap:5px;white-space:nowrap">
+                <span style="font:700 11px/1 'IBM Plex Mono',monospace;color:#6fd3e8">{{ fA.code }}</span>
+                <span style="font:500 10px/1 'IBM Plex Mono',monospace;color:#6fd3e8">≈{{ ghost.gap }}</span>
+              </div>
+              <span style="position:absolute;top:28px;left:{{ ghost.left }}%;width:19px;height:19px;margin-left:-9.5px;box-sizing:border-box;border-radius:50%;border:2px dashed #6fd3e8"></span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(460px,1fr));gap:14px">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;align-items:center;gap:10px;font:600 10px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;color:#8b939e;text-transform:uppercase"><span>Pit window · race-time cost by stop lap</span><div style="flex:1"></div><span style="color:#6fd3e8">OPT L{{ win.opt }} → {{ win.optComp }}</span></div>
+            <svg viewBox="0 0 620 232" style="width:100%;max-height:300px;display:block">
+              <defs><pattern id="hp" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="2" height="6" style="fill:#6fd3e8;opacity:.4"></rect></pattern></defs>
+              <sc-for list="{{ win.zones }}" as="z" hint-placeholder-count="3">
+                <rect x="{{ z.x }}" y="18" width="{{ z.w }}" height="176" style="fill:{{ z.fill }}"></rect>
+                <text x="{{ z.lx }}" y="30" style="fill:{{ z.color }};font:600 10px 'IBM Plex Mono',monospace;text-anchor:middle;letter-spacing:.06em">{{ z.label }}</text>
+              </sc-for>
+              <sc-for list="{{ win.yt }}" as="y" hint-placeholder-count="4">
+                <line x1="40" x2="610" y1="{{ y.y }}" y2="{{ y.y }}" style="stroke:#1f242b"></line>
+                <text x="34" y="{{ y.ty }}" style="fill:#5b636e;font:400 10px 'IBM Plex Mono',monospace;text-anchor:end">{{ y.label }}</text>
+              </sc-for>
+              <line x1="40" x2="610" y1="{{ win.stayY }}" y2="{{ win.stayY }}" style="stroke:#8b939e;stroke-dasharray:2 4"></line>
+              <text x="606" y="{{ win.stayTY }}" style="fill:#8b939e;font:500 10px 'IBM Plex Mono',monospace;text-anchor:end">STAY OUT +{{ win.stay }}s</text>
+              <path d="{{ win.band }}" style="fill:url(#hp)"></path>
+              <path d="{{ win.curve }}" style="fill:none;stroke:#6fd3e8;stroke-width:2;stroke-dasharray:6 4"></path>
+              <circle cx="{{ win.optX }}" cy="{{ win.optY }}" r="5" style="fill:#12151a;stroke:#6fd3e8;stroke-width:2"></circle>
+              <line x1="{{ win.nowX }}" x2="{{ win.nowX }}" y1="18" y2="194" style="stroke:#e4e7eb;stroke-width:1.5"></line>
+              <text x="{{ win.nowX }}" y="210" style="fill:#e4e7eb;font:600 10px 'IBM Plex Mono',monospace;text-anchor:middle">NOW</text>
+              <sc-for list="{{ win.xt }}" as="x" hint-placeholder-count="5">
+                <text x="{{ x.x }}" y="224" style="fill:#5b636e;font:400 10px 'IBM Plex Mono',monospace;text-anchor:middle">{{ x.label }}</text>
+              </sc-for>
+            </svg>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;align-items:center;gap:10px;font:600 10px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;color:#8b939e;text-transform:uppercase"><span>Tyre degradation · fuel-corrected</span></div>
+            <svg viewBox="0 0 400 232" style="width:100%;max-height:300px;display:block">
+              <sc-for list="{{ deg.yt }}" as="y" hint-placeholder-count="4">
+                <line x1="40" x2="392" y1="{{ y.y }}" y2="{{ y.y }}" style="stroke:#1f242b"></line>
+                <text x="34" y="{{ y.ty }}" style="fill:#5b636e;font:400 10px 'IBM Plex Mono',monospace;text-anchor:end">{{ y.label }}</text>
+              </sc-for>
+              <sc-for list="{{ deg.curves }}" as="c" hint-placeholder-count="3">
+                <path d="{{ c.band }}" style="fill:{{ c.color }};opacity:.12"></path>
+                <path d="{{ c.d }}" style="fill:none;stroke:{{ c.color }};stroke-width:1.8;stroke-dasharray:5 4"></path>
+                <text x="{{ c.lx }}" y="{{ c.ly }}" style="fill:{{ c.color }};font:700 10px 'IBM Plex Mono',monospace">{{ c.label }}</text>
+              </sc-for>
+              <sc-for list="{{ deg.dots }}" as="p" hint-placeholder-count="10">
+                <circle cx="{{ p.x }}" cy="{{ p.y }}" r="2.6" style="fill:{{ p.c }};opacity:{{ p.o }}"></circle>
+              </sc-for>
+              <line x1="{{ deg.nowX }}" x2="{{ deg.nowX }}" y1="16" y2="194" style="stroke:#e4e7eb;stroke-width:1"></line>
+              <text x="{{ deg.nowX }}" y="12" style="fill:#e4e7eb;font:600 10px 'IBM Plex Mono',monospace;text-anchor:middle">AGE {{ fA.age }}</text>
+              <sc-for list="{{ deg.xt }}" as="x" hint-placeholder-count="5">
+                <text x="{{ x.x }}" y="210" style="fill:#5b636e;font:400 10px 'IBM Plex Mono',monospace;text-anchor:middle">{{ x.label }}</text>
+              </sc-for>
+              <text x="392" y="226" style="fill:#5b636e;font:400 10px 'IBM Plex Mono',monospace;text-anchor:end">TYRE AGE (LAPS) · DOTS = MEASURED {{ fA.code }}</text>
+            </svg>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:14px">
+          <div style="display:flex;flex-direction:column;border:1px solid #1f242b;border-radius:4px">
+            <div style="display:grid;grid-template-columns:minmax(0,1.6fr) 60px 70px 62px 120px;gap:8px;padding:9px 12px;font:500 10px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;color:#5b636e;border-bottom:1px solid #1f242b">
+              <span>PLAN · CLICK TO APPLY</span><span style="text-align:right">FINISH</span><span style="text-align:right">Δ TIME</span><span style="text-align:right">RANGE</span><span>CONFIDENCE</span>
+            </div>
+            <sc-for list="{{ plans }}" as="p" hint-placeholder-count="3">
+              <div onClick="{{ p.onClick }}" style="display:grid;grid-template-columns:minmax(0,1.6fr) 60px 70px 62px 120px;gap:8px;align-items:center;padding:10px 12px;cursor:pointer;background:{{ p.bg }};border-bottom:1px solid #181c21;font:500 12.5px/1 'IBM Plex Mono',monospace" style-hover="background:rgba(111,211,232,.06)">
+                <span style="display:flex;align-items:center;gap:8px;font-family:'IBM Plex Sans Condensed';font-size:14px;font-weight:600;min-width:0"><span style="width:10px;height:10px;border-radius:50%;border:2px solid {{ p.ring }};background:{{ p.dot }}"></span>{{ p.name }}<sc-if value="{{ p.isBest }}" hint-placeholder-val="{{ false }}"><span style="font:700 9px/1 'IBM Plex Mono',monospace;padding:3px 5px;border-radius:2px;background:#6fd3e8;color:#0b0d10">BEST</span></sc-if></span>
+                <span style="text-align:right;color:#6fd3e8">≈P{{ p.finish }}</span>
+                <span style="text-align:right;color:{{ p.dColor }}">{{ p.delta }}</span>
+                <span style="text-align:right;color:#8b939e">±{{ p.range }}</span>
+                <span style="display:flex;align-items:center;gap:8px"><span style="flex:1;height:5px;background:#1f2a2e;border-radius:3px;overflow:hidden"><span style="display:block;height:100%;width:{{ p.conf }}%;background:#6fd3e8;opacity:{{ p.confO }}"></span></span><span style="color:#6fd3e8;width:30px;text-align:right">{{ p.conf }}%</span></span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <span style="font:600 10px/1 'IBM Plex Mono',monospace;letter-spacing:.06em;color:#8b939e;text-transform:uppercase">Threats &amp; opportunities</span>
+            <sc-for list="{{ alerts }}" as="a" hint-placeholder-count="3">
+              <div style="display:flex;gap:10px;padding:10px 12px;border-radius:4px;background:{{ a.bg }};border:1px solid {{ a.bd }}">
+                <span style="font:700 10px/1 'IBM Plex Mono',monospace;color:#0b0d10;background:{{ a.color }};padding:4px 6px;border-radius:2px;align-self:flex-start">{{ a.level }}</span>
+                <div style="display:flex;flex-direction:column;gap:5px;min-width:0;flex:1">
+                  <span style="font-size:14px;font-weight:600">{{ a.title }}</span>
+                  <span style="font:400 11px/1.4 'IBM Plex Mono',monospace;color:#aeb5bf;text-wrap:pretty">{{ a.body }}</span>
+                </div>
+                <span style="font:600 13px/1 'IBM Plex Mono',monospace;color:#6fd3e8">≈{{ a.prob }}%</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:10px;min-width:0">
+      <div data-screen-label="Track map" style="background:#12151a;border:1px solid #1f242b;border-radius:4px;display:flex;flex-direction:column">
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid #1f242b">
+          <span style="font:600 11px/1 'IBM Plex Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:#e4e7eb">02 Track map</span>
+          <div style="flex:1"></div>
+          <span style="display:flex;align-items:center;gap:5px;font:500 10px/1 'IBM Plex Mono',monospace;color:#3ecf6e"><span style="width:14px;height:3px;background:#3ecf6e"></span>DRS</span>
+          <span style="display:flex;align-items:center;gap:5px;font:500 10px/1 'IBM Plex Mono',monospace;color:#f5d020"><span style="width:14px;height:3px;background:#f5d020"></span>YELLOW</span>
+          <span style="font:500 10px/1 'IBM Plex Mono',monospace;color:#5b636e">{{ liveLabel }}</span>
+        </div>
+        <svg viewBox="0 0 460 300" style="width:100%;display:block;padding:6px">
+          <path d="{{ track.d }}" style="fill:none;stroke:#252b33;stroke-width:12;stroke-linejoin:round"></path>
+          <sc-for list="{{ track.sectors }}" as="s" hint-placeholder-count="3">
+            <path d="{{ s.d }}" style="fill:none;stroke:{{ s.color }};stroke-width:2.5;stroke-linejoin:round"></path>
+            <text x="{{ s.lx }}" y="{{ s.ly }}" style="fill:{{ s.tc }};font:600 11px 'IBM Plex Mono',monospace;text-anchor:middle">{{ s.label }}</text>
+          </sc-for>
+          <sc-for list="{{ track.drs }}" as="z" hint-placeholder-count="2">
+            <path d="{{ z.d }}" style="fill:none;stroke:#3ecf6e;stroke-width:5;opacity:.55;stroke-linecap:round"></path>
+          </sc-for>
+          <rect x="{{ track.sfx }}" y="{{ track.sfy }}" width="4" height="16" style="fill:#e4e7eb"></rect>
+          <sc-for list="{{ dots }}" as="c" hint-placeholder-count="20">
+            <g style="transform:translate({{ c.x }}px,{{ c.y }}px);transition:transform 1s linear">
+              <circle cx="0" cy="0" r="{{ c.ring }}" style="fill:none;stroke:{{ c.ringColor }};stroke-width:1.5"></circle>
+              <circle cx="0" cy="0" r="5.5" style="fill:{{ c.color }};stroke:#0b0d10;stroke-width:1.5"></circle>
+              <text x="9" y="-8" style="fill:{{ c.tc }};font:700 10px 'IBM Plex Mono',monospace">{{ c.label }}</text>
+            </g>
+          </sc-for>
+        </svg>
+      </div>
+
+      <div data-screen-label="Race control and radio" style="background:#12151a;border:1px solid #1f242b;border-radius:4px;display:flex;flex-direction:column;flex:1;min-height:0">
+        <div style="display:flex;align-items:center;gap:6px;padding:8px 12px;border-bottom:1px solid #1f242b">
+          <span style="font:600 11px/1 'IBM Plex Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:#e4e7eb">09 Race control &amp; radio</span>
+          <div style="flex:1"></div>
+          <sc-for list="{{ feedTabs }}" as="t" hint-placeholder-count="4">
+            <button onClick="{{ t.onClick }}" style="padding:5px 8px;border-radius:3px;border:none;background:{{ t.bg }};color:{{ t.fg }};font:600 10px/1 'IBM Plex Mono',monospace;cursor:pointer">{{ t.label }}</button>
+          </sc-for>
+        </div>
+        <div style="flex:1;overflow:auto;max-height:540px;display:flex;flex-direction:column">
+          <sc-for list="{{ feed }}" as="f" hint-placeholder-count="8">
+            <div style="display:grid;grid-template-columns:34px 52px minmax(0,1fr);gap:8px;padding:9px 12px;border-bottom:1px solid #181c21;align-items:start">
+              <span style="font:500 11px/1.4 'IBM Plex Mono',monospace;color:#5b636e">L{{ f.lap }}</span>
+              <span style="font:700 9px/1 'IBM Plex Mono',monospace;padding:4px 0;text-align:center;border-radius:2px;background:{{ f.kc }};color:#0b0d10">{{ f.kind }}</span>
+              <div style="display:flex;flex-direction:column;gap:3px;min-width:0">
+                <sc-if value="{{ f.hasWho }}" hint-placeholder-val="{{ false }}"><span style="display:flex;align-items:center;gap:6px;font-weight:700;font-size:12px;letter-spacing:.04em"><span style="width:3px;height:11px;background:{{ f.wc }}"></span>{{ f.who }}</span></sc-if>
+                <span style="font-size:13px;line-height:1.35;color:{{ f.tc }};text-wrap:pretty">{{ f.text }}</span>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px">
+    <div data-screen-label="Telemetry compare" style="background:#12151a;border:1px solid #1f242b;border-radius:4px;display:flex;flex-direction:column;min-width:0">
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-bottom:1px solid #1f242b;flex-wrap:wrap">
+        <span style="font:600 11px/1 'IBM Plex Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:#e4e7eb">03 Telemetry compare · lap 37</span>
+        <span style="display:flex;align-items:center;gap:6px;font-weight:700;font-size:13px"><span style="width:16px;height:2px;background:{{ tel.cA }}"></span>A {{ fA.code }}</span>
+        <span style="display:flex;align-items:center;gap:6px;font-weight:700;font-size:13px"><span style="width:16px;height:0;border-top:2px dashed {{ tel.cB }}"></span>B {{ fB.code }}</span>
+        <div style="flex:1"></div>
+        <span style="font:500 11px/1 'IBM Plex Mono',monospace;color:#aeb5bf">{{ tel.readout }}</span>
+      </div>
+      <div style="padding:8px 10px 10px">
+        <svg viewBox="0 0 900 350" onMouseMove="{{ tel.onMove }}" onMouseLeave="{{ tel.onLeave }}" style="width:100%;display:block;cursor:crosshair">
+          <sc-for list="{{ tel.drs }}" as="z" hint-placeholder-count="2">
+            <rect x="{{ z.x }}" y="8" width="{{ z.w }}" height="124" style="fill:#3ecf6e;opacity:.07"></rect>
+            <text x="{{ z.lx }}" y="20" style="fill:#3ecf6e;font:600 9px 'IBM Plex Mono',monospace;text-anchor:middle">DRS</text>
+          </sc-for>
+          <sc-for list="{{ tel.lanes }}" as="l" hint-placeholder-count="5">
+            <line x1="40" x2="890" y1="{{ l.y }}" y2="{{ l.y }}" style="stroke:#1f242b"></line>
+            <text x="4" y="{{ l.ty }}" style="fill:#5b636e;font:500 10px 'IBM Plex Mono',monospace">{{ l.label }}</text>
+          </sc-for>
+          <sc-for list="{{ tel.secs }}" as="s" hint-placeholder-count="2">
+            <line x1="{{ s.x }}" x2="{{ s.x }}" y1="8" y2="342" style="stroke:#2a3038;stroke-dasharray:3 3"></line>
+            <text x="{{ s.lx }}" y="346" style="fill:#5b636e;font:500 9px 'IBM Plex Mono',monospace;text-anchor:middle">{{ s.label }}</text>
+          </sc-for>
+          <line x1="40" x2="890" y1="{{ tel.zeroY }}" y2="{{ tel.zeroY }}" style="stroke:#3a414a"></line>
+          <sc-for list="{{ tel.paths }}" as="p" hint-placeholder-count="8">
+            <path d="{{ p.d }}" style="fill:none;stroke:{{ p.c }};stroke-width:{{ p.w }};stroke-dasharray:{{ p.dash }};stroke-linejoin:round"></path>
+          </sc-for>
+          <sc-if value="{{ tel.hasCur }}" hint-placeholder-val="{{ false }}">
+            <line x1="{{ tel.curX }}" x2="{{ tel.curX }}" y1="8" y2="336" style="stroke:#e4e7eb;opacity:.6"></line>
+          </sc-if>
+        </svg>
+      </div>
+    </div>
+
+    <div data-screen-label="Lap times" style="background:#12151a;border:1px solid #1f242b;border-radius:4px;display:flex;flex-direction:column;min-width:0">
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-bottom:1px solid #1f242b;flex-wrap:wrap">
+        <span style="font:600 11px/1 'IBM Plex Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:#e4e7eb">04 Lap times</span>
+        <span style="display:flex;align-items:center;gap:6px;font-weight:700;font-size:13px"><span style="width:16px;height:2px;background:{{ tel.cA }}"></span>{{ fA.code }}</span>
+        <span style="display:flex;align-items:center;gap:6px;font-weight:700;font-size:13px"><span style="width:16px;height:0;border-top:2px dashed {{ tel.cB }}"></span>{{ fB.code }}</span>
+        <div style="flex:1"></div>
+        <span style="display:flex;align-items:center;gap:5px;font:500 10px/1 'IBM Plex Mono',monospace;color:#f5d020"><span style="width:12px;height:10px;background:rgba(245,208,32,.2)"></span>SC</span>
+        <span style="display:flex;align-items:center;gap:5px;font:500 10px/1 'IBM Plex Mono',monospace;color:#e4e7eb"><span style="width:8px;height:8px;border:1.5px solid #e4e7eb;transform:rotate(45deg)"></span>PIT</span>
+        <span style="display:flex;align-items:center;gap:5px;font:500 10px/1 'IBM Plex Mono',monospace;color:#6fd3e8"><span style="width:16px;height:0;border-top:2px dashed #6fd3e8"></span>≈ {{ fA.code }} ON SELECTED PLAN</span>
+      </div>
+      <div style="padding:8px 10px 10px">
+        <svg viewBox="0 0 900 350" style="width:100%;display:block">
+          <defs><pattern id="hp2" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="2" height="6" style="fill:#6fd3e8;opacity:.35"></rect></pattern></defs>
+          <sc-for list="{{ lapc.yt }}" as="y" hint-placeholder-count="5">
+            <line x1="44" x2="890" y1="{{ y.y }}" y2="{{ y.y }}" style="stroke:#1f242b"></line>
+            <text x="38" y="{{ y.ty }}" style="fill:#5b636e;font:400 10px 'IBM Plex Mono',monospace;text-anchor:end">{{ y.label }}</text>
+          </sc-for>
+          <rect x="{{ lapc.scX }}" y="16" width="{{ lapc.scW }}" height="300" style="fill:#f5d020;opacity:.1"></rect>
+          <text x="{{ lapc.scLX }}" y="30" style="fill:#f5d020;font:700 10px 'IBM Plex Mono',monospace;text-anchor:middle">SC</text>
+          <sc-if value="{{ lapc.hasWhatIfSc }}" hint-placeholder-val="{{ false }}">
+            <rect x="{{ lapc.sc2X }}" y="16" width="{{ lapc.sc2W }}" height="300" style="fill:url(#hp2);stroke:#f5d020;stroke-dasharray:3 3;opacity:.7"></rect>
+            <text x="{{ lapc.sc2LX }}" y="30" style="fill:#f5d020;font:700 10px 'IBM Plex Mono',monospace;text-anchor:middle">≈SC</text>
+          </sc-if>
+          <rect x="{{ lapc.futX }}" y="16" width="{{ lapc.futW }}" height="300" style="fill:#6fd3e8;opacity:.03"></rect>
+          <path d="{{ lapc.band }}" style="fill:url(#hp2)"></path>
+          <path d="{{ lapc.pred }}" style="fill:none;stroke:#6fd3e8;stroke-width:2;stroke-dasharray:6 4"></path>
+          <path d="{{ lapc.b }}" style="fill:none;stroke:{{ tel.cB }};stroke-width:1.5;stroke-dasharray:4 3;opacity:.85"></path>
+          <path d="{{ lapc.a }}" style="fill:none;stroke:{{ tel.cA }};stroke-width:2"></path>
+          <sc-for list="{{ lapc.pits }}" as="p" hint-placeholder-count="3">
+            <line x1="{{ p.x }}" x2="{{ p.x }}" y1="16" y2="316" style="stroke:{{ p.c }};stroke-dasharray:2 3;opacity:.6"></line>
+            <rect x="{{ p.rx }}" y="{{ p.ry }}" width="8" height="8" style="fill:#12151a;stroke:{{ p.c }};stroke-width:1.5;transform-box:fill-box;transform-origin:center;transform:rotate(45deg)"></rect>
+          </sc-for>
+          <line x1="{{ lapc.nowX }}" x2="{{ lapc.nowX }}" y1="16" y2="316" style="stroke:#e4e7eb"></line>
+          <text x="{{ lapc.nowX }}" y="12" style="fill:#e4e7eb;font:600 10px 'IBM Plex Mono',monospace;text-anchor:middle">NOW</text>
+          <sc-for list="{{ lapc.xt }}" as="x" hint-placeholder-count="6">
+            <text x="{{ x.x }}" y="334" style="fill:#5b636e;font:400 10px 'IBM Plex Mono',monospace;text-anchor:middle">{{ x.label }}</text>
+          </sc-for>
+          <text x="890" y="348" style="fill:#5b636e;font:400 9px 'IBM Plex Mono',monospace;text-anchor:end">LAP · SC AND PIT LAPS CLIPPED</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1.15fr) minmax(0,.6fr);gap:10px">
+    <div data-screen-label="Sector grid" style="background:#12151a;border:1px solid #1f242b;border-radius:4px;display:flex;flex-direction:column;min-width:0">
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-bottom:1px solid #1f242b">
+        <span style="font:600 11px/1 'IBM Plex Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:#e4e7eb">05 Sectors · lap 37</span>
+        <div style="flex:1"></div>
+        <span style="display:flex;align-items:center;gap:5px;font:500 10px/1 'IBM Plex Mono',monospace;color:#b06cff"><span style="width:9px;height:9px;background:#b06cff"></span>OVERALL</span>
+        <span style="display:flex;align-items:center;gap:5px;font:500 10px/1 'IBM Plex Mono',monospace;color:#3ecf6e"><span style="width:9px;height:9px;background:#3ecf6e"></span>PERSONAL</span>
+        <span style="display:flex;align-items:center;gap:5px;font:500 10px/1 'IBM Plex Mono',monospace;color:#e6c229"><span style="width:9px;height:9px;background:#e6c229"></span>SLOWER</span>
+      </div>
+      <div style="padding:8px 12px 10px;display:flex;flex-direction:column;gap:2px">
+        <div style="display:grid;grid-template-columns:40px 54px 54px 54px minmax(0,1fr) 38px 38px 38px 38px;gap:6px;font:500 10px/1 'IBM Plex Mono',monospace;color:#5b636e;padding-bottom:6px">
+          <span>DRV</span><span style="text-align:right">S1</span><span style="text-align:right">S2</span><span style="text-align:right">S3</span><span style="text-align:center">{{ miniHead }}</span><span style="text-align:right">I1</span><span style="text-align:right">I2</span><span style="text-align:right">FL</span><span style="text-align:right">ST</span>
+        </div>
+        <sc-for list="{{ sectors }}" as="r" hint-placeholder-count="20">
+          <div style="display:grid;grid-template-columns:40px 54px 54px 54px minmax(0,1fr) 38px 38px 38px 38px;gap:6px;align-items:center;height:21px;font:500 11.5px/1 'IBM Plex Mono',monospace;background:{{ r.bg }}">
+            <span style="display:flex;align-items:center;gap:5px;font-family:'IBM Plex Sans Condensed';font-weight:700;font-size:12.5px"><span style="width:3px;height:12px;background:{{ r.color }}"></span>{{ r.code }}</span>
+            <sc-for list="{{ r.secs }}" as="s" hint-placeholder-count="3">
+              <span style="text-align:right;color:{{ s.c }}">{{ s.t }}</span>
+            </sc-for>
+            <div style="display:flex;gap:1px;height:12px">
+              <sc-for list="{{ r.minis }}" as="m" hint-placeholder-count="24">
+                <span style="flex:1;background:{{ m.c }};margin-left:{{ m.ml }}px;opacity:{{ m.o }}"></span>
+              </sc-for>
+            </div>
+            <sc-for list="{{ r.traps }}" as="t" hint-placeholder-count="4">
+              <span style="text-align:right;color:{{ t.c }}">{{ t.v }}</span>
+            </sc-for>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div data-screen-label="Tyre strategy" style="background:#12151a;border:1px solid #1f242b;border-radius:4px;display:flex;flex-direction:column;min-width:0">
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid #1f242b">
+        <span style="font:600 11px/1 'IBM Plex Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:#e4e7eb">06 Tyre strategy</span>
+        <div style="flex:1"></div>
+        <sc-for list="{{ compLegend }}" as="c" hint-placeholder-count="3">
+          <span style="display:flex;align-items:center;gap:5px;font:500 10px/1 'IBM Plex Mono',monospace;color:#aeb5bf"><span style="width:10px;height:10px;border-radius:50%;background:{{ c.color }}"></span>{{ c.label }}</span>
+        </sc-for>
+        <span style="display:flex;align-items:center;gap:5px;font:500 10px/1 'IBM Plex Mono',monospace;color:#6fd3e8"><span style="width:16px;height:10px;border:1px dashed #6fd3e8;background:repeating-linear-gradient(135deg,rgba(111,211,232,.45) 0 2px,transparent 2px 5px)"></span>≈ PREDICTED</span>
+      </div>
+      <div style="padding:8px 12px 10px;display:flex;flex-direction:column;gap:2px">
+        <div style="display:grid;grid-template-columns:40px minmax(0,1fr);gap:6px;padding-bottom:6px">
+          <span></span>
+          <div style="position:relative;height:10px">
+            <sc-for list="{{ gantt.ticks }}" as="t" hint-placeholder-count="6">
+              <span style="position:absolute;left:{{ t.left }}%;transform:translateX(-50%);font:400 10px/1 'IBM Plex Mono',monospace;color:#5b636e">{{ t.label }}</span>
+            </sc-for>
+          </div>
+        </div>
+        <sc-for list="{{ gantt.rows }}" as="r" hint-placeholder-count="20">
+          <div style="display:grid;grid-template-columns:40px minmax(0,1fr);gap:6px;align-items:center;height:21px;background:{{ r.bg }}">
+            <span style="display:flex;align-items:center;gap:5px;font-weight:700;font-size:12.5px"><span style="width:3px;height:12px;background:{{ r.color }}"></span>{{ r.code }}</span>
+            <div style="position:relative;height:100%">
+              <sc-for list="{{ r.stints }}" as="s" hint-placeholder-count="2">
+                <div style="position:absolute;top:3px;bottom:3px;left:{{ s.left }}%;width:{{ s.w }}%;background:{{ s.bg }};border:{{ s.bd }};border-radius:2px;display:flex;align-items:center;padding-left:4px;overflow:hidden;font:700 9px/1 'IBM Plex Mono',monospace;color:{{ s.fg }}">{{ s.label }}</div>
+              </sc-for>
+              <sc-for list="{{ r.pits }}" as="p" hint-placeholder-count="1">
+                <span style="position:absolute;top:0;bottom:0;left:{{ p.left }}%;width:2px;margin-left:-1px;background:{{ p.c }}"></span>
+              </sc-for>
+              <span style="position:absolute;top:-2px;bottom:-2px;left:{{ gantt.now }}%;width:1px;background:#e4e7eb;opacity:.7"></span>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div data-screen-label="Pit stops" style="background:#12151a;border:1px solid #1f242b;border-radius:4px;display:flex;flex-direction:column;min-width:0">
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid #1f242b">
+        <span style="font:600 11px/1 'IBM Plex Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:#e4e7eb">07 Pit stops</span>
+        <div style="flex:1"></div>
+        <span style="font:500 10px/1 'IBM Plex Mono',monospace;color:#5b636e">STATIONARY · LANE</span>
+      </div>
+      <div style="padding:6px 12px 10px;display:flex;flex-direction:column">
+        <sc-for list="{{ stops }}" as="p" hint-placeholder-count="12">
+          <div style="display:grid;grid-template-columns:20px 44px minmax(0,1fr) 44px 44px;gap:8px;align-items:center;height:30px;border-bottom:1px solid #181c21;font:500 12px/1 'IBM Plex Mono',monospace">
+            <span style="color:#5b636e">{{ p.rank }}</span>
+            <span style="display:flex;align-items:center;gap:5px;font-family:'IBM Plex Sans Condensed';font-weight:700;font-size:13px"><span style="width:3px;height:12px;background:{{ p.color }}"></span>{{ p.code }}</span>
+            <span style="display:flex;align-items:center;gap:6px;min-width:0"><span style="height:6px;width:{{ p.w }}%;background:{{ p.bar }};border-radius:1px"></span><span style="color:#5b636e;font-size:10px">L{{ p.lap }}</span></span>
+            <span style="text-align:right;color:{{ p.sc }}">{{ p.stat }}</span>
+            <span style="text-align:right;color:#8b939e">{{ p.lane }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;live&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Simulation&quot;},&quot;pitLoss&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:21.4,&quot;min&quot;:16,&quot;max&quot;:28,&quot;step&quot;:0.2,&quot;unit&quot;:&quot;s&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Strategy model&quot;},&quot;showMinis&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Display&quot;}}">
+class Component extends DCLogic {
+  state = { a: 2, b: 1, sc: false, rain: false, plan: null, cur: null, phase: 0.18, clock: 0, feed: 'ALL' };
+  constructor(p) { super(p); this.D = this.build(); }
+  componentDidMount() {
+    this.t = setInterval(() => {
+      if (this.props.live ?? true) this.setState(s => ({ phase: (s.phase + 1 / 89) % 1, clock: s.clock + 1 }));
+    }, 1000);
+  }
+  componentWillUnmount() { clearInterval(this.t); }
+
+  build() {
+    let sd = 11; const rnd = () => { sd = (sd * 16807) % 2147483647; return (sd - 1) / 2147483646; };
+    const TEAM = { Halcyon: '#ff8a3d', Meridian: '#4b82ff', Kestrel: '#e8414f', Obsidian: '#1fc4a3', Arcadia: '#3aa663', Norden: '#c9ced6', Solace: '#ff5aa8', Vantor: '#7b6bff', Ibex: '#9bb3d1', Corsa: '#d1a92c' };
+    const L = [['MOR','Halcyon'],['KAT','Meridian'],['ALV','Halcyon'],['DUV','Kestrel'],['RAS','Meridian'],['HEN','Kestrel'],['OKO','Obsidian'],['BRU','Arcadia'],['SAL','Obsidian'],['TAN','Norden'],['FIS','Arcadia'],['LIM','Solace'],['NAK','Norden'],['ORT','Vantor'],['PEL','Solace'],['QUI','Ibex'],['WEB','Vantor'],['ZAN','Corsa'],['YAM','Ibex'],['GRA','Corsa']];
+    const INT = [0,1.9,1.3,1.4,3.2,0.8,2.6,1.1,4.0,0.7,2.2,1.5,0.9,3.3,1.8,0.6,2.9,1.2,5.1,2.4];
+    const ST = "M1H24|M1H23|M1H22|S1H18|M1H21|S1H17M29|M1H25|M1H20M29|S1H16|H1M30|M1H22|S1H19S29|M1H21|H1M29|M1H23|S1M15H29|M1H19|M1H26|S1H14M29|H1S29".split('|').map(s => [...s.matchAll(/([SMHI])(\d+)/g)].map(m => ({ c: m[1], s: +m[2] })));
+    const NOW = 38, SC = [27, 28, 29];
+    const P = { S: [91.4, .085, .0025], M: [91.9, .055, .0012], H: [92.4, .035, .0006], I: [93.4, .05, .001] };
+    let g = 0;
+    const dr = L.map(([code, team], d) => {
+      g += INT[d];
+      const st = ST[d]; st.forEach((x, k) => x.e = k < st.length - 1 ? st[k + 1].s - 1 : NOW);
+      const pits = st.slice(1).map(x => x.s - 1);
+      const laps = [];
+      for (let l = 1; l < NOW; l++) {
+        const x = st.find(z => l >= z.s && l <= z.e); const age = l - x.s + 1; const [b, k1, k2] = P[x.c];
+        let t = b + k1 * age + k2 * age * age - .055 * (l - 1) + d * .045 + (rnd() - .5) * .32; let flag = '';
+        if (l === 1) t += 2.6;
+        if (SC.includes(l)) { t = 116.5 + rnd() * 2.5; flag = 'sc'; }
+        if (pits.includes(l)) { t += flag ? 9.5 : 21.4; flag = 'pit'; }
+        laps.push({ l, t, flag, c: x.c, age, out: l === x.s && x.s > 1 });
+      }
+      const clean = laps.filter(x => !x.flag && x.l > 1 && !x.out);
+      const cur = st[st.length - 1];
+      return { d, code, team, color: TEAM[team], gap: g, int: INT[d], st, pits, laps, best: Math.min(...clean.map(x => x.t)), last: laps[laps.length - 1].t, tyre: cur.c, age: NOW - cur.s + 1 };
+    });
+    const fastest = Math.min(...dr.map(x => x.best));
+    // track
+    const N = 400, raw = [];
+    for (let i = 0; i < N; i++) { const th = i / N * Math.PI * 2; const r = 1 + .22 * Math.sin(2 * th + .4) + .14 * Math.sin(3 * th + 1.1) + .07 * Math.cos(5 * th + .3) + .04 * Math.sin(7 * th); raw.push([r * Math.cos(th) * 1.35, -r * Math.sin(th)]); }
+    const xs = raw.map(p => p[0]), ys = raw.map(p => p[1]);
+    const mnx = Math.min(...xs), mxx = Math.max(...xs), mny = Math.min(...ys), mxy = Math.max(...ys);
+    const sc = Math.min(416 / (mxx - mnx), 256 / (mxy - mny));
+    const ox = (460 - (mxx - mnx) * sc) / 2, oy = (300 - (mxy - mny) * sc) / 2;
+    const pts = raw.map(p => [ox + (p[0] - mnx) * sc, oy + (p[1] - mny) * sc]);
+    const ang = raw.map((p, i) => { const a = raw[(i - 1 + N) % N], b = raw[(i + 1) % N]; const a1 = Math.atan2(p[1] - a[1], p[0] - a[0]), a2 = Math.atan2(b[1] - p[1], b[0] - p[0]); let q = Math.abs(a2 - a1); if (q > Math.PI) q = 2 * Math.PI - q; return q; });
+    const sm = ang.map((_, i) => { let s = 0; for (let k = -5; k <= 5; k++) s += ang[(i + k + N) % N]; return s / 11; });
+    const mx = Math.max(...sm);
+    const v = sm.map(a => 330 - 245 * Math.pow(a / mx, 1.3));
+    for (let pass = 0; pass < 2; pass++) {
+      for (let i = 1; i < 2 * N; i++) { const j = i % N, p = v[(i - 1) % N]; v[j] = Math.min(v[j], p + Math.max(.6, 5.2 * (1 - p / 345))); }
+      for (let i = 2 * N - 1; i >= 0; i--) { const j = i % N, n = (j + 1) % N; v[j] = Math.min(v[j], v[n] + 6.5); }
+    }
+    const runs = []; let rs = -1;
+    for (let i = 0; i <= N; i++) { const on = i < N && v[i] >= 325; if (on && rs < 0) rs = i; if (!on && rs >= 0) { runs.push([rs, i - 1]); rs = -1; } }
+    const drs = runs.filter(r => r[1] - r[0] > 14).sort((a, b) => (b[1] - b[0]) - (a[1] - a[0])).slice(0, 2).map(r => [Math.max(r[0] - 12, 0), r[1]]).sort((a, b) => a[0] - b[0]);
+    // sectors / traps
+    const secs = dr.map(x => { const fr = [.318, .365, .317]; return fr.map(f => x.last * f + (rnd() - .5) * .16); });
+    const secBest = [0, 1, 2].map(k => Math.min(...secs.map(s => s[k])));
+    const sector = dr.map((x, i) => ({
+      secs: secs[i].map((t, k) => ({ t: t.toFixed(3), st: t === secBest[k] ? 'P' : rnd() < .3 ? 'G' : 'Y' })),
+      minis: Array.from({ length: 24 }, () => { const r = rnd(); return r < .06 ? 'P' : r < .42 ? 'G' : 'Y'; }),
+      traps: [292 + rnd() * 9, 248 + rnd() * 8, 281 + rnd() * 8, 318 + rnd() * 9 + (x.int < 1 && x.d ? 6 : 0)].map(Math.round)
+    }));
+    const stops = [];
+    dr.forEach(x => x.pits.forEach(l => { const stat = x.code === 'SAL' ? 4.9 : 2.05 + rnd() * 1.3; stops.push({ d: x.d, lap: l, stat, lane: stat + 18.4 + rnd() * .9 }); }));
+    stops.sort((a, b) => a.stat - b.stat);
+    const wx = { air: [], trk: [], wind: [], rain: [] };
+    for (let l = 1; l <= NOW; l++) { wx.air.push(24.1 - l * .035 + (rnd() - .5) * .25); wx.trk.push(41.5 - l * .13 + (rnd() - .5) * .5); wx.wind.push(2.2 + l * .05 + (rnd() - .5) * .5); wx.rain.push(5 + Math.max(0, l - 20) * 1.6 + (rnd() - .5) * 2); }
+    return { dr, fastest, N, pts, v, drs, sector, stops, wx, P, NOW, TOT: 57, S1: 130, S2: 270 };
+  }
+
+  lt(c, age, L, d, sc, rain) {
+    if (sc && L >= 40 && L <= 42) return 117;
+    const [b, k1, k2] = this.D.P[c]; let t = b + k1 * age + k2 * age * age - .055 * (L - 1) + d * .045;
+    if (c === 'I') t += rain && L >= 48 ? -1.2 : 5.5;
+    else if (rain && L >= 48) t += Math.min(5, 1.6 * (L - 47));
+    return t;
+  }
+  sim(f, stops, sc, rain, loss, per) {
+    let c = f.tyre, age = f.age, T = 0; const out = [];
+    for (let L = this.D.NOW; L <= this.D.TOT; L++) {
+      let t = this.lt(c, age, L, f.d, sc, rain);
+      const s = stops.find(x => x.lap === L);
+      if (s) { t += sc && L >= 40 && L <= 42 ? loss * .52 : loss; c = s.c; age = 0; }
+      T += t; out.push({ L, t, pit: !!s }); age++;
+    }
+    return per ? out : T;
+  }
+  telFor(d) {
+    const { v, N } = this.D; const sg = d % 2 ? 1 : -1;
+    const vv = v.map((x, i) => x * (1 + sg * .012 * (x / 330 - .72) - d * .0004) + 1.2 * Math.sin(i / 37 + d));
+    const th = [], br = [], gr = [], tm = []; let t = 0;
+    vv.forEach((x, i) => { const dv = x - vv[(i - 1 + N) % N]; const b = dv < -.8; br.push(b ? 1 : 0); th.push(b ? 0 : (dv > .15 || x >= 325) ? 100 : Math.round(60 + 40 * x / 330)); gr.push(1 + [95, 130, 160, 190, 225, 260, 295].filter(q => x >= q).length); t += (5300 / N) / (x / 3.6); tm.push(t); });
+    return { vv, th, br, gr, tm };
+  }
+  fmt(t) { const m = Math.floor(t / 60); const s = (t - m * 60).toFixed(3); return m + ':' + (s.length < 6 ? '0' + s : s); }
+  pick(d) {
+    return e => {
+      if (e && e.shiftKey) { if (d !== this.state.a) this.setState({ b: d }); }
+      else this.setState(s => ({ a: d, b: s.b === d ? s.a : s.b, plan: null }));
+    };
+  }
+
+  compute(loss) {
+    const D = this.D, S = this.state, NOW = D.NOW, TOT = D.TOT, N = D.N;
+    const CY = '#6fd3e8', PU = '#b06cff', GR = '#3ecf6e', YE = '#e6c229', AM = '#ffb547', RD = '#ff5a4f';
+    const TC = { S: '#ee4a3f', M: '#f2c230', H: '#e8e8e3', I: '#3fb56a' };
+    const f = D.dr[S.a], fb = D.dr[S.b];
+    const cA = f.color, cB = fb.color === f.color ? '#e4e7eb' : fb.color;
+    const others = D.dr.filter(x => x.d !== f.d);
+
+    const rows = D.dr.map(x => ({
+      pos: x.d + 1, code: x.code, color: x.color,
+      gap: x.d ? '+' + x.gap.toFixed(3) : 'LEADER', int: x.d ? '+' + x.int.toFixed(3) : '—', intColor: x.d && x.int < 1 ? GR : '#e4e7eb',
+      last: this.fmt(x.last), lastColor: Math.abs(x.last - D.fastest) < 1e-9 ? PU : x.last <= x.best + 1e-9 ? GR : '#e4e7eb',
+      best: this.fmt(x.best), bestColor: x.best === D.fastest ? PU : '#aeb5bf',
+      tyre: x.tyre, tyreColor: TC[x.tyre], age: x.age, pits: x.pits.length,
+      bg: x.d === S.a ? 'rgba(255,255,255,.08)' : x.d === S.b ? 'rgba(255,255,255,.04)' : 'transparent',
+      hasBadge: x.d === S.a || x.d === S.b, badge: x.d === S.a ? 'A' : 'B', badgeBg: x.d === S.a ? '#e4e7eb' : '#7d8692',
+      onClick: this.pick(x.d)
+    }));
+
+    // pit window
+    const comps = S.rain ? ['S', 'M', 'H', 'I'] : ['S', 'M', 'H'];
+    const stay = this.sim(f, [], S.sc, S.rain, loss);
+    const costs = [];
+    for (let L = NOW; L < TOT; L++) { let best = null; comps.forEach(c => { const T = this.sim(f, [{ lap: L, c }], S.sc, S.rain, loss); if (!best || T < best.T) best = { T, c }; }); costs.push({ L, ...best }); }
+    const minT = Math.min(stay, ...costs.map(c => c.T));
+    const opt = costs.reduce((a, b) => b.T < a.T ? b : a);
+    const wx = L => 40 + (L - NOW) / (TOT - 1 - NOW) * 570, wy = c => 194 - Math.min(c, 16) / 16 * 176;
+    const bandW = L => .3 + .09 * (L - NOW);
+    const curve = costs.map((c, i) => (i ? 'L' : 'M') + wx(c.L).toFixed(1) + ',' + wy(c.T - minT).toFixed(1)).join('');
+    const band = costs.map((c, i) => (i ? 'L' : 'M') + wx(c.L).toFixed(1) + ',' + wy(Math.max(0, c.T - minT - bandW(c.L))).toFixed(1)).join('') + [...costs].reverse().map(c => 'L' + wx(c.L).toFixed(1) + ',' + wy(c.T - minT + bandW(c.L)).toFixed(1)).join('') + 'Z';
+    const thr = 2.5;
+    let u0 = opt.L - 1; while (u0 - 1 >= NOW && costs[u0 - 1 - NOW].T - minT < thr) u0--;
+    let o1 = opt.L + 1; while (o1 + 1 < TOT && costs[o1 + 1 - NOW].T - minT < thr) o1++;
+    const zone = (a, b, fill, color, label) => ({ x: wx(a - .5), w: Math.max(0, wx(b + .5) - wx(a - .5)), lx: (wx(a - .5) + wx(b + .5)) / 2, fill, color, label });
+    const zones = [];
+    if (opt.L - 2 >= u0) zones.push(zone(Math.max(NOW, u0), opt.L - 2, 'rgba(255,181,71,.10)', AM, 'UNDERCUT'));
+    zones.push(zone(Math.max(NOW, opt.L - 1), Math.min(TOT - 1, opt.L + 1), 'rgba(111,211,232,.14)', CY, 'OPTIMAL'));
+    if (o1 >= opt.L + 2) zones.push(zone(opt.L + 2, o1, 'rgba(155,140,255,.10)', '#a99cff', 'OVERCUT'));
+    const win = {
+      zones, curve, band, opt: opt.L, optComp: opt.c, optX: wx(opt.L), optY: wy(0), nowX: wx(NOW),
+      stay: (stay - minT).toFixed(1), stayY: wy(stay - minT), stayTY: wy(stay - minT) - 5,
+      yt: [0, 4, 8, 12, 16].map(c => ({ y: wy(c), ty: wy(c) + 3, label: '+' + c })),
+      xt: [40, 44, 48, 52, 56].map(L => ({ x: wx(L), label: 'L' + L }))
+    };
+
+    // plans
+    const cand = [
+      { name: 'Stay out · ' + f.tyre + ' to flag', stops: [] },
+      { name: 'Pit L' + opt.L + ' → ' + opt.c, stops: [{ lap: opt.L, c: opt.c }] },
+      { name: 'Undercut L' + (NOW + 1) + ' → M', stops: [{ lap: NOW + 1, c: 'M' }] }
+    ];
+    if (S.sc) cand.push({ name: 'Pit under SC L40 → S', stops: [{ lap: 40, c: 'S' }] });
+    if (S.rain) cand.push({ name: 'Pit L47 → Inter', stops: [{ lap: 47, c: 'I' }] });
+    const uniq = []; cand.forEach(c => { const k = JSON.stringify(c.stops); if (!uniq.some(u => JSON.stringify(u.stops) === k)) uniq.push(c); });
+    const planT = uniq.map(p => this.sim(f, p.stops, S.sc, S.rain, loss));
+    const bestT = Math.min(...planT);
+    const sel = S.plan == null || S.plan >= uniq.length ? planT.indexOf(bestT) : S.plan;
+    const plans = uniq.map((p, i) => {
+      const T = planT[i]; const sl = p.stops.length ? p.stops[0].lap : TOT;
+      const conf = Math.max(.35, .9 - .01 * (sl - NOW) - (S.rain ? .18 : 0) - (S.sc ? .08 : 0) - (p.stops.length ? 0 : .04));
+      const fg = f.gap + (T - stay); const finish = 1 + others.filter(o => o.gap < fg).length;
+      const dl = T - bestT;
+      return { name: p.name, finish, delta: dl < .05 ? '±0.0' : '+' + dl.toFixed(1) + 's', dColor: dl < .05 ? CY : dl < 3 ? '#aeb5bf' : RD, range: ((1 - conf) * 8).toFixed(1) + 's', conf: Math.round(conf * 100), confO: .45 + conf * .55, isBest: T === bestT, bg: i === sel ? 'rgba(111,211,232,.08)' : 'transparent', ring: i === sel ? CY : '#3a414a', dot: i === sel ? CY : 'transparent', onClick: () => this.setState({ plan: i }) };
+    });
+    const selStops = uniq[sel].stops;
+
+    // ghost
+    const gl = S.sc ? loss * .52 : loss; const rg = f.gap + gl;
+    const ahead = others.filter(o => o.gap < rg), behind = others.filter(o => o.gap >= rg);
+    const A = ahead[ahead.length - 1], B = behind[0];
+    const mA = A ? rg - A.gap : 99, mB = B ? B.gap - rg : 99; const sig = .6;
+    const gprob = Math.round(Math.max(.35, Math.min(.95, .5 + Math.min(mA, mB) / sig * .3)) * 100);
+    const lo = rg - 6, span = 12;
+    const ghost = {
+      pos: ahead.length + 1, gap: '+' + rg.toFixed(1), sigma: sig.toFixed(1), prob: gprob,
+      line: 'Pit loss ' + gl.toFixed(1) + 's · ' + (A ? mA.toFixed(1) + 's behind ' + A.code : 'clear') + (B ? ' · ' + mB.toFixed(1) + 's ahead of ' + B.code : ''),
+      air: mA > 1.2 ? 'Clear air on exit' : 'Traffic on exit: in ' + (A ? A.code : '') + ' dirty air',
+      airColor: mA > 1.2 ? GR : AM,
+      left: (rg - lo) / span * 100, bandL: (rg - sig - lo) / span * 100, bandW: sig * 2 / span * 100,
+      cars: others.filter(o => o.gap > lo && o.gap < lo + span).map(o => { const lbl = o === A || o === B; return { code: lbl ? o.code : '', color: o.color, left: (o.gap - lo) / span * 100, gap: lbl ? '+' + o.gap.toFixed(1) : '', o: lbl ? 1 : .5 }; })
+    };
+
+    // alerts
+    const alerts = [];
+    const bh = D.dr[f.d + 1], ah = D.dr[f.d - 1];
+    if (bh) { const p = Math.max(.1, Math.min(.95, .95 - .17 * bh.int + (bh.age > f.age ? .05 : 0) + (S.sc ? .1 : 0))); alerts.push({ level: p > .6 ? 'HIGH' : 'MED', color: p > .6 ? RD : AM, bg: p > .6 ? 'rgba(255,90,79,.07)' : 'rgba(255,181,71,.06)', bd: p > .6 ? 'rgba(255,90,79,.35)' : 'rgba(255,181,71,.3)', title: 'Undercut threat · ' + bh.code + ' +' + bh.int.toFixed(1) + 's', body: bh.code + ' on ' + bh.tyre + ' ' + bh.age + ' laps. A stop this lap puts them ≈' + (2 * 1.3 - bh.int).toFixed(1) + 's ahead after two laps on fresh tyres.', prob: Math.round(p * 100) }); }
+    if (ah) { const gain = this.lt(f.tyre, f.age, NOW, f.d, false, false) - this.lt('M', 1, NOW, f.d, false, false); const p = Math.max(.1, Math.min(.9, .5 + (gain * 2 - f.int) * .25)); alerts.push({ level: 'OPP', color: CY, bg: 'rgba(111,211,232,.05)', bd: 'rgba(111,211,232,.3)', title: 'Undercut on ' + ah.code + ' · gap ' + f.int.toFixed(1) + 's', body: 'Fresh M worth ≈' + gain.toFixed(1) + 's/lap over the ' + f.tyre + ' ' + f.age + ' laps. Two laps gains ≈' + (gain * 2).toFixed(1) + 's against a ' + f.int.toFixed(1) + 's gap.', prob: Math.round(p * 100) }); }
+    if (S.rain) alerts.push({ level: 'WX', color: '#3a7fd9', bg: 'rgba(58,127,217,.07)', bd: 'rgba(58,127,217,.35)', title: 'Rain modelled from L48', body: 'Dry compounds lose up to 5s/lap. The Inter crossover is at L47–48.', prob: 62 });
+    else { const ageC = f.age + 11; alerts.push({ level: 'DEG', color: '#8b939e', bg: 'rgba(255,255,255,.02)', bd: '#1f242b', title: f.tyre + ' losing ≈' + ((this.lt(f.tyre, ageC, 0, 0) - this.lt(f.tyre, f.age, 0, 0))).toFixed(1) + 's by age ' + ageC, body: 'Degradation model fitted to ' + (f.age - 2) + ' clean laps. The confidence band widens past the measured range.', prob: 74 }); }
+
+    // deg chart
+    const dx = a => 40 + a / 40 * 352, dy = t => 194 - (t - 91) / 4.5 * 178;
+    const degComps = S.rain ? ['S', 'M', 'H', 'I'] : ['S', 'M', 'H'];
+    const curves = degComps.map(c => {
+      const [b, k1, k2] = D.P[c]; const pts = []; for (let a = 0; a <= 40; a += 2) pts.push([a, b + k1 * a + k2 * a * a + f.d * .045]);
+      const bw = a => .08 + .012 * a;
+      const d = pts.map((p, i) => (i ? 'L' : 'M') + dx(p[0]).toFixed(1) + ',' + dy(Math.min(p[1], 95.5)).toFixed(1)).join('');
+      const bd = pts.map((p, i) => (i ? 'L' : 'M') + dx(p[0]).toFixed(1) + ',' + dy(Math.min(p[1] + bw(p[0]), 95.5)).toFixed(1)).join('') + [...pts].reverse().map(p => 'L' + dx(p[0]).toFixed(1) + ',' + dy(Math.min(p[1] - bw(p[0]), 95.5)).toFixed(1)).join('') + 'Z';
+      const last = pts.filter(p => p[1] < 95.3).pop();
+      return { d, band: bd, color: TC[c], label: c, lx: dx(last[0]) + 4, ly: dy(last[1]) + 3 };
+    });
+    const cs = f.st[f.st.length - 1];
+    const dots = f.laps.filter(x => !x.flag && !x.out && x.l > 1).map(x => ({ x: dx(x.age), y: dy(x.t + .055 * (x.l - 1)), c: TC[x.c], o: x.l >= cs.s ? 1 : .3 })).filter(p => p.y > 10 && p.y < 196);
+    const deg = { curves, dots, nowX: dx(f.age), yt: [91, 92, 93, 94, 95].map(t => ({ y: dy(t), ty: dy(t) + 3, label: t.toFixed(0) })), xt: [0, 10, 20, 30, 40].map(a => ({ x: dx(a), label: a })) };
+
+    // telemetry
+    const ta = this.telFor(f.d), tb = this.telFor(fb.d);
+    const tx = i => 40 + i / (N - 1) * 850;
+    const line = (arr, fy) => arr.map((q, i) => (i ? 'L' : 'M') + tx(i).toFixed(1) + ',' + fy(q).toFixed(1)).join('');
+    const step = (arr, fy) => 'M' + tx(0).toFixed(1) + ',' + fy(arr[0]).toFixed(1) + arr.map((q, i) => 'H' + tx(i).toFixed(1) + 'V' + fy(q).toFixed(1)).join('');
+    const ySp = q => 132 - (q - 60) / 280 * 122, yTh = q => 184 - q / 100 * 42, yBr = q => 206 - q * 14, yGr = q => 262 - (q - 1) / 7 * 48;
+    const delta = ta.tm.map((t, i) => t - tb.tm[i]);
+    const dmax = Math.max(.2, Math.ceil(Math.max(...delta.map(Math.abs)) * 10) / 10);
+    const yDl = q => 305 - q / dmax * 30;
+    const paths = [
+      { d: line(tb.vv, ySp), c: cB, w: 1.4, dash: '4 3' }, { d: line(ta.vv, ySp), c: cA, w: 1.8, dash: 'none' },
+      { d: line(tb.th, yTh), c: cB, w: 1.2, dash: '4 3' }, { d: line(ta.th, yTh), c: cA, w: 1.5, dash: 'none' },
+      { d: step(tb.br, q => yBr(q) + 1), c: cB, w: 1.2, dash: '4 3' }, { d: step(ta.br, yBr), c: cA, w: 1.5, dash: 'none' },
+      { d: step(tb.gr, yGr), c: cB, w: 1.2, dash: '4 3' }, { d: step(ta.gr, yGr), c: cA, w: 1.5, dash: 'none' },
+      { d: line(delta, yDl), c: '#e4e7eb', w: 1.6, dash: 'none' }
+    ];
+    const ci = S.cur;
+    const tel = {
+      cA, cB, paths, zeroY: yDl(0),
+      drs: D.drs.map(r => ({ x: tx(r[0]), w: tx(r[1]) - tx(r[0]), lx: (tx(r[0]) + tx(r[1])) / 2 })),
+      lanes: [{ y: 132, ty: 20, label: 'KM/H' }, { y: 184, ty: 150, label: 'THR %' }, { y: 206, ty: 200, label: 'BRK' }, { y: 262, ty: 222, label: 'GEAR' }, { y: 335, ty: 290, label: 'Δ ' + dmax.toFixed(1) + 's' }],
+      secs: [{ x: tx(D.S1), lx: tx(D.S1 / 2), label: 'S1' }, { x: tx(D.S2), lx: tx((D.S1 + D.S2) / 2), label: 'S2' }],
+      hasCur: ci != null, curX: ci != null ? tx(ci) : 0,
+      readout: ci != null ? (Math.round(ci * 5300 / N) + ' m · ' + Math.round(ta.vv[ci]) + ' / ' + Math.round(tb.vv[ci]) + ' km/h · G' + ta.gr[ci] + '/' + tb.gr[ci] + ' · Δ ' + (delta[ci] >= 0 ? '+' : '') + delta[ci].toFixed(3) + 's') : 'Δ at line ' + (delta[N - 1] >= 0 ? '+' : '') + delta[N - 1].toFixed(3) + 's · hover to scrub',
+      onMove: e => { const r = e.currentTarget.getBoundingClientRect(); const x = (e.clientX - r.left) / r.width * 900; const i = Math.round((x - 40) / 850 * (N - 1)); this.setState({ cur: Math.max(0, Math.min(N - 1, i)) }); },
+      onLeave: () => this.setState({ cur: null })
+    };
+
+    // lap chart
+    const lx = l => 44 + (l - 1) / (TOT - 1) * 846, lo2 = 89.6, hi2 = 95.4;
+    const ly = t => 16 + (hi2 - Math.max(lo2, Math.min(hi2, t))) / (hi2 - lo2) * 300;
+    const lpath = x => x.laps.map((q, i) => (i ? 'L' : 'M') + lx(q.l).toFixed(1) + ',' + ly(q.t).toFixed(1)).join('');
+    const pl = this.sim(f, selStops, S.sc, S.rain, loss, true);
+    const lbw = k => .12 + .035 * k;
+    const lastA = f.laps[f.laps.length - 1];
+    const pred = 'M' + lx(lastA.l).toFixed(1) + ',' + ly(lastA.t).toFixed(1) + pl.map(q => 'L' + lx(q.L).toFixed(1) + ',' + ly(q.t).toFixed(1)).join('');
+    const lband = pl.map((q, k) => (k ? 'L' : 'M') + lx(q.L).toFixed(1) + ',' + ly(q.t - lbw(k)).toFixed(1)).join('') + [...pl].reverse().map((q, k) => 'L' + lx(q.L).toFixed(1) + ',' + ly(q.t + lbw(pl.length - 1 - k)).toFixed(1)).join('') + 'Z';
+    const pits = [...f.pits.map(l => ({ l, c: cA })), ...fb.pits.map(l => ({ l, c: cB })), ...selStops.map(s => ({ l: s.lap, c: CY }))].map(p => ({ x: lx(p.l), rx: lx(p.l) - 4, ry: 20, c: p.c }));
+    const lapc = {
+      a: lpath(f), b: lpath(fb), pred, band: lband, pits, nowX: lx(NOW - .5),
+      scX: lx(26.5), scW: lx(29.5) - lx(26.5), scLX: lx(28),
+      hasWhatIfSc: S.sc, sc2X: lx(39.5), sc2W: lx(42.5) - lx(39.5), sc2LX: lx(41),
+      futX: lx(NOW - .5), futW: lx(TOT) - lx(NOW - .5),
+      yt: [90, 91, 92, 93, 94, 95].map(t => ({ y: ly(t), ty: ly(t) + 3, label: '1:' + (t - 60).toFixed(0) })),
+      xt: [1, 10, 20, 30, 40, 50, 57].map(l => ({ x: lx(l), label: l }))
+    };
+
+    // gantt
+    const gp = l => (l - 1) / TOT * 100;
+    const pat = c => 'repeating-linear-gradient(135deg,' + c + '66 0 2px,transparent 2px 6px)';
+    const gantt = {
+      now: gp(NOW + .5), ticks: [1, 10, 20, 30, 40, 50, 57].map(l => ({ left: gp(l + .5), label: l })),
+      rows: D.dr.map(x => {
+        const stints = x.st.map((s, k) => ({ left: gp(s.s), w: (s.e - s.s + 1) / TOT * 100, bg: TC[s.c], bd: 'none', fg: '#0b0d10', label: s.c + ' ' + (s.e - s.s + 1) }));
+        const cur = x.st[x.st.length - 1]; const pits = x.pits.map(l => ({ left: gp(l + 1), c: '#e4e7eb' }));
+        let fut;
+        if (x.d === f.d) fut = selStops;
+        else fut = cur.c === 'H' && cur.s <= 19 ? [{ lap: 44, c: 'S' }] : [];
+        let from = NOW + 1, comp = cur.c;
+        fut.forEach(s => { stints.push({ left: gp(from), w: (s.lap - from + 1) / TOT * 100, bg: pat(TC[comp]), bd: '1px dashed ' + TC[comp], fg: TC[comp], label: '' }); pits.push({ left: gp(s.lap + 1), c: CY }); from = s.lap + 1; comp = s.c; });
+        stints.push({ left: gp(from), w: (TOT - from + 1) / TOT * 100, bg: pat(TC[comp]), bd: '1px dashed ' + TC[comp], fg: TC[comp], label: fut.length ? '≈' + comp : '' });
+        return { code: x.code, color: x.color, stints, pits, bg: x.d === f.d ? 'rgba(111,211,232,.06)' : 'transparent' };
+      })
+    };
+
+    // sectors
+    const SCOL = { P: PU, G: GR, Y: YE };
+    const trapMax = [0, 1, 2, 3].map(k => Math.max(...D.sector.map(s => s.traps[k])));
+    const sectors = D.dr.map((x, i) => ({
+      code: x.code, color: x.color, bg: x.d === f.d || x.d === fb.d ? 'rgba(255,255,255,.05)' : 'transparent',
+      secs: D.sector[i].secs.map(s => ({ t: s.t, c: SCOL[s.st] })),
+      minis: D.sector[i].minis.map((m, k) => ({ c: SCOL[m], ml: k && k % 8 === 0 ? 4 : 0, o: m === 'Y' ? .55 : 1 })),
+      traps: D.sector[i].traps.map((v, k) => ({ v, c: v === trapMax[k] ? PU : '#aeb5bf' }))
+    }));
+
+    const maxSt = Math.max(...D.stops.map(s => s.stat));
+    const stops = D.stops.slice(0, 12).map((s, i) => { const x = D.dr[s.d]; return { rank: i + 1, code: x.code, color: x.color, lap: s.lap, stat: s.stat.toFixed(2), lane: s.lane.toFixed(1), w: s.stat / maxSt * 100, bar: i === 0 ? PU : '#3a414a', sc: i === 0 ? PU : '#e4e7eb' }; });
+    if (!stops.some(s => s.code === 'SAL')) { const s = D.stops[D.stops.length - 1]; stops.push({ rank: D.stops.length, code: 'SAL', color: D.dr[s.d].color, lap: s.lap, stat: s.stat.toFixed(2), lane: s.lane.toFixed(1), w: 100, bar: RD, sc: RD }); }
+
+    const feedAll = [
+      { lap: 38, kind: 'FLAG', text: 'YELLOW FLAG SECTOR 2 · CAR 23 (PEL) SLOW AT TURN 9' },
+      { lap: 38, kind: 'RADIO', who: 'ALV', text: '“Rears are starting to go. How long on this set?”' },
+      { lap: 38, kind: 'RADIO', who: 'ALV · ENG', text: '“Copy. Plan A holds. DUV is 1.4 behind, keep the gap.”' },
+      { lap: 37, kind: 'OVT', who: 'DUV', text: 'Passes HEN for P4 · Turn 1 · DRS' },
+      { lap: 36, kind: 'RC', text: 'CAR 11 (NAK) TIME DELETED LAP 35 · TRACK LIMITS TURN 4' },
+      { lap: 35, kind: 'RADIO', who: 'KAT · ENG', text: '“Pace is good. Box window opens in five.”' },
+      { lap: 33, kind: 'RC', text: 'INCIDENT TURN 12 · BRU / FIS · NOTED' },
+      { lap: 32, kind: 'RADIO', who: 'HEN', text: '“These tyres have nothing left.”' },
+      { lap: 31, kind: 'OVT', who: 'OKO', text: 'Passes SAL for P7 · Turn 12' },
+      { lap: 30, kind: 'RC', text: 'DRS ENABLED' },
+      { lap: 29, kind: 'FLAG', text: 'SAFETY CAR IN THIS LAP' },
+      { lap: 28, kind: 'PIT', text: 'HEN, BRU, LIM, TAN, ORT, QUI, YAM, GRA pit under SC' },
+      { lap: 27, kind: 'FLAG', text: 'SAFETY CAR DEPLOYED · DEBRIS TURN 6' }
+    ];
+    const KC = { FLAG: '#f5d020', RADIO: '#9bb3d1', OVT: GR, RC: '#8b939e', PIT: '#e4e7eb' };
+    const byCode = c => D.dr.find(x => x.code === c);
+    const match = { ALL: () => true, RC: k => k === 'RC' || k === 'FLAG' || k === 'PIT', RADIO: k => k === 'RADIO', OVT: k => k === 'OVT' };
+    const feed = feedAll.filter(x => match[S.feed](x.kind)).map(x => { const dd = x.who && byCode(x.who.split(' ')[0]); return { ...x, kc: KC[x.kind], hasWho: !!x.who, who: x.who || '', wc: dd ? dd.color : '#5b636e', tc: x.kind === 'RADIO' ? '#e4e7eb' : '#c3c9d1' }; });
+    const feedTabs = ['ALL', 'RC', 'RADIO', 'OVT'].map(k => ({ label: k, bg: S.feed === k ? '#e4e7eb' : 'transparent', fg: S.feed === k ? '#0b0d10' : '#8b939e', onClick: () => this.setState({ feed: k }) }));
+
+    const tog = (label, on, key) => ({ label, onClick: () => this.setState(s => ({ [key]: !s[key], plan: null })), bg: on ? 'rgba(111,211,232,.12)' : 'transparent', bd: on ? CY : '#2a3038', fg: on ? CY : '#8b939e', dot: on ? CY : 'transparent' });
+    const toggles = [tog('SC L40–42', S.sc, 'sc'), tog('RAIN L48+', S.rain, 'rain')];
+
+    const spark = (arr, color, label, val) => { const mn = Math.min(...arr), mx = Math.max(...arr); return { label, val, color, path: arr.map((q, i) => (i ? 'L' : 'M') + (i / (arr.length - 1) * 100).toFixed(1) + ',' + (22 - (q - mn) / (mx - mn || 1) * 20).toFixed(1)).join('') }; };
+    const W = D.wx, lastv = a => a[a.length - 1];
+    const weather = [spark(W.air, '#c3c9d1', 'Air', lastv(W.air).toFixed(1) + '°C'), spark(W.trk, AM, 'Track', lastv(W.trk).toFixed(1) + '°C'), spark(W.wind, '#9bb3d1', 'Wind', lastv(W.wind).toFixed(1) + ' m/s NW'), spark(W.rain, '#3a7fd9', 'Rain', Math.round(lastv(W.rain)) + '%')];
+
+    const pts = D.pts; const seg = (a, b) => 'M' + pts.slice(a, b + 1).map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join('L');
+    const lab = (i, l, c, tc) => { const p = pts[i], q = pts[(i + 3) % N]; const nx = -(q[1] - p[1]), ny = q[0] - p[0]; const n = Math.hypot(nx, ny) || 1; return { lx: p[0] + nx / n * 20, ly: p[1] + ny / n * 20 + 4, label: l, color: c, tc }; };
+    const track = {
+      d: 'M' + pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join('L') + 'Z',
+      sectors: [{ d: seg(0, D.S1), ...lab(65, 'S1', '#5b636e', '#8b939e') }, { d: seg(D.S1, D.S2), ...lab(200, 'S2', '#f5d020', '#f5d020') }, { d: seg(D.S2, N - 1) + 'L' + pts[0].join(','), ...lab(335, 'S3', '#5b636e', '#8b939e') }],
+      drs: D.drs.map(r => ({ d: seg(r[0], r[1]) })), sfx: pts[0][0] - 2, sfy: pts[0][1] - 8
+    };
+
+    return { rows, win, plans, ghost, alerts, deg, tel, lapc, gantt, sectors, stops, feed, feedTabs, toggles, weather, track,
+      fA: { code: f.code, color: f.color, pos: f.d + 1, tyre: f.tyre, age: f.age }, fB: { code: fb.code },
+      compLegend: [{ label: 'SOFT', color: TC.S }, { label: 'MEDIUM', color: TC.M }, { label: 'HARD', color: TC.H }] };
+  }
+
+  renderVals() {
+    const S = this.state, loss = this.props.pitLoss ?? 21.4, minis = this.props.showMinis ?? true, live = this.props.live ?? true;
+    const key = [S.a, S.b, S.sc, S.rain, S.plan, loss, S.cur, S.feed, minis].join('|');
+    if (key !== this._k) {
+      this._k = key; this._v = this.compute(loss);
+      if (!minis) this._v.sectors = this._v.sectors.map(r => ({ ...r, minis: [] }));
+    }
+    const D = this.D, N = D.N;
+    const order = [...D.dr].sort((x, y) => (x.d === S.a ? 2 : x.d === S.b ? 1 : 0) - (y.d === S.a ? 2 : y.d === S.b ? 1 : 0));
+    const dots = order.map(x => {
+      const pr = ((S.phase - x.gap / 89) % 1 + 1) % 1; const p = D.pts[Math.floor(pr * N) % N];
+      const isA = x.d === S.a, isB = x.d === S.b, lead = x.d < 3;
+      return { x: p[0].toFixed(1), y: p[1].toFixed(1), color: x.color, ring: isA || isB ? 10 : 0, ringColor: isA ? '#e4e7eb' : '#7d8692', label: isA || isB || lead ? x.code : '', tc: isA ? '#ffffff' : '#aeb5bf' };
+    });
+    const t = 3734 + S.clock; const h = Math.floor(t / 3600), m = Math.floor(t % 3600 / 60), s = Math.floor(t % 60);
+    return { ...this._v, dots, clock: h + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0'), liveLabel: live ? '● LIVE' : 'PAUSED', miniHead: minis ? 'MINI-SECTORS 1–24' : '' };
+  }
+}
+</script>
+</body>
+</html>
