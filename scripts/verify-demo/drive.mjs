@@ -5,6 +5,8 @@
 //   wait-text:<text>             wait (30s) until visible text contains <text>
 //   wait-gone:<text>             wait (30s) until no visible element has exactly <text>
 //   goto:<path-or-query>         navigate to <url><arg>, e.g. goto:?session=9839&lap=20&a=1&b=4 (deep links)
+//   dots:<name> writes each track-map car position to <name>.dots.json.
+//   key:<key>                    press a key; reload reloads the current URL; assert-url:<s> checks the URL contains s.
 //   click:<target>               click it; shift-click:<target> holds Shift. <target> is css=<selector>,
 //                                or an exact accessible name (button, then aria-label, then visible text)
 //   fill:<label>:<value>         set an input by aria-label (range sliders too), e.g. fill:Lap scrubber:20
@@ -125,6 +127,9 @@ async function run(step) {
     case "wait":
       await page.waitForTimeout(Number(arg));
       return;
+    case "reload":
+      await page.reload({ waitUntil: "domcontentloaded" });
+      return;
     case "key":
       await page.keyboard.press(arg);
       return;
@@ -174,6 +179,13 @@ async function run(step) {
     case "shot":
       await page.screenshot({ path: join(out, `${arg}.png`), fullPage: true });
       return;
+    case "dots": {
+      const dots = await page.$$eval("svg[aria-label='Track map'] g[data-car]", (gs) =>
+        Object.fromEntries(gs.map((g) => [g.dataset.car, (g.style.transform.match(/-?[\d.]+/g) ?? []).map(Number)])),
+      );
+      writeFileSync(join(out, `${arg}.dots.json`), JSON.stringify({ t: Date.now(), dots }));
+      return;
+    }
     case "aria":
       writeFileSync(join(out, `${arg}.aria.yml`), await body.ariaSnapshot());
       return;
