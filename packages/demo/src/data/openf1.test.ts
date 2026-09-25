@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { asSessionKey, createGate, openF1Url, OpenF1Error } from "./openf1";
+import { asSessionKey, createGate, openF1Url, OpenF1Error, OpenF1LockedError } from "./openf1";
 
 const SK = asSessionKey(9839);
 type Reply = { status: number; body?: unknown; retryAfter?: string } | "network";
+const LIVE_401 = { status: 401, body: { detail: "Live F1 session in progress. Global API access (including past sessions) is restricted" } };
 
 function harness(replies: Reply[]) {
   let clock = 0;
@@ -28,9 +29,13 @@ function harness(replies: Reply[]) {
     perMinute: 3,
     maxRetries: 2,
     backoffMs: 1000,
+    lockProbeMs: 60_000,
   });
+  const advance = (ms: number) => {
+    clock += ms;
+  };
   const flushDeferred = () => deferred.splice(0).forEach((fn) => fn());
-  return { gate, calls, flushDeferred };
+  return { gate, calls, flushDeferred, advance };
 }
 
 const path = (url: string) => url.replace("https://api.openf1.org/v1/", "");
@@ -78,7 +83,7 @@ describe("createGate", () => {
   });
 
   it("gives up after maxRetries and lets the next call start fresh", async () => {
-    const { gate, calls } = harness([{ status: 429 }, "network", { status: 429 }, { status: 200, body: [1] }]);
+    const { gate, calls } = harness([{ status: 429 }, { status: 429 }, { status: 429 }, { status: 200, body: [1] }]);
     await expect(gate.get("pit", SK)).rejects.toBeInstanceOf(OpenF1Error);
     expect(await gate.get("pit", SK)).toEqual([1]);
     expect(calls).toHaveLength(4);
@@ -113,4 +118,26 @@ describe("createGate", () => {
     const { gate } = harness([{ status: 404, body: { detail: "No results found." } }]);
     expect(await gate.get("team_radio", SK)).toEqual([]);
   });
+
+  it("a live-session 401 locks the gate: queued work fails without fetching, one probe per minute", async () => {
+    const { gate, calls, advance } = harness([LIVE_401, LIVE_401, { status: 200, body: [9] }]);
+    const [a, b] = await Promise.allSettled([gate.get("drivers", SK), gate.get("laps", SK)]);
+    expect(a).toMatchObject({ status: "rejected", reason: { name: "OpenF1LockedError", inferred: false } });
+    expect(b).toMatchObject({ status: "rejected", reason: { name: "OpenF1LockedError" } });
+    await expect(gate.get("laps", SK)).rejects.toBeInstanceOf(OpenF1LockedError);
+    expect(calls).toHaveLength(1);
+    advance(60_000);
+    await expect(gate.get("laps", SK)).rejects.toBeInstanceOf(OpenF1LockedError);
+    advance(60_000);
+    expect(await gate.get("laps", SK)).toEqual([9]);
+    expect(calls).toHaveLength(3);
+  });
+
+  it("in the browser the lockout is a CORS-less network failure: a second one in a row infers the lock", async () => {
+    const { gate, calls } = harness(["network", "network"]);
+    await expect(gate.get("sessions" as "laps", SK)).rejects.toMatchObject({ name: "OpenF1LockedError", inferred: true });
+    await expect(gate.get("pit", SK)).rejects.toBeInstanceOf(OpenF1LockedError);
+    expect(calls).toHaveLength(2);
+  });
 });
+

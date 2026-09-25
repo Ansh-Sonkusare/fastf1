@@ -107,6 +107,19 @@ describe("stop count", () => {
     expect({ NOR: end(4), BEA: end(87), OCO: end(31), LAW: end(30) }).toEqual({ NOR: 2, BEA: 3, OCO: 3, LAW: 2 });
     expect(stops(aus, 1)(30)).toBe(0);
   });
+  it("a lapped car's stops count to its own lap (N1)", () => {
+    const aus = australia as unknown as Full;
+    expect([stops(aus, 33)(5), stops(aus, 33)(30), stops(aus, 44)(81), stops(aus, 44)(87)]).toEqual([0, 1, 1, 2]);
+    expect(stops(zandvoort as unknown as Full, 51)(55)).toBe(2);
+  });
+  it("a pass-lap row without stop_duration counts only with a compound change (N3)", () => {
+    const aus = australia as unknown as Full;
+    const changed = aus.stints.map((x) =>
+      x.driver_number === 4 && x.lap_start === 4 ? { ...x, compound: "HARD" } : x,
+    );
+    expect(stops(aus, 57)(4)).toBe(2);
+    expect(stops({ ...aus, stints: changed }, 57)(4)).toBe(3);
+  });
   it("Vegas 9858: RUS stopped once", () => {
     expect(stops(vegas as unknown as Full, 50)(63)).toBe(1);
   });

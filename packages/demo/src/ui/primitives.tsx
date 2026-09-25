@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
+import { isLocked } from "../data/openf1";
 import type { Async } from "../data/useOpenF1";
 import { formatEstimate, type Estimate } from "./format";
 import { color, font, predictedHatch, predictedHatchFaint, type } from "./tokens";
@@ -139,6 +140,7 @@ export function AsyncView<T>({
     <div style={{ padding: 16, font: type.label, letterSpacing: ".06em", color: tone }}>{text}</div>
   );
   if (state.status === "loading") return note("LOADING…");
+  if (state.status === "error" && isLocked(state.error)) return <LockedNote />;
   if (state.status === "error")
     return (
       <div style={{ padding: 16, display: "flex", gap: 10, alignItems: "center", font: type.label, color: color.red }}>
@@ -161,3 +163,14 @@ export const retryStyle = {
   font: type.label,
   cursor: "pointer",
 } as const;
+
+export const LOCKED_MESSAGE = "OpenF1 is locked while a live F1 session runs. Past-race data returns when it ends.";
+
+/** Shown in place of panel content while OpenF1 is locked. The page re-probes every minute. */
+export function LockedNote() {
+  return (
+    <div role="status" style={{ padding: 16, font: type.label, letterSpacing: ".04em", lineHeight: 1.5, color: color.amber }}>
+      {LOCKED_MESSAGE}
+    </div>
+  );
+}

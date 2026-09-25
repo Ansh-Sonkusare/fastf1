@@ -1,12 +1,13 @@
+import type { Race } from "@f1/core";
 import { useF1Schedule } from "@f1/react";
 import { useEffect, useMemo, useReducer, useState, type ReactNode } from "react";
 import type { DemoInitialData } from "../data/initial";
-import { getRaceSessions } from "../data/openf1";
+import { getRaceSessions, isLocked } from "../data/openf1";
 import { combine, useAsync, useOpenF1 } from "../data/useOpenF1";
 import { PANELS, type PanelSlot as Slot } from "../panels/registry";
 import { buildTower } from "../panels/tower/shape";
 import { formatClock } from "../ui/format";
-import { Label } from "../ui/primitives";
+import { Label, LockedNote, PanelFrame } from "../ui/primitives";
 import { PanelSlot } from "./PanelSlot";
 import { color, font, type } from "../ui/tokens";
 import { formatDeepLink, parseDeepLink } from "./deepLink";
@@ -41,6 +42,24 @@ export function Console({ initialData }: { initialData?: DemoInitialData }) {
   const [sessionKey, setSessionKey] = useState<number | null>(link.session);
   const session = sessions.find((s) => s.sessionKey === sessionKey) ?? sessions.at(-1);
 
+  const drawer = (round: number, close: () => void, pick?: (round: number) => void) => (
+    <SeasonDrawer
+      year={YEAR}
+      schedule={schedule}
+      round={round}
+      initialData={initialData}
+      onPickRound={(r) => {
+        pick?.(r);
+        close();
+      }}
+      onClose={close}
+    />
+  );
+
+  if (rawSessions.status === "error" && isLocked(rawSessions.error)) {
+    const today = new Date().toISOString().slice(0, 10);
+    return <LockedConsole races={(schedule?.Races ?? []).filter((r) => r.date < today)} drawer={drawer} />;
+  }
   if (rawSessions.status === "error")
     return (
       <Fullscreen tone={color.red}>
@@ -58,20 +77,12 @@ export function Console({ initialData }: { initialData?: DemoInitialData }) {
       sessions={sessions}
       link={session.sessionKey === link.session ? link : NO_LINK}
       onSession={setSessionKey}
-      drawer={(close) => (
-        <SeasonDrawer
-          year={YEAR}
-          schedule={schedule}
-          round={session.round ?? initialData?.latestRound ?? 1}
-          initialData={initialData}
-          onPickRound={(round) => {
-            const next = sessions.find((s) => s.round === round);
-            if (next) setSessionKey(next.sessionKey);
-            close();
-          }}
-          onClose={close}
-        />
-      )}
+      drawer={(close) =>
+        drawer(session.round ?? initialData?.latestRound ?? 1, close, (round) => {
+          const next = sessions.find((s) => s.round === round);
+          if (next) setSessionKey(next.sessionKey);
+        })
+      }
     />
   );
 }
@@ -153,36 +164,22 @@ function SessionConsole({
     focus: state.focus,
     drivers: derived.drivers,
     lapWindow,
-    ownLapOf: (driver, lap) => ownLap(derived.crossings, derived.timeline, driver, lap),
-    lapWindowOf: (driver, lap) => driverLapWindow(derived.crossings, derived.timeline, driver, lap),
-    lapBlockOf: (driver, lap) => driverLapBlock(derived.crossings, derived.timeline, driver, lap),
+    ownLapOf: (driver, lap) => ownLap(derived.crossings, driver, lap),
+    lapWindowOf: (driver, lap) => driverLapWindow(derived.crossings, driver, lap),
+    lapBlockOf: (driver, lap) => driverLapBlock(derived.crossings, driver, lap),
     setFocus: (focus) => dispatch({ type: "focus", focus }),
   };
 
   return (
     <div style={{ minWidth: 1600, padding: 10, display: "flex", flexDirection: "column", gap: 10 }}>
-      <header
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 22,
-          padding: "10px 16px",
-          background: color.panel,
-          border: `1px solid ${color.border}`,
-          borderRadius: 4,
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-          <span style={{ fontWeight: 700, fontSize: 21, letterSpacing: ".16em" }}>PITWALL</span>
-          <span style={{ font: type.label, letterSpacing: ".1em", color: color.label }}>STRATEGY CONSOLE</span>
-        </div>
-        <div style={{ width: 1, alignSelf: "stretch", background: color.border }} />
+      <header style={headerStyle}>
+        <Wordmark />
         <Stat label="Session">
           <select
             aria-label="Session"
             value={session.sessionKey}
             onChange={(e) => onSession(Number(e.target.value))}
-            style={{ fontSize: 15, fontWeight: 600, fontFamily: font.sans, background: "transparent", color: color.text, border: "none", padding: 0, cursor: "pointer" }}
+            style={selectStyle}
           >
             {sessions.map((s) => (
               <option key={s.sessionKey} value={s.sessionKey} style={{ background: color.panel }}>
@@ -229,29 +226,86 @@ function SessionConsole({
           SEASON
         </button>
       </header>
-      {base.status === "error" && <Fullscreen tone={color.red}>OpenF1 failed · {base.error.message}</Fullscreen>}
-      {!props && base.status === "loading" && <Fullscreen>LOADING SESSION…</Fullscreen>}
-      {props && (
-        <>
-          <div style={{ display: "grid", gridTemplateColumns: "440px minmax(0,1fr) 420px", gap: 10 }}>
-            <SlotView slot="top-left" props={props} />
-            <SlotView slot="top-center" props={props} />
-            <div style={{ display: "flex", flexDirection: "column", gap: 10, minWidth: 0 }}>
-              <SlotView slot="top-right" props={props} />
-            </div>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 10 }}>
-            <SlotView slot="mid-left" props={props} />
-            <SlotView slot="mid-right" props={props} />
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.25fr) minmax(0,1.15fr) minmax(0,.6fr)", gap: 10 }}>
-            <SlotView slot="bottom-left" props={props} />
-            <SlotView slot="bottom-center" props={props} />
-            <SlotView slot="bottom-right" props={props} />
-          </div>
-        </>
+      {base.status === "error" && isLocked(base.error) && <LockedNote />}
+      {base.status === "error" && !isLocked(base.error) && (
+        <Fullscreen tone={color.red}>OpenF1 failed · {base.error.message}</Fullscreen>
       )}
+      {!props && base.status === "loading" && <Fullscreen>LOADING SESSION…</Fullscreen>}
+      {props && <PanelGrid render={(slot) => <SlotView slot={slot} props={props} />} />}
       {drawerOpen && drawer(() => setDrawerOpen(false))}
+    </div>
+  );
+}
+
+/** The reference grid; `render` fills each slot. */
+function PanelGrid({ render }: { render: (slot: Slot) => ReactNode }) {
+  return (
+    <>
+      <div style={{ display: "grid", gridTemplateColumns: "440px minmax(0,1fr) 420px", gap: 10 }}>
+        {render("top-left")}
+        {render("top-center")}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, minWidth: 0 }}>{render("top-right")}</div>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 10 }}>
+        {render("mid-left")}
+        {render("mid-right")}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.25fr) minmax(0,1.15fr) minmax(0,.6fr)", gap: 10 }}>
+        {render("bottom-left")}
+        {render("bottom-center")}
+        {render("bottom-right")}
+      </div>
+    </>
+  );
+}
+
+/**
+ * OpenF1 is locked (live session): no session keys, so no panel data. Everything Jolpica-backed
+ * still works: the race list and the season drawer. Panels keep their frames and say why.
+ */
+function LockedConsole({
+  races,
+  drawer,
+}: {
+  races: readonly Race[];
+  drawer: (round: number, close: () => void) => ReactNode;
+}) {
+  const [round, setRound] = useState(Number(races.at(-1)?.round ?? 1));
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  return (
+    <div style={{ minWidth: 1600, padding: 10, display: "flex", flexDirection: "column", gap: 10 }}>
+      <header style={headerStyle}>
+        <Wordmark />
+        <Stat label="Session">
+          <select aria-label="Session" value={round} onChange={(e) => setRound(Number(e.target.value))} style={selectStyle}>
+            {races.map((r) => (
+              <option key={r.round} value={r.round} style={{ background: color.panel }}>
+                Round {r.round} · {r.raceName} · Race
+              </option>
+            ))}
+          </select>
+        </Stat>
+        <Stat label="Lap">
+          <span style={{ font: type.big, color: color.dim }}>—</span>
+        </Stat>
+        <div aria-label="Track status" style={{ ...pillStyle, background: color.amber, color: color.bg }}>
+          OPENF1 LOCKED · LIVE SESSION
+        </div>
+        <div style={{ flex: 1 }} />
+        <button type="button" onClick={() => setDrawerOpen(true)} style={buttonStyle}>
+          SEASON
+        </button>
+      </header>
+      <PanelGrid
+        render={(slot) =>
+          PANELS.filter((p) => p.slot === slot).map((p) => (
+            <PanelFrame key={p.num} num={p.num} title={p.title}>
+              <LockedNote />
+            </PanelFrame>
+          ))
+        }
+      />
+      {drawerOpen && drawer(round, () => setDrawerOpen(false))}
     </div>
   );
 }
@@ -287,22 +341,7 @@ const flagColors: Record<FlagKind, { bg: string; fg: string }> = {
 function FlagPill({ kind, label }: { kind: FlagKind; label: string }) {
   const c = flagColors[kind];
   return (
-    <div
-      aria-label="Track status"
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
-        padding: "6px 10px",
-        background: c.bg,
-        color: c.fg,
-        borderRadius: 3,
-        font: `700 12px/1 ${font.mono}`,
-        letterSpacing: ".06em",
-        whiteSpace: "nowrap",
-        flexShrink: 0,
-      }}
-    >
+    <div aria-label="Track status" style={{ ...pillStyle, background: c.bg, color: c.fg }}>
       <span style={{ width: 8, height: 8, background: c.fg, borderRadius: "50%" }} />
       {label}
     </div>
@@ -314,3 +353,48 @@ function Fullscreen({ children, tone = color.dim }: { children: ReactNode; tone?
 }
 
 const stepStyle = { ...buttonStyle, padding: "4px 8px" } as const;
+
+const headerStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: 22,
+  padding: "10px 16px",
+  background: color.panel,
+  border: `1px solid ${color.border}`,
+  borderRadius: 4,
+} as const;
+
+const selectStyle = {
+  fontSize: 15,
+  fontWeight: 600,
+  fontFamily: font.sans,
+  background: "transparent",
+  color: color.text,
+  border: "none",
+  padding: 0,
+  cursor: "pointer",
+} as const;
+
+const pillStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: 8,
+  padding: "6px 10px",
+  borderRadius: 3,
+  font: `700 12px/1 ${font.mono}`,
+  letterSpacing: ".06em",
+  whiteSpace: "nowrap",
+  flexShrink: 0,
+} as const;
+
+function Wordmark() {
+  return (
+    <>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+        <span style={{ fontWeight: 700, fontSize: 21, letterSpacing: ".16em" }}>PITWALL</span>
+        <span style={{ font: type.label, letterSpacing: ".1em", color: color.label }}>STRATEGY CONSOLE</span>
+      </div>
+      <div style={{ width: 1, alignSelf: "stretch", background: color.border }} />
+    </>
+  );
+}

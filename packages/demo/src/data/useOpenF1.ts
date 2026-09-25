@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   gate,
+  isLocked,
   openF1Url,
   type OpenF1Endpoint,
   type OpenF1Filters,
@@ -14,10 +15,12 @@ export type Async<T> =
   | { readonly status: "ok"; readonly data: T };
 
 const LOADING: Async<never> = { status: "loading" };
+export const LOCK_REPROBE_MS = 60_000;
 
 /**
  * Promise -> Async state, keyed. `key === null` stays loading (e.g. waiting on a dependency).
  * Changing the key or unmounting aborts the previous load, which drops it from the gate's queue.
+ * A locked OpenF1 (live session) re-probes on its own every minute, so the page recovers when it ends.
  */
 export function useAsync<T>(key: string | null, load: (signal: AbortSignal) => Promise<T>): Async<T> {
   const [attempt, setAttempt] = useState(0);
@@ -25,8 +28,12 @@ export function useAsync<T>(key: string | null, load: (signal: AbortSignal) => P
   useEffect(() => {
     if (key === null) return;
     const controller = new AbortController();
+    let reprobe: ReturnType<typeof setTimeout> | undefined;
     const settle = (value: Async<T>) => {
-      if (!controller.signal.aborted) setState({ key, attempt, value });
+      if (controller.signal.aborted) return;
+      setState({ key, attempt, value });
+      if (value.status === "error" && isLocked(value.error))
+        reprobe = setTimeout(() => setAttempt((n) => n + 1), LOCK_REPROBE_MS);
     };
     load(controller.signal).then(
       (data) => settle({ status: "ok", data }),
@@ -37,9 +44,14 @@ export function useAsync<T>(key: string | null, load: (signal: AbortSignal) => P
           retry: () => setAttempt((n) => n + 1),
         }),
     );
-    return () => controller.abort();
+    return () => {
+      controller.abort();
+      clearTimeout(reprobe);
+    };
   }, [key, attempt]);
-  return state && state.key === key && state.attempt === attempt ? state.value : LOADING;
+  if (!state || state.key !== key) return LOADING;
+  const reprobing = state.value.status === "error" && isLocked(state.value.error);
+  return state.attempt === attempt || reprobing ? state.value : LOADING;
 }
 
 /**

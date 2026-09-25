@@ -69,6 +69,20 @@ export class OpenF1Error extends Error {
   }
 }
 
+/**
+ * OpenF1 refuses all unauthenticated access, past sessions included, while a live F1 session runs.
+ * `inferred` when the browser only saw a network failure: the lockout 401 carries no CORS
+ * header, so the page can't read it and it looks exactly like a network error.
+ */
+export class OpenF1LockedError extends Error {
+  override readonly name = "OpenF1LockedError";
+  constructor(readonly inferred: boolean) {
+    super("OpenF1 is locked while a live F1 session runs");
+  }
+}
+
+export const isLocked = (error: unknown): error is OpenF1LockedError => error instanceof OpenF1LockedError;
+
 export interface GateOptions {
   fetch: (url: string, signal: AbortSignal) => Promise<Response>;
   sleep: (ms: number) => Promise<void>;
@@ -83,6 +97,8 @@ export interface GateOptions {
   maxRetries: number;
   /** First backoff; doubles each retry. Retry-After wins when present. */
   backoffMs: number;
+  /** While locked, requests fail without fetching; one probe goes out per this interval. */
+  lockProbeMs: number;
 }
 
 export interface Gate {
@@ -118,6 +134,8 @@ export function createGate(options: GateOptions): Gate {
   const queue: Entry[] = [];
   const starts: number[] = [];
   let pausedUntil = 0;
+  let lockedUntil = 0;
+  let lock: OpenF1LockedError | null = null;
   let pumping = false;
 
   const finish = (e: Entry, outcome: { rows: unknown[] } | { error: Error }) => {
@@ -152,6 +170,10 @@ export function createGate(options: GateOptions): Gate {
     try {
       while (await waitForSlot()) {
         const e = queue.shift() as Entry;
+        if (lock && options.now() < lockedUntil) {
+          finish(e, { error: lock });
+          continue;
+        }
         starts.push(options.now());
         e.state = "inflight";
         void run(e);
@@ -160,6 +182,13 @@ export function createGate(options: GateOptions): Gate {
       pumping = false;
     }
     if (queue.length) void pump();
+  };
+
+  const enterLock = (e: Entry, inferred: boolean) => {
+    lock = new OpenF1LockedError(inferred);
+    lockedUntil = options.now() + options.lockProbeMs;
+    finish(e, { error: lock });
+    for (const queued of queue.splice(0)) finish(queued, { error: lock });
   };
 
   const retryLater = (e: Entry, retryAfterS: number, error: Error) => {
@@ -178,8 +207,11 @@ export function createGate(options: GateOptions): Gate {
       res = await options.fetch(e.url, e.controller.signal);
     } catch (error) {
       if (e.controller.signal.aborted) return;
+      if (lock || e.attempt >= 1) return enterLock(e, true);
       return retryLater(e, 0, error instanceof Error ? error : new Error(String(error)));
     }
+    if (res.status === 401 && /live/i.test(await res.text().catch(() => ""))) return enterLock(e, false);
+    lock = null;
     if (res.status === 429) return retryLater(e, Number(res.headers.get("retry-after")), new OpenF1Error(e.url, 429));
     if (res.status === 404) return finish(e, { rows: [] });
     if (!res.ok) return finish(e, { error: new OpenF1Error(e.url, res.status) });
@@ -243,6 +275,7 @@ export const gate: Gate = createGate({
   perMinute: 30,
   maxRetries: 4,
   backoffMs: 2000,
+  lockProbeMs: 60_000,
 });
 
 /** Race sessions of a season, for the session picker. Not session-keyed. */

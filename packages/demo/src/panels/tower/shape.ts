@@ -1,5 +1,5 @@
 import type { OpenF1Lap, OpenF1Pit, Stint } from "@f1/core";
-import type { Crossings } from "../../app/timeline";
+import { lapsDoneAt, type Crossings } from "../../app/timeline";
 import type { DriverNumber } from "../../app/types";
 
 export type LapTone = "overall" | "personal" | "plain";
@@ -43,9 +43,10 @@ const INF = Number.POSITIVE_INFINITY;
 
 /**
  * Running order once the leader completes `lap`.
- * - A car has "done" lap n if it crossed the line for lap n before the leader completed lap+1,
- *   so a lapped car counts one lap fewer on every lap, not only at the flag.
- * - PIT counts pit rows, except drive-throughs (no stop_duration) on safety-car pit-lane pass laps.
+ * - Laps done come from lapsDoneAt (shared with the per-driver helpers), so a lapped car counts
+ *   one lap fewer on every lap, not only at the flag.
+ * - PIT counts pit rows up to the car's own lap. On safety-car pit-lane pass laps a row counts only
+ *   with a stop_duration or a compound change: the pass itself opens a same-compound, age-0 stint.
  * - OUT = retired and never completed this lap (including the lap it retired on).
  *   Without classification, retired = last crossing more than one leader lap before the flag
  *   (a running lapped car always takes the flag after the leader).
@@ -53,23 +54,20 @@ const INF = Number.POSITIVE_INFINITY;
 export function buildTower({ lap, crossings, laps, stints, pits, passLaps, retired }: TowerInput): TowerRow[] {
   const all = [...crossings.values()];
   const firstAt = (n: number) => Math.min(...all.map((t) => t[n] ?? INF));
-  const nextEnd = firstAt(lap + 1);
   const raceLaps = Math.max(0, ...all.map((t) => t.length - 1));
   const flag = firstAt(raceLaps);
   const leaderLastLap = flag - firstAt(raceLaps - 1);
   const isRetired = (driver: DriverNumber, t: readonly (number | undefined)[]) =>
     retired ? retired.has(driver) : (t[t.length - 1] ?? -INF) < flag - leaderLastLap;
+  const newCompoundOn = (driver: DriverNumber, lap: number) => {
+    const next = stints.find((x) => x.driver_number === driver && x.lap_start === lap);
+    const prev = next && stints.find((x) => x.driver_number === driver && x.stint_number === next.stint_number - 1);
+    return !!next && !!prev && next.compound !== prev.compound;
+  };
 
   const standings: Standing[] = [];
   for (const [driver, t] of crossings) {
-    let done = 0;
-    for (let n = Math.min(lap, t.length - 1); n >= 1; n--) {
-      const at = t[n];
-      if (at !== undefined && at < nextEnd) {
-        done = n;
-        break;
-      }
-    }
+    const done = lapsDoneAt(crossings, driver, lap);
     const out = isRetired(driver, t) && t.length - 1 < lap;
     standings.push({ driver, done, at: t[done] ?? INF, out });
   }
@@ -125,8 +123,8 @@ export function buildTower({ lap, crossings, laps, stints, pits, passLaps, retir
         (p) =>
           p.driver_number === s.driver &&
           p.lap_number != null &&
-          p.lap_number <= lap &&
-          !(passLaps.has(p.lap_number) && p.stop_duration == null),
+          p.lap_number <= onLap &&
+          !(passLaps.has(p.lap_number) && p.stop_duration == null && !newCompoundOn(s.driver, p.lap_number)),
       ).length,
     };
   });

@@ -74,31 +74,33 @@ export function lapAt(timeline: LapTimeline, at: number): number {
 }
 
 /**
- * The lap `driver` was running when the leader completed replay lap `cursor`: laps they had
- * completed by then, plus one. Equals `cursor` on the lead lap; lower for lapped cars.
+ * Laps a car counts as having completed at replay lap `lap`: its crossings before the leader
+ * completed lap+1, capped at `lap`. Lead-lap cars get `lap`, a car N laps down gets `lap - N`,
+ * a retired car its last completed lap. The tower and every per-driver helper use this one rule.
  */
-export function ownLap(crossings: Crossings, timeline: LapTimeline, driver: DriverNumber, cursor: number): number {
+export function lapsDoneAt(crossings: Crossings, driver: DriverNumber, lap: number): number {
   const t = crossings.get(driver) ?? [];
-  const w = timeline.windows[cursor - 1];
-  const at = w ? Date.parse(w.end ?? w.start) : Number.POSITIVE_INFINITY;
-  let done = 0;
-  for (let n = 1; n < t.length; n++) if ((t[n] as number) <= at) done = n;
-  return Math.min(done + 1, cursor);
+  const nextEnd = Math.min(...[...crossings.values()].map((x) => x[lap + 1] ?? Number.POSITIVE_INFINITY));
+  for (let n = Math.min(lap, t.length - 1); n >= 1; n--) {
+    const at = t[n];
+    if (at !== undefined && at < nextEnd) return n;
+  }
+  return 0;
 }
 
-/** The lap `driver` was on at replay lap `cursor` (see ownLap), from their crossing into it to their crossing out. */
-export function driverLapWindow(
-  crossings: Crossings,
-  timeline: LapTimeline,
-  driver: DriverNumber,
-  cursor: number,
-): LapWindow | null {
+/** The driver's own lap matching replay lap `cursor` (see lapsDoneAt), never below 1. */
+export function ownLap(crossings: Crossings, driver: DriverNumber, cursor: number): number {
+  return Math.max(1, lapsDoneAt(crossings, driver, cursor));
+}
+
+/** Time bounds of the driver's own lap at replay lap `cursor`; null if that lap was never completed. */
+export function driverLapWindow(crossings: Crossings, driver: DriverNumber, cursor: number): LapWindow | null {
   const t = crossings.get(driver);
-  const lap = ownLap(crossings, timeline, driver, cursor);
+  const lap = ownLap(crossings, driver, cursor);
   const start = t?.[lap - 1];
-  if (start === undefined) return null;
   const end = t?.[lap];
-  return { start: new Date(start).toISOString(), end: end === undefined ? null : new Date(end).toISOString() };
+  if (start === undefined || end === undefined) return null;
+  return { start: new Date(start).toISOString(), end: new Date(end).toISOString() };
 }
 
 export const TELEMETRY_BLOCK_LAPS = 10;
@@ -115,15 +117,10 @@ export interface LapBlock {
  * at replay lap `cursor`. Its window is stable across the block, so car_data/location URLs change
  * once per block. Null when the driver completed no lap of the block.
  */
-export function driverLapBlock(
-  crossings: Crossings,
-  timeline: LapTimeline,
-  driver: DriverNumber,
-  cursor: number,
-): LapBlock | null {
+export function driverLapBlock(crossings: Crossings, driver: DriverNumber, cursor: number): LapBlock | null {
   const t = crossings.get(driver);
   if (!t) return null;
-  const lap = ownLap(crossings, timeline, driver, cursor);
+  const lap = ownLap(crossings, driver, cursor);
   const fromLap = Math.floor((lap - 1) / TELEMETRY_BLOCK_LAPS) * TELEMETRY_BLOCK_LAPS + 1;
   if (t.length - 1 < fromLap) return null;
   const toLap = Math.min(fromLap + TELEMETRY_BLOCK_LAPS - 1, t.length - 1);

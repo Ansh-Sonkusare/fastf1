@@ -57,30 +57,39 @@ describe("real race timeline", () => {
 
 describe("per-driver windows", () => {
   const crossings = lapCrossings(laps);
-  const tl = buildTimeline(crossings);
   it("a driver's lap window is their own crossings", () => {
-    expect(driverLapWindow(crossings, tl, 4, 2)).toEqual({ start: iso(91.5), end: iso(179) });
+    expect(driverLapWindow(crossings, 4, 2)).toEqual({ start: iso(91.5), end: iso(179) });
   });
   it("blocks are 10 laps, stable across the block, and null without a completed lap", () => {
-    expect(driverLapBlock(crossings, tl, 4, 3)).toEqual({ fromLap: 1, toLap: 3, window: { start: iso(0.3), end: iso(179 + 88.2) } });
-    expect(driverLapBlock(crossings, tl, 27, 3)).toBeNull();
+    expect(driverLapBlock(crossings, 4, 3)).toEqual({ fromLap: 1, toLap: 3, window: { start: iso(0.3), end: iso(179 + 88.2) } });
+    expect(driverLapBlock(crossings, 27, 3)).toBeNull();
   });
 });
 
 describe("replay cursor to a lapped driver's own lap", () => {
   const vc = lapCrossings(vegas.laps as OpenF1Lap[]);
-  const vt = buildTimeline(vc);
   it("Vegas 9858: when the leader completes lap 49, lapped LAW is on his lap 48", () => {
-    expect(ownLap(vc, vt, 30, 49)).toBe(48);
-    expect(ownLap(vc, vt, 1, 49)).toBe(49);
-    const w = driverLapWindow(vc, vt, 30, 49)!;
+    expect(ownLap(vc, 30, 49)).toBe(48);
+    expect(ownLap(vc, 1, 49)).toBe(49);
+    const w = driverLapWindow(vc, 30, 49)!;
     expect([Date.parse(w.start), Date.parse(w.end!)]).toEqual([vc.get(30)![47], vc.get(30)![48]]);
   });
   it("Zandvoort 9920: at the leader's lap-31 boundary SAI stays in his own 21..30 block", () => {
     const zc = lapCrossings(zandvoort.laps as OpenF1Lap[]);
-    const zt = buildTimeline(zc);
-    expect(ownLap(zc, zt, 55, 31)).toBe(30);
-    expect(driverLapBlock(zc, zt, 55, 31)).toMatchObject({ fromLap: 21, toLap: 30 });
-    expect(driverLapBlock(zc, zt, 55, 32)).toMatchObject({ fromLap: 31, toLap: 40 });
+    expect(ownLap(zc, 55, 31)).toBe(30);
+    expect(driverLapBlock(zc, 55, 31)).toMatchObject({ fromLap: 21, toLap: 30 });
+    expect(driverLapBlock(zc, 55, 32)).toMatchObject({ fromLap: 31, toLap: 40 });
+  });
+});
+
+describe("one lap rule for tower and helpers", () => {
+  const ac = lapCrossings(australia.laps as OpenF1Lap[]);
+  it("under SC, OCO and BEA on the lead lap at replay 39 are on their lap 39 (N4)", () => {
+    expect([ownLap(ac, 31, 39), ownLap(ac, 87, 39)]).toEqual([39, 39]);
+  });
+  it("after a retirement the window is the last completed lap, closed; never-completed is null (N2)", () => {
+    const w = driverLapWindow(ac, 30, 50)!;
+    expect([Date.parse(w.start), Date.parse(w.end!)]).toEqual([ac.get(30)![45], ac.get(30)![46]]);
+    expect(driverLapWindow(ac, 55, 10)).toBeNull();
   });
 });
