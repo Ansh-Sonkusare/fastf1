@@ -34,5 +34,5 @@ for (const [name, sessionKey] of Object.entries(SESSIONS)) {
     console.log(name, endpoint, out[endpoint].length);
     await sleep(1600);
   }
-  writeFileSync(new URL(`./${name}.json`, import.meta.url), JSON.stringify(out) + "\n");
+  writeFileSync(new URL(`./${name}.json`, import.meta.url), `${JSON.stringify(out)}\n`);
 }

@@ -1,4 +1,5 @@
-import type { OpenF1Driver, OpenF1Lap, OpenF1Pit, Stint } from "@f1/core";
+import type { OpenF1Driver, OpenF1Lap, Stint } from "@f1/core";
+import type { PitStop } from "../../app/timeline";
 import { median } from "./stats";
 import type { Compound, Race, RaceDriver, RaceLap } from "./types";
 
@@ -15,13 +16,13 @@ type StintRow = Row<
     "driver_number" | "stint_number" | "lap_start" | "lap_end" | "compound" | "tyre_age_at_start"
   >
 >;
-type PitRow = Row<Pick<OpenF1Pit, "driver_number" | "lap_number" | "lane_duration">>;
 type DriverRow = Row<Pick<OpenF1Driver, "driver_number" | "name_acronym" | "team_colour">>;
 
 export interface RaceRows {
   readonly laps: readonly LapRow[];
   readonly stints: readonly StintRow[];
-  readonly pit: readonly PitRow[];
+  /** Real stops only, from the console's `realPitStops`, so SC pit-lane drive-throughs never count. */
+  readonly stops: readonly PitStop[];
   readonly drivers: readonly DriverRow[];
 }
 
@@ -47,9 +48,10 @@ export function parseRace(rows: RaceRows): Race {
       parseDriver(
         d,
         rows.laps.filter((l) => l.driver_number === d.driver_number),
-        rows.stints
-          .filter((s) => s.driver_number === d.driver_number)
-          .sort((a, b) => a.stint_number - b.stint_number),
+        realStints(
+          rows.stints.filter((s) => s.driver_number === d.driver_number),
+          rows.stops.filter((p) => p.driver === d.driver_number),
+        ),
         start,
       ),
     )
@@ -58,12 +60,26 @@ export function parseRace(rows: RaceRows): Race {
     totalLaps: Math.max(0, ...drivers.map((d) => d.laps.length)),
     drivers,
     neutralLaps: detectNeutralLaps(drivers),
-    pitStops: rows.pit.flatMap((p) =>
-      p.lane_duration == null || p.lap_number == null
-        ? []
-        : [{ lap: p.lap_number, laneDuration: p.lane_duration }],
+    pitStops: rows.stops.flatMap((p) =>
+      p.lane == null ? [] : [{ lap: p.lap, laneDuration: p.lane }],
     ),
   };
+}
+
+/**
+ * A safety car led through the pit lane opens a same-compound stint with no stop behind it. Fold such a stint into
+ * the one before, so the tyre keeps its age and no pit laps appear where nobody stopped.
+ */
+function realStints(stints: readonly StintRow[], stops: readonly PitStop[]): StintRow[] {
+  const out: StintRow[] = [];
+  for (const s of [...stints].sort((a, b) => a.stint_number - b.stint_number)) {
+    const prev = out[out.length - 1];
+    const stopped = stops.some((p) => p.lap === s.lap_start - 1 || p.lap === s.lap_start);
+    if (prev && prev.compound === s.compound && !stopped)
+      out[out.length - 1] = { ...prev, lap_end: s.lap_end };
+    else out.push(s);
+  }
+  return out;
 }
 
 function parseDriver(

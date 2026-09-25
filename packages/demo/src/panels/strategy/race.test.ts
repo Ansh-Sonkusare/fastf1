@@ -1,11 +1,8 @@
 import { describe, expect, it } from "vitest";
-import abu from "./__fixtures__/abu-dhabi-2025.json";
-import monza from "./__fixtures__/monza-2025.json";
+import { abuRace, abuRows, monzaRace } from "./__fixtures__/races";
 import { parseRace, standingsAt } from "./race";
 import type { RaceDriver } from "./types";
 
-const abuRace = parseRace(abu);
-const monzaRace = parseRace(monza);
 const driver = (code: string, drivers: readonly RaceDriver[] = abuRace.drivers) =>
   drivers.find((d) => d.code === code) as RaceDriver;
 const tyre = (d: RaceDriver, lap: number) => {
@@ -57,12 +54,28 @@ describe("parseRace", () => {
     expect([...abuRace.neutralLaps]).toEqual([]);
     expect([...monzaRace.neutralLaps]).toEqual([]);
     const slowed = parseRace({
-      ...abu,
-      laps: abu.laps.map((l) =>
-        l.lap_number === 30 ? { ...l, lap_duration: l.lap_duration * 1.4 } : l,
+      ...abuRows,
+      laps: abuRows.laps.map((l) =>
+        l.lap_number === 30 && l.lap_duration != null
+          ? { ...l, lap_duration: l.lap_duration * 1.4 }
+          : l,
       ),
     });
     expect([...slowed.neutralLaps]).toEqual([30]);
+  });
+
+  it("folds a same-compound stint with no stop behind it, as a safety car pit-lane pass leaves", () => {
+    const split = abuRows.stints.flatMap((s) =>
+      s.driver_number === 1 && s.stint_number === 1
+        ? [
+            { ...s, lap_end: 10 },
+            { ...s, stint_number: 1.5, lap_start: 11, tyre_age_at_start: 0 },
+          ]
+        : [s],
+    );
+    const ver = driver("VER", parseRace({ ...abuRows, stints: split }).drivers);
+    expect(tyre(ver, 15)).toEqual(tyre(driver("VER"), 15));
+    expect(ver.laps[9].pitIn).toBe(false);
   });
 
   it("keeps team colours as hex", () => {

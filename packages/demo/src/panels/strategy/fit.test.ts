@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
-import abu from "./__fixtures__/abu-dhabi-2025.json";
+import { abuRace } from "./__fixtures__/races";
 import { fitDegradation } from "./fit";
-import { parseRace } from "./race";
-
-const abuRace = parseRace(abu);
 
 describe("fitDegradation", () => {
   it("fits MEDIUM and HARD wear from Abu Dhabi clean laps and keeps SOFT on its prior", () => {
