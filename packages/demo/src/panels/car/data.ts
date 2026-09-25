@@ -43,7 +43,9 @@ const multiviewer = createGate({
   minIntervalMs: 0,
   perMinute: 60,
   maxRetries: 0,
+  maxNetworkFailures: 1,
   backoffMs: 0,
+  lockProbeMs: 0,
 });
 
 export async function getCircuit(session: ConsoleSession, signal: AbortSignal): Promise<CircuitInfo | null> {
