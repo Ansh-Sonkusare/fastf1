@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ABU_DHABI, MONZA, type RaceFixture } from "./__fixtures__";
+import { cut } from "../../data/cutoff";
 import { activeYellows, buildTrackGeometry, carPositions, pointAt, yellowsDuring, fitToView, pickReferenceLap, trackView } from "./track";
 
 const geometry = (race: RaceFixture) => buildTrackGeometry(pickReferenceLap(race.laps)!, race.refLap.location, race.refLap.carData);
@@ -119,6 +120,24 @@ describe("carPositions", () => {
       [4, 58],
       [1, 29],
       [4, 17],
+    ]);
+  });
+
+  it("estimates the lap in progress from the latest completed lap when the cursor hides its times", () => {
+    const at = "2025-12-07T13:17:30.500Z";
+    const known = cut("laps", ABU_DHABI.laps, { at: Date.parse(at), lapOf: () => 10, finished: false });
+    expect(known.find((l) => l.driver_number === 1 && l.lap_number === 10)?.lap_duration).toBeUndefined();
+    const g = geometry(ABU_DHABI);
+    const errors = carPositions(known, at, g).map(({ number, index }) => {
+      const [x, y] = pointAt(g.points, index);
+      const measured = ABU_DHABI.lap10.snapshot
+        .filter((r) => r.driver_number === number)
+        .sort((a, b) => Math.abs(Date.parse(a.date) - Date.parse(at)) - Math.abs(Date.parse(b.date) - Date.parse(at)))[0]!;
+      return [number, Math.round(Math.hypot(x - measured.x, y - measured.y) / 10)];
+    });
+    expect(errors).toEqual([
+      [1, 58],
+      [4, 55],
     ]);
   });
 

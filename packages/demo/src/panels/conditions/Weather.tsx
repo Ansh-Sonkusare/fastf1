@@ -10,8 +10,8 @@ import { Weather as WeatherView } from "./weather/Weather";
  *
  * Fetches the whole-session `weather` feed once through B's gate (never
  * per-lap — CONTRACT.md requires whole-session fetches for this endpoint)
- * and slices it down to the replay's current lap in the pure `shapeWeather`
- * function, so nothing beyond `lapWindow` ever renders.
+ * and slices it at the replay cursor `at` in the pure `shapeWeather` function,
+ * so no sample after the cursor ever renders.
  *
  * Note: `@f1/core`'s `Weather` type (what the gate's TS signature declares
  * for this endpoint) doesn't match the real OpenF1 payload — the live API
@@ -20,10 +20,10 @@ import { Weather as WeatherView } from "./weather/Weather";
  * locally-defined `OpenF1WeatherRow`, which does match. See
  * weather/shape.ts for detail; flagged to lane A/B/root separately.
  */
-export default function Weather({ session, lapWindow }: PanelProps) {
+export default function Weather({ session, at }: PanelProps) {
   const mode = useLayoutMode();
   const weather = useOpenF1("weather", session.sessionKey);
-  const cutoff = lapWindow?.end ?? lapWindow?.start ?? session.dateStart;
+  const cutoff = new Date(at).toISOString();
 
   return (
     <AsyncView state={weather} isEmpty={(rows) => rows.length === 0}>

@@ -24,6 +24,8 @@ export interface RaceRows {
   /** Real stops only, from the console's `realPitStops`, so SC pit-lane drive-throughs never count. */
   readonly stops: readonly PitStop[];
   readonly drivers: readonly DriverRow[];
+  /** The scheduled race distance. Rows cut at a replay cursor stop short of it, so it can't be read from them. */
+  readonly totalLaps: number;
 }
 
 export interface Standing {
@@ -57,7 +59,7 @@ export function parseRace(rows: RaceRows): Race {
     )
     .filter((d) => d.laps.length > 0);
   return {
-    totalLaps: Math.max(0, ...drivers.map((d) => d.laps.length)),
+    totalLaps: rows.totalLaps,
     drivers,
     neutralLaps: detectNeutralLaps(drivers),
     pitStops: rows.stops.flatMap((p) =>
