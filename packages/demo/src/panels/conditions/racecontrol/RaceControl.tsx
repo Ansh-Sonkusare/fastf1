@@ -27,7 +27,9 @@ export interface RaceControlProps {
 /**
  * Race Control & Team Radio feed component.
  * Displays a merged, time-ordered feed of race control messages and team radio communications.
- * Includes filtering buttons for different event categories and a scrollable list.
+ * Includes filtering buttons for different event types and a scrollable list.
+ *
+ * Matches reference panel-09.png layout with filters: ALL, RC, RADIO, OVT
  *
  * This is a phase 1 presentational component.
  * In phase 2, it will be wired to receive shaped data from the OpenF1 gate.
@@ -37,32 +39,18 @@ export const RaceControl: React.FC<RaceControlProps> = ({
   focusDriverNumber,
   onEventClick,
 }) => {
-  // Track which filters are active
-  const [activeFilters, setActiveFilters] = useState<
-    Set<RaceEventType | RaceControlCategory>
-  >(new Set(["race-control", "radio"]));
+  // Track which filter is active: 'all', 'rc' (race-control), 'radio', 'ovt' (overtake)
+  const [filterMode, setFilterMode] = useState<"all" | "rc" | "radio" | "ovt">("all");
 
-  // Filter events based on active filters
-  let filteredEvents = events.filter((event) => activeFilters.has(event.type));
-  // Also filter by active categories
-  const activeCategories = Array.from(activeFilters).filter(
-    (f) => f !== "race-control" && f !== "radio"
-  ) as RaceControlCategory[];
-  if (activeCategories.length > 0) {
-    filteredEvents = filterRaceEventsByCategory(filteredEvents, activeCategories);
+  // Apply filter
+  let filteredEvents = events;
+  if (filterMode === "rc") {
+    filteredEvents = events.filter((e) => e.type === "race-control");
+  } else if (filterMode === "radio") {
+    filteredEvents = events.filter((e) => e.type === "radio");
+  } else if (filterMode === "ovt") {
+    filteredEvents = events.filter((e) => e.category === "CarEvent"); // Overtake-like events
   }
-
-  const toggleFilter = (
-    filter: RaceEventType | RaceControlCategory
-  ) => {
-    const newFilters = new Set(activeFilters);
-    if (newFilters.has(filter)) {
-      newFilters.delete(filter);
-    } else {
-      newFilters.add(filter);
-    }
-    setActiveFilters(newFilters);
-  };
 
   return (
     <div
@@ -83,28 +71,28 @@ export const RaceControl: React.FC<RaceControlProps> = ({
             color: "#e4e7eb",
           }}
         >
-          Feed
+          09 Race control &amp; radio
         </span>
         <div style={{ flex: 1 }} />
         <FilterButton
           label="All"
-          active={activeFilters.size === 2}
-          onClick={() => setActiveFilters(new Set(["race-control", "radio"]))}
+          active={filterMode === "all"}
+          onClick={() => setFilterMode("all")}
         />
         <FilterButton
-          label="Flags"
-          active={activeFilters.has("Flag")}
-          onClick={() => toggleFilter("Flag")}
-        />
-        <FilterButton
-          label="DRS"
-          active={activeFilters.has("Drs")}
-          onClick={() => toggleFilter("Drs")}
+          label="RC"
+          active={filterMode === "rc"}
+          onClick={() => setFilterMode("rc")}
         />
         <FilterButton
           label="Radio"
-          active={activeFilters.has("radio")}
-          onClick={() => toggleFilter("radio")}
+          active={filterMode === "radio"}
+          onClick={() => setFilterMode("radio")}
+        />
+        <FilterButton
+          label="OVT"
+          active={filterMode === "ovt"}
+          onClick={() => setFilterMode("ovt")}
         />
       </div>
 
@@ -180,14 +168,15 @@ interface RaceEventItemProps {
 
 /**
  * Individual race event item.
- * Displays lap, event type/category, message, and optional driver info.
+ * Displays lap, event type/category badge, message, and optional driver info.
+ * Matches reference panel-09.png styling.
  */
 const RaceEventItem: React.FC<RaceEventItemProps> = ({
   event,
   isFocusDriver,
   onClick,
 }) => {
-  const categoryColor = getCategoryColor(event.category);
+  const { categoryColor, badgeLabel } = getBadgeStyle(event);
   const bgColor = isFocusDriver
     ? "rgba(62, 207, 110, 0.1)"
     : "transparent";
@@ -231,7 +220,7 @@ const RaceEventItem: React.FC<RaceEventItemProps> = ({
           textTransform: "uppercase",
         }}
       >
-        {event.type === "radio" ? "RADIO" : event.category.slice(0, 3)}
+        {badgeLabel}
       </span>
 
       {/* Message and optional driver info */}
@@ -252,17 +241,17 @@ const RaceEventItem: React.FC<RaceEventItemProps> = ({
               fontWeight: 700,
               fontSize: "12px",
               letterSpacing: ".04em",
-              color: "#3ecf6e",
+              color: "#c3c9d1",
             }}
           >
             <span
               style={{
                 width: "3px",
                 height: "11px",
-                background: "#3ecf6e",
+                background: getDriverBarColor(event.driverNumber),
               }}
             />
-            Driver {event.driverNumber}
+            {getDriverInitials(event.driverNumber)}
           </span>
         )}
         <span
@@ -276,7 +265,7 @@ const RaceEventItem: React.FC<RaceEventItemProps> = ({
           {event.message}
         </span>
 
-        {/* Radio playback link if available */}
+        {/* Radio playback link if available - only shown on hover/click */}
         {event.type === "radio" && event.recordingUrl && (
           <audio
             controls
@@ -284,6 +273,7 @@ const RaceEventItem: React.FC<RaceEventItemProps> = ({
               marginTop: "6px",
               maxWidth: "100%",
               height: "20px",
+              display: "none", // Hide in phase 1, will enable in phase 2
             }}
           >
             <source src={event.recordingUrl} type="audio/mpeg" />
@@ -296,27 +286,87 @@ const RaceEventItem: React.FC<RaceEventItemProps> = ({
 };
 
 /**
- * Maps event category to a background color for the badge.
+ * Maps event category to badge styling (color and label).
+ * Matches reference panel-09.png badge colors.
  */
-function getCategoryColor(category: string): string {
-  switch (category) {
-    case "Flag":
-      return "#f5d020"; // Yellow for flags
-    case "Drs":
-      return "#3ecf6e"; // Green for DRS
-    case "Penalty":
-      return "#ff6b6b"; // Red for penalties
-    case "SessionStatus":
-      return "#6fd3e8"; // Cyan for session status
-    case "SafetyCar":
-      return "#ffa500"; // Orange for safety car
-    case "CarEvent":
-      return "#8b939e"; // Gray for car events
-    case "radio":
-      return "#6fd3e8"; // Cyan for radio messages
-    default:
-      return "#5b636e"; // Default gray
+function getBadgeStyle(event: RaceEvent): { categoryColor: string; badgeLabel: string } {
+  if (event.type === "radio") {
+    return {
+      categoryColor: "#6fd3e8", // Cyan for radio
+      badgeLabel: "RADIO",
+    };
   }
+
+  switch (event.category) {
+    case "Flag":
+      return {
+        categoryColor: "#f5d020", // Yellow for flags
+        badgeLabel: "FLAG",
+      };
+    case "Drs":
+      return {
+        categoryColor: "#3ecf6e", // Green for DRS
+        badgeLabel: "DRS",
+      };
+    case "Penalty":
+      return {
+        categoryColor: "#ff6b6b", // Red for penalties
+        badgeLabel: "PEN",
+      };
+    case "SessionStatus":
+      return {
+        categoryColor: "#6fd3e8", // Cyan for session status
+        badgeLabel: "SES",
+      };
+    case "SafetyCar":
+      return {
+        categoryColor: "#ffa500", // Orange for safety car
+        badgeLabel: "SC",
+      };
+    case "CarEvent":
+      return {
+        categoryColor: "#3ecf6e", // Green for overtakes/car events (OVT)
+        badgeLabel: "OVT",
+      };
+    default:
+      return {
+        categoryColor: "#8b939e", // Gray for race control
+        badgeLabel: "RC",
+      };
+  }
+}
+
+/**
+ * Gets a consistent color bar for a driver number.
+ * Uses a color palette to differentiate drivers.
+ */
+function getDriverBarColor(driverNumber: number): string {
+  const colors = [
+    "#ff4444", // Red
+    "#44ff44", // Green
+    "#4444ff", // Blue
+    "#ffff44", // Yellow
+    "#ff44ff", // Magenta
+    "#44ffff", // Cyan
+    "#ff8844", // Orange
+    "#8844ff", // Purple
+  ];
+  return colors[driverNumber % colors.length];
+}
+
+/**
+ * Gets driver initials from driver number.
+ * In a real app, this would map to actual driver names.
+ */
+function getDriverInitials(driverNumber: number): string {
+  const driverMap: Record<number, string> = {
+    1: "VER",
+    16: "LEC",
+    44: "HAM",
+    81: "PIA",
+    55: "SAI",
+  };
+  return driverMap[driverNumber] || `D${driverNumber}`;
 }
 
 export default RaceControl;
