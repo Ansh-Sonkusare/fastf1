@@ -64,23 +64,17 @@ describe("shapeLapTimes (2025 Abu Dhabi GP, session 9839)", () => {
 });
 
 describe("SC/VSC periods, real race_control", () => {
-  it("finds no SC/VSC period in 2025 Abu Dhabi (no track-wide yellow was ever raised)", () => {
+  it("finds no SC/VSC period in either real race (only local sector yellows)", () => {
     expect(identifySCPeriods(abuDhabiRaceControl, ABU_DHABI)).toEqual([]);
-  });
-
-  it("finds no SC/VSC period in 2025 Monza (same: only local sector yellows)", () => {
     expect(identifySCPeriods(monzaRaceControl, MONZA)).toEqual([]);
   });
 
-  it("consequently marks no Abu Dhabi lap as SC/VSC-slowed", () => {
-    const viewModels = shapeLapTimes(abuDhabiLaps, ABU_DHABI, abuDhabiStints, abuDhabiRaceControl);
-    expect(viewModels.every((l) => !l.isSlowed)).toBe(true);
-  });
-
-  it("consequently marks no Monza lap as SC/VSC-slowed either", () => {
-    const viewModels = shapeLapTimes(monzaLaps, MONZA, [], monzaRaceControl);
-    expect(viewModels.length).toBeGreaterThan(0);
-    expect(viewModels.every((l) => !l.isSlowed)).toBe(true);
+  it("consequently marks no lap as SC/VSC-slowed in either race", () => {
+    const ad = shapeLapTimes(abuDhabiLaps, ABU_DHABI, abuDhabiStints, abuDhabiRaceControl);
+    const mz = shapeLapTimes(monzaLaps, MONZA, [], monzaRaceControl);
+    expect(ad.length).toBeGreaterThan(0);
+    expect(mz.length).toBeGreaterThan(0);
+    expect([...ad, ...mz].every((l) => !l.isSlowed)).toBe(true);
   });
 
   // Neither real race exercises the positive branch (no SC/VSC was called),
@@ -133,20 +127,12 @@ describe("SC/VSC periods, real race_control", () => {
 });
 
 describe("identifyPitLaps", () => {
-  it("identifies VER's and NOR's real pit-in laps, per driver", () => {
+  it("identifies VER's and NOR's real pit-in laps, per driver only", () => {
     const pitLaps = identifyPitLaps(abuDhabiStints, ABU_DHABI);
     expect(pitLaps.get(VER)).toEqual(new Set([23]));
     expect(pitLaps.get(NOR)).toEqual(new Set([16, 40]));
-  });
-
-  it("does not mark a driver's final stint's last lap as a pit lap", () => {
-    const pitLaps = identifyPitLaps(abuDhabiStints, ABU_DHABI);
     expect(pitLaps.get(VER)?.has(58)).toBe(false); // VER's last lap of the race
-  });
-
-  it("does not leak one driver's pit lap onto another driver's lap", () => {
-    // Lap 39 is driver 16's pit lap (see pitStops.test.ts's rank-1 stop), not VER's.
-    const pitLaps = identifyPitLaps(abuDhabiStints, ABU_DHABI);
+    // Lap 39 is driver 16's pit lap (pitStops.test.ts's rank-1 stop), not VER's.
     expect(pitLaps.get(VER)?.has(39)).toBe(false);
   });
 

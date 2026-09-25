@@ -15,20 +15,12 @@ export interface LapTimeViewModel {
 }
 
 /**
- * Identify Safety Car and VSC periods from race control data.
- * Returns array of [lapStart, lapEnd] ranges where the whole field was slowed.
- *
- * OpenF1's `race_control` rows carry `category: "Flag"`, `flag: "YELLOW" |
- * "DOUBLE YELLOW" | "GREEN" | "CHEQUERED" | ...`, and `scope: "Track" |
- * "Sector" | "Driver"`. A field-wide SC/VSC period shows up as a `scope:
- * "Track"` yellow (as opposed to a local double-yellow, which is `scope:
- * "Sector"` and doesn't slow cars away from that corner) that later clears
- * with a `scope: "Track"` green. An explicit "SAFETY CAR" mention in the
- * message is treated as a start regardless of scope, since that phrasing is
- * unambiguous. Neither 2025 Abu Dhabi (session 9839) nor Monza (session
- * 9912) had a real SC/VSC period in their race_control feed: both only ever
- * went track-wide yellow at the green-flag exceptions (pit exit open) and
- * track-wide green/chequered (see lapTimes.test.ts).
+ * Identify Safety Car / VSC periods: [lapStart, lapEnd] ranges where the
+ * whole field was slowed. A field-wide period is a `scope: "Track"` yellow
+ * (not a local `scope: "Sector"` double-yellow) that later clears with a
+ * `scope: "Track"` green, or an explicit "SAFETY CAR" message. Neither 2025
+ * Abu Dhabi (9839) nor Monza (9912) had one in their real race_control feed
+ * (see lapTimes.test.ts).
  */
 export function identifySCPeriods(
   raceControl: RaceControl[],
