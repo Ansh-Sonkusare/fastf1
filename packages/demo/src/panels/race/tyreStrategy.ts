@@ -82,3 +82,11 @@ export function getUniqueCompounds(stints: TyreStintViewModel[]): string[] {
   stints.forEach((s) => compounds.add(s.compound));
   return Array.from(compounds).sort();
 }
+
+/** Sparse lap markers for the strategy gantt's axis: lap 1, every 10th lap, and the final lap. */
+export function lapAxisTicks(totalLaps: number): number[] {
+  const ticks = [1];
+  for (let l = 10; l < totalLaps; l += 10) ticks.push(l);
+  ticks.push(totalLaps);
+  return ticks;
+}
