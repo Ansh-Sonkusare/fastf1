@@ -13,24 +13,44 @@ export interface PitStopViewModel {
 /**
  * Shape pit stop data from OpenF1 into view model.
  * Each pit stop shows stationary time vs lane time.
- * Ranked by lap number (earliest stops first).
+ * Ranked fastest stationary time first, per the reference design (panel 07);
+ * a stop with no recorded stationary time sorts last.
  */
 export function shapePitStops(
   pits: OpenF1Pit[],
   sessionKey: number
 ): PitStopViewModel[] {
-  return pits
-    .filter((p) => p.session_key === sessionKey && p.lap_number !== null)
-    .map((p, idx) => ({
-      rank: idx + 1,
-      driverNumber: p.driver_number,
-      lapNumber: p.lap_number!,
-      stopNumber: p.stop_number ?? idx + 1,
-      stationaryDuration: p.stop_duration,
-      laneDuration: p.lane_duration,
-      totalDuration: p.pit_duration,
-    }))
-    .sort((a, b) => a.lapNumber - b.lapNumber);
+  const bySessionAndLap = pits
+    .filter(
+      (p): p is OpenF1Pit & { lap_number: number } =>
+        p.session_key === sessionKey && p.lap_number != null
+    )
+    .sort((a, b) => a.lap_number - b.lap_number);
+
+  // Real OpenF1 rows never carry `stop_number` (see DATA.md); derive each
+  // driver's stop count in chronological order instead of trusting the field.
+  const stopCountByDriver = new Map<number, number>();
+
+  return bySessionAndLap
+    .map((p) => {
+      const stopNumber = (stopCountByDriver.get(p.driver_number) ?? 0) + 1;
+      stopCountByDriver.set(p.driver_number, stopNumber);
+      return {
+        rank: 0, // assigned below, after sorting by stationary time
+        driverNumber: p.driver_number,
+        lapNumber: p.lap_number,
+        stopNumber: p.stop_number ?? stopNumber,
+        stationaryDuration: p.stop_duration,
+        laneDuration: p.lane_duration,
+        totalDuration: p.pit_duration,
+      };
+    })
+    .sort((a, b) => {
+      if (a.stationaryDuration == null) return 1;
+      if (b.stationaryDuration == null) return -1;
+      return a.stationaryDuration - b.stationaryDuration;
+    })
+    .map((stop, idx) => ({ ...stop, rank: idx + 1 }));
 }
 
 /**

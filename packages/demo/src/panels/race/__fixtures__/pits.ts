@@ -1,51 +1,9 @@
-import { OpenF1Pit } from "@f1/core";
+import type { OpenF1Pit } from "@f1/core";
+import abuDhabiPitsJson from "./abuDhabiPits.json";
+import monzaPitsJson from "./monzaPits.json";
 
-/**
- * Fixture: Abu Dhabi 2025 Race, pit stop data
- */
-export const abuDhabiPits: OpenF1Pit[] = [
-  {
-    session_key: 9999,
-    meeting_key: 1234,
-    driver_number: 1,
-    lap_number: 6,
-    stop_number: 1,
-    pit_duration: 24.567,
-    lane_duration: 12.345,
-    stop_duration: 12.222,
-    date: "2025-12-08T15:10:00Z",
-  },
-  {
-    session_key: 9999,
-    meeting_key: 1234,
-    driver_number: 1,
-    lap_number: 28,
-    stop_number: 2,
-    pit_duration: 23.456,
-    lane_duration: 11.234,
-    stop_duration: 12.222,
-    date: "2025-12-08T15:42:00Z",
-  },
-  {
-    session_key: 9999,
-    meeting_key: 1234,
-    driver_number: 44,
-    lap_number: 7,
-    stop_number: 1,
-    pit_duration: 25.123,
-    lane_duration: 13.456,
-    stop_duration: 11.667,
-    date: "2025-12-08T15:11:30Z",
-  },
-  {
-    session_key: 9999,
-    meeting_key: 1234,
-    driver_number: 44,
-    lap_number: 26,
-    stop_number: 2,
-    pit_duration: 24.789,
-    lane_duration: 12.567,
-    stop_duration: 12.222,
-    date: "2025-12-08T15:40:00Z",
-  },
-];
+// Real OpenF1 rows, every completed stop, session_key 9839 (2025 Abu Dhabi GP
+// race) and 9912 (2025 Monza GP race). Regenerate with `node fetch.mjs` in
+// this directory.
+export const abuDhabiPits = abuDhabiPitsJson as unknown as OpenF1Pit[];
+export const monzaPits = monzaPitsJson as unknown as OpenF1Pit[];

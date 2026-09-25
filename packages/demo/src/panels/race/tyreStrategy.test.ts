@@ -7,61 +7,77 @@ import {
 } from "./tyreStrategy";
 import { abuDhabiStints } from "./__fixtures__/stints";
 
-describe("TyreStrategy shaping", () => {
-  it("shapes stint data into view models", () => {
-    const viewModels = shapeTyreStints(abuDhabiStints, 9999);
+const ABU_DHABI = 9839;
 
-    expect(viewModels).toHaveLength(6); // 3 stints x 2 drivers
-    expect(viewModels[0].driverNumber).toBe(1);
-    expect(viewModels[0].stintNumber).toBe(1);
-    expect(viewModels[0].compound).toBe("SOFT");
-    expect(viewModels[0].lapStart).toBe(1);
-    expect(viewModels[0].lapEnd).toBe(6);
+describe("shapeTyreStints (2025 Abu Dhabi GP, session 9839)", () => {
+  const viewModels = shapeTyreStints(abuDhabiStints, ABU_DHABI);
+
+  it("shapes every fetched stint (full grid, 47 rows)", () => {
+    expect(viewModels).toHaveLength(47);
   });
 
-  it("calculates stint duration (lap count)", () => {
-    const viewModels = shapeTyreStints(abuDhabiStints, 9999);
-
-    // First stint: lap 1-6 = 6 laps
-    expect(viewModels[0].duration).toBe(6);
-    // Second stint: lap 7-27 = 21 laps
-    expect(viewModels[1].duration).toBe(21);
+  it("carries VER's real 2-stop strategy: MEDIUM 1-23, HARD 24-58", () => {
+    const ver = viewModels.filter((s) => s.driverNumber === 1);
+    expect(ver).toEqual([
+      {
+        driverNumber: 1,
+        stintNumber: 1,
+        compound: "MEDIUM",
+        lapStart: 1,
+        lapEnd: 23,
+        duration: 23,
+        tyreAgeAtStart: 0,
+        estimatedAgeAtEnd: 22,
+      },
+      {
+        driverNumber: 1,
+        stintNumber: 2,
+        compound: "HARD",
+        lapStart: 24,
+        lapEnd: 58,
+        duration: 35,
+        tyreAgeAtStart: 0,
+        estimatedAgeAtEnd: 34,
+      },
+    ]);
   });
 
-  it("calculates estimated tyre age at end of stint", () => {
-    const viewModels = shapeTyreStints(abuDhabiStints, 9999);
-
-    // First stint: ageAtStart=0, duration=6, so ageAtEnd=6
-    expect(viewModels[0].estimatedAgeAtEnd).toBe(6);
-    // Second stint: ageAtStart=0, duration=21, so ageAtEnd=21
-    expect(viewModels[1].estimatedAgeAtEnd).toBe(21);
+  it("carries NOR's real 3-stint strategy: MEDIUM, HARD, HARD", () => {
+    const nor = viewModels.filter((s) => s.driverNumber === 4);
+    expect(nor.map((s) => [s.compound, s.lapStart, s.lapEnd])).toEqual([
+      ["MEDIUM", 1, 16],
+      ["HARD", 17, 40],
+      ["HARD", 41, 58],
+    ]);
   });
 
   it("filters by session key", () => {
-    const viewModels = shapeTyreStints(abuDhabiStints, 999999); // wrong session
-
-    expect(viewModels).toHaveLength(0);
+    expect(shapeTyreStints(abuDhabiStints, 999999)).toHaveLength(0);
   });
 
   it("sorts by driver then stint number", () => {
-    const viewModels = shapeTyreStints(abuDhabiStints, 9999);
+    for (let i = 1; i < viewModels.length; i++) {
+      const prev = viewModels[i - 1];
+      const curr = viewModels[i];
+      if (prev.driverNumber === curr.driverNumber) {
+        expect(prev.stintNumber).toBeLessThan(curr.stintNumber);
+      } else {
+        expect(prev.driverNumber).toBeLessThan(curr.driverNumber);
+      }
+    }
+  });
 
-    expect(viewModels[0].driverNumber).toBeLessThanOrEqual(
-      viewModels[1].driverNumber
-    );
-    expect(viewModels[2].driverNumber).toBeLessThanOrEqual(
-      viewModels[3].driverNumber
-    );
+  it("used only dry compounds in this race (SOFT/MEDIUM/HARD, no rain)", () => {
+    expect(getUniqueCompounds(viewModels)).toEqual(["HARD", "MEDIUM", "SOFT"]);
   });
 });
 
 describe("Compound utilities", () => {
-  it("returns correct color for each compound", () => {
-    expect(getCompoundColor("SOFT")).toBe("#ff5a4f");
-    expect(getCompoundColor("MEDIUM")).toBe("#e6c229");
-    expect(getCompoundColor("HARD")).toBe("#f5f5f5");
-    expect(getCompoundColor("INTERMEDIATE")).toBe("#3ecf6e");
-    expect(getCompoundColor("WET")).toBe("#6fd3e8");
+  it("returns the reference design's tyre compound colors", () => {
+    expect(getCompoundColor("SOFT")).toBe("#ee4a3f");
+    expect(getCompoundColor("MEDIUM")).toBe("#f2c230");
+    expect(getCompoundColor("HARD")).toBe("#e8e8e3");
+    expect(getCompoundColor("INTERMEDIATE")).toBe("#3fb56a");
   });
 
   it("returns default color for unknown compound", () => {
@@ -69,8 +85,8 @@ describe("Compound utilities", () => {
   });
 
   it("is case-insensitive", () => {
-    expect(getCompoundColor("soft")).toBe("#ff5a4f");
-    expect(getCompoundColor("Soft")).toBe("#ff5a4f");
+    expect(getCompoundColor("soft")).toBe("#ee4a3f");
+    expect(getCompoundColor("Soft")).toBe("#ee4a3f");
   });
 
   it("returns correct abbreviation for each compound", () => {
@@ -83,15 +99,5 @@ describe("Compound utilities", () => {
 
   it("returns first letter for unknown compound", () => {
     expect(getCompoundAbbr("UNKNOWN")).toBe("U");
-  });
-
-  it("gets unique compounds from stints", () => {
-    const viewModels = shapeTyreStints(abuDhabiStints, 9999);
-    const compounds = getUniqueCompounds(viewModels);
-
-    expect(compounds).toContain("SOFT");
-    expect(compounds).toContain("MEDIUM");
-    expect(compounds).toContain("HARD");
-    expect(compounds).toHaveLength(3);
   });
 });

@@ -41,16 +41,20 @@ export function shapeTyreStints(
 }
 
 /**
- * Get stint color based on compound
+ * Get stint color based on compound.
+ * Values match the reference design's tyre compound tokens (REFERENCE.md
+ * section 1, `TC`): Soft #ee4a3f, Medium #f2c230, Hard #e8e8e3, Inter
+ * #3fb56a. WET isn't in the reference token set; it reuses the predicted-
+ * accent cyan so it stays visually distinct from the other four.
  */
 export function getCompoundColor(compound: string): string {
   const normalizedCompound = compound.toUpperCase();
   const colorMap: Record<string, string> = {
-    SOFT: "#ff5a4f", // red
-    MEDIUM: "#e6c229", // yellow
-    HARD: "#f5f5f5", // white/gray
-    INTERMEDIATE: "#3ecf6e", // green
-    WET: "#6fd3e8", // cyan
+    SOFT: "#ee4a3f",
+    MEDIUM: "#f2c230",
+    HARD: "#e8e8e3",
+    INTERMEDIATE: "#3fb56a",
+    WET: "#6fd3e8",
   };
   return colorMap[normalizedCompound] || "#aeb5bf"; // gray default
 }

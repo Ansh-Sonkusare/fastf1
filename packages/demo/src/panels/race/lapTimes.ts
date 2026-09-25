@@ -16,45 +16,47 @@ export interface LapTimeViewModel {
 
 /**
  * Identify Safety Car and VSC periods from race control data.
- * Returns array of [lapStart, lapEnd] ranges where SC/VSC was active.
+ * Returns array of [lapStart, lapEnd] ranges where the whole field was slowed.
+ *
+ * OpenF1's `race_control` rows carry `category: "Flag"`, `flag: "YELLOW" |
+ * "DOUBLE YELLOW" | "GREEN" | "CHEQUERED" | ...`, and `scope: "Track" |
+ * "Sector" | "Driver"`. A field-wide SC/VSC period shows up as a `scope:
+ * "Track"` yellow (as opposed to a local double-yellow, which is `scope:
+ * "Sector"` and doesn't slow cars away from that corner) that later clears
+ * with a `scope: "Track"` green. An explicit "SAFETY CAR" mention in the
+ * message is treated as a start regardless of scope, since that phrasing is
+ * unambiguous. Neither 2025 Abu Dhabi (session 9839) nor Monza (session
+ * 9912) had a real SC/VSC period in their race_control feed: both only ever
+ * went track-wide yellow at the green-flag exceptions (pit exit open) and
+ * track-wide green/chequered (see lapTimes.test.ts).
  */
 export function identifySCPeriods(
   raceControl: RaceControl[],
   sessionKey: number
 ): Array<[number, number]> {
   const periods: Array<[number, number]> = [];
-  let scActive = false;
   let scStartLap: number | null = null;
 
-  const scEvents = raceControl
-    .filter(
-      (rc) =>
-        rc.session_key === sessionKey &&
-        (rc.category === "SAFETY CAR" ||
-          rc.category === "VIRTUAL SAFETY CAR" ||
-          rc.flag === "YELLOW")
-    )
-    .sort((a, b) => {
-      const lapA = a.lap_number ?? 0;
-      const lapB = b.lap_number ?? 0;
-      return lapA - lapB;
-    });
+  const events = raceControl
+    .filter((rc) => rc.session_key === sessionKey && rc.category === "Flag")
+    .sort((a, b) => a.date.localeCompare(b.date));
 
-  for (const event of scEvents) {
+  for (const event of events) {
     const lap = event.lap_number;
     if (!lap) continue;
 
-    if (event.message.includes("DEPLOYED") || event.message.includes("START")) {
-      if (!scActive) {
-        scActive = true;
-        scStartLap = lap;
-      }
-    } else if (event.message.includes("ENDED") || event.message.includes("END")) {
-      if (scActive && scStartLap !== null) {
-        periods.push([scStartLap, lap]);
-        scActive = false;
-        scStartLap = null;
-      }
+    const isTrackWide = event.scope === "Track" || event.scope == null;
+    const isSCMessage = event.message.toUpperCase().includes("SAFETY CAR");
+    const isYellow = event.flag === "YELLOW" || event.flag === "DOUBLE YELLOW";
+    const isClear = event.flag === "GREEN" || event.flag === "CHEQUERED";
+
+    if (scStartLap === null && isSCMessage) {
+      scStartLap = lap;
+    } else if (scStartLap === null && isTrackWide && isYellow) {
+      scStartLap = lap;
+    } else if (scStartLap !== null && isTrackWide && isClear) {
+      periods.push([scStartLap, lap]);
+      scStartLap = null;
     }
   }
 
@@ -69,18 +71,30 @@ function isInSCPeriod(lapNumber: number, scPeriods: Array<[number, number]>): bo
 }
 
 /**
- * Identify pit laps from stint data.
- * A pit lap is the last lap of a stint (where the driver pits out).
+ * Identify each driver's pit-in laps from stint data: the last lap of every
+ * stint but their final one (a driver's last stint runs to the flag, not a
+ * pit stop). Keyed per driver, since a real multi-driver field means one
+ * driver's pit lap is an ordinary green-flag lap for everyone else.
  */
-export function identifyPitLaps(stints: Stint[], sessionKey: number): Set<number> {
-  const pitLaps = new Set<number>();
+export function identifyPitLaps(
+  stints: Stint[],
+  sessionKey: number
+): Map<number, Set<number>> {
+  const byDriver = new Map<number, Stint[]>();
   stints
     .filter((s) => s.session_key === sessionKey)
     .forEach((s) => {
-      // The lap where tires are changed is lap_end + 1 typically,
-      // but we mark lap_end as the pit lap for visibility
-      pitLaps.add(s.lap_end);
+      if (!byDriver.has(s.driver_number)) byDriver.set(s.driver_number, []);
+      byDriver.get(s.driver_number)!.push(s);
     });
+
+  const pitLaps = new Map<number, Set<number>>();
+  for (const [driverNumber, driverStints] of byDriver) {
+    const sorted = [...driverStints].sort((a, b) => a.stint_number - b.stint_number);
+    // The last stint runs to the flag; its lap_end is the finish, not a stop.
+    const stopLaps = sorted.slice(0, -1).map((s) => s.lap_end);
+    pitLaps.set(driverNumber, new Set(stopLaps));
+  }
   return pitLaps;
 }
 
@@ -106,7 +120,9 @@ export function shapeLapTimes(
       s1: lap.duration_sector_1,
       s2: lap.duration_sector_2,
       s3: lap.duration_sector_3,
-      isPitLap: pitLaps.has(lap.lap_number) || (lap.is_pit_out_lap ?? false),
+      isPitLap:
+        (pitLaps.get(lap.driver_number)?.has(lap.lap_number) ?? false) ||
+        (lap.is_pit_out_lap ?? false),
       isSlowed: isInSCPeriod(lap.lap_number, scPeriods),
       i1Speed: lap.i1_speed,
       i2Speed: lap.i2_speed,
