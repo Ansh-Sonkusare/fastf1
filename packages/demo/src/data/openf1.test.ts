@@ -1,0 +1,170 @@
+import { describe, expect, it } from "vitest";
+import { asSessionKey, createGate, openF1Url, OpenF1Error, OpenF1LockedError } from "./openf1";
+
+const SK = asSessionKey(9839);
+type Reply = { status: number; body?: unknown; retryAfter?: string } | "network";
+const LIVE_401 = { status: 401, body: { detail: "Live F1 session in progress. Global API access (including past sessions) is restricted" } };
+
+function harness(replies: Reply[], overrides: Partial<Parameters<typeof createGate>[0]> = {}) {
+  let clock = 0;
+  const calls: Array<{ url: string; at: number }> = [];
+  const deferred: Array<() => void> = [];
+  const gate = createGate({
+    now: () => clock,
+    sleep: async (ms) => {
+      clock += ms;
+      await new Promise((r) => setTimeout(r, 0));
+    },
+    defer: (fn) => deferred.push(fn),
+    fetch: async (url) => {
+      calls.push({ url, at: clock });
+      const r = replies.shift() ?? { status: 200, body: [] };
+      if (r === "network") throw new TypeError("Failed to fetch");
+      return new Response(JSON.stringify(r.body ?? []), {
+        status: r.status,
+        headers: r.retryAfter ? { "retry-after": r.retryAfter } : {},
+      });
+    },
+    minIntervalMs: 400,
+    perMinute: 3,
+    maxRetries: 2,
+    maxNetworkFailures: 4,
+    backoffMs: 1000,
+    lockProbeMs: 60_000,
+    ...overrides,
+  });
+  const advance = (ms: number) => {
+    clock += ms;
+  };
+  const flushDeferred = () => deferred.splice(0).forEach((fn) => fn());
+  return { gate, calls, flushDeferred, advance };
+}
+
+const path = (url: string) => url.replace("https://api.openf1.org/v1/", "");
+
+describe("openF1Url", () => {
+  it("sorts params and keeps operator keys without '='", () => {
+    expect(
+      openF1Url("car_data", { session_key: 9839, "date<": "2025-12-07T13:00:00", driver_number: 1, "date>=": "2025-12-07T12:58:00" }),
+    ).toBe(
+      "https://api.openf1.org/v1/car_data?date<2025-12-07T13%3A00%3A00&date>=2025-12-07T12%3A58%3A00&driver_number=1&session_key=9839",
+    );
+  });
+});
+
+describe("createGate", () => {
+  it("dedupes identical queries regardless of filter order", async () => {
+    const { gate, calls } = harness([{ status: 200, body: [{ lap_number: 1 }] }]);
+    const [a, b] = await Promise.all([
+      gate.get("laps", SK, { driver_number: 1, lap_number: 3 }),
+      gate.get("laps", SK, { lap_number: 3, driver_number: 1 }),
+    ]);
+    expect(calls.map((c) => path(c.url))).toEqual(["laps?driver_number=1&lap_number=3&session_key=9839"]);
+    expect(a).toEqual([{ lap_number: 1 }]);
+    expect(b).toBe(a);
+  });
+
+  it("spaces request starts and caps the rolling minute", async () => {
+    const { gate, calls } = harness([]);
+    await Promise.all(["drivers", "laps", "stints", "pit"].map((e) => gate.get(e as "laps", SK)));
+    expect(calls.map((c) => c.at)).toEqual([0, 400, 800, 60_000]);
+  });
+
+  it("a 429 pauses the whole queue for Retry-After, then retries that request first", async () => {
+    const { gate, calls } = harness([{ status: 429, retryAfter: "3" }, { status: 200, body: [1] }, { status: 200, body: [2] }]);
+    const [a, b] = await Promise.all([gate.get("weather", SK), gate.get("pit", SK)]);
+    expect([a, b]).toEqual([[1], [2]]);
+    expect(calls.map((c) => path(c.url).split("?")[0])).toEqual(["weather", "weather", "pit"]);
+    expect(calls[1]!.at).toBeGreaterThanOrEqual(3000);
+  });
+
+  it("retries network failures with backoff", async () => {
+    const { gate, calls } = harness(["network", { status: 200, body: [7] }]);
+    expect(await gate.get("drivers", SK)).toEqual([7]);
+    expect(calls[1]!.at - calls[0]!.at).toBeGreaterThanOrEqual(1000);
+  });
+
+  it("gives up after maxRetries and lets the next call start fresh", async () => {
+    const { gate, calls } = harness([{ status: 429 }, { status: 429 }, { status: 429 }, { status: 200, body: [1] }]);
+    await expect(gate.get("pit", SK)).rejects.toBeInstanceOf(OpenF1Error);
+    expect(await gate.get("pit", SK)).toEqual([1]);
+    expect(calls).toHaveLength(4);
+  });
+
+  it("drops queued work once every subscriber aborted, and never fetches it", async () => {
+    const { gate, calls, flushDeferred } = harness([]);
+    const lap1 = new AbortController();
+    const first = gate.get("drivers", SK);
+    const stale = gate.get("car_data", SK, { "date>=": "lap1" }, lap1.signal);
+    lap1.abort();
+    flushDeferred();
+    await expect(stale).rejects.toMatchObject({ name: "AbortError" });
+    await first;
+    expect(await gate.get("car_data", SK, { "date>=": "lap2" })).toEqual([]);
+    expect(calls.map((c) => path(c.url).split("?")[0])).toEqual(["drivers", "car_data"]);
+    expect(calls[1]!.url).toContain("lap2");
+  });
+
+  it("keeps a request when another subscriber still wants it", async () => {
+    const { gate, calls, flushDeferred } = harness([{ status: 200, body: [3] }]);
+    const gone = new AbortController();
+    void gate.get("laps", SK, {}, gone.signal);
+    const kept = gate.get("laps", SK);
+    gone.abort();
+    flushDeferred();
+    expect(await kept).toEqual([3]);
+    expect(calls).toHaveLength(1);
+  });
+
+  it("treats 404 as no rows", async () => {
+    const { gate } = harness([{ status: 404, body: { detail: "No results found." } }]);
+    expect(await gate.get("team_radio", SK)).toEqual([]);
+  });
+
+  it("a live-session 401 locks the gate: queued work fails without fetching, one probe per minute", async () => {
+    const { gate, calls, advance } = harness([LIVE_401, LIVE_401, { status: 200, body: [9] }]);
+    const [a, b] = await Promise.allSettled([gate.get("drivers", SK), gate.get("laps", SK)]);
+    expect(a).toMatchObject({ status: "rejected", reason: { name: "OpenF1LockedError", inferred: false } });
+    expect(b).toMatchObject({ status: "rejected", reason: { name: "OpenF1LockedError" } });
+    await expect(gate.get("laps", SK)).rejects.toBeInstanceOf(OpenF1LockedError);
+    expect(calls).toHaveLength(1);
+    advance(60_000);
+    await expect(gate.get("laps", SK)).rejects.toBeInstanceOf(OpenF1LockedError);
+    advance(60_000);
+    expect(await gate.get("laps", SK)).toEqual([9]);
+    expect(calls).toHaveLength(3);
+  });
+
+  it("rides out a short outage: three network failures then success, no lock", async () => {
+    const { gate, calls } = harness(["network", "network", "network", { status: 200, body: [5] }]);
+    expect(await gate.get("laps", SK)).toEqual([5]);
+    expect(calls.slice(0, 3).map((c) => c.at)).toEqual([0, 1000, 3000]);
+    expect(calls[3]!.at).toBeGreaterThanOrEqual(7000);
+  });
+
+  it("network failures and 429s count separately", async () => {
+    const { gate, calls } = harness([{ status: 429 }, "network", { status: 429 }, "network", { status: 200, body: [6] }]);
+    expect(await gate.get("laps", SK)).toEqual([6]);
+    expect(calls).toHaveLength(5);
+  });
+
+  it("in the browser the lockout is a CORS-less network failure: four in a row infer the lock", async () => {
+    const { gate, calls } = harness(["network", "network", "network", "network"]);
+    await expect(gate.get("sessions" as "laps", SK)).rejects.toMatchObject({ name: "OpenF1LockedError", inferred: true });
+    await expect(gate.get("pit", SK)).rejects.toBeInstanceOf(OpenF1LockedError);
+    expect(calls).toHaveLength(4);
+  });
+
+  it("with production pacing (2/4/8/16 s), waits the full ~30 s over 4 retries before locking", async () => {
+    const { gate, calls } = harness(["network", "network", "network", "network", "network"], {
+      backoffMs: 2000,
+      maxNetworkFailures: 5,
+      minIntervalMs: 0,
+      perMinute: 1000,
+    });
+    await expect(gate.get("laps", SK)).rejects.toMatchObject({ name: "OpenF1LockedError", inferred: true });
+    expect(calls.map((c) => c.at)).toEqual([0, 2000, 6000, 14000, 30000]);
+    expect(calls).toHaveLength(5);
+  });
+});
+
