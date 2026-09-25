@@ -1,9 +1,10 @@
 import { useState } from "react";
 import type { PanelProps } from "../../app/types";
 import { combine, useOpenF1 } from "../../data/useOpenF1";
+import { useWindowedRows } from "../../data/windows";
+import type { DriverNumber } from "../../app/types";
 import { AsyncView } from "../../ui/primitives";
 import { color, font, type } from "../../ui/tokens";
-import { blockFilter } from "./data";
 import { buildTrace, readout, telemetryView } from "./telemetry";
 import { TelemetryView } from "./TelemetryView";
 
@@ -15,8 +16,14 @@ export default function Telemetry(props: PanelProps) {
   const sk = session.sessionKey;
   const [hover, setHover] = useState<number | null>(null);
   const laps = useOpenF1("laps", sk);
-  const carA = useOpenF1("car_data", sk, blockFilter(props, focus.a, lap));
-  const carB = useOpenF1("car_data", sk, blockFilter(props, focus.b, lap));
+  const spanOf = (n: DriverNumber | null) => {
+    const w = n == null ? null : props.lapWindowOf(n, lap);
+    return w?.end ? { from: Date.parse(w.start), to: Date.parse(w.end) } : null;
+  };
+  const carA = useWindowedRows("car_data", spanOf(focus.a));
+  const carB = useWindowedRows("car_data", spanOf(focus.b));
+  // Keeps the lap in progress cached, so its trace is ready the moment it completes.
+  useWindowedRows("car_data", props.playing ? { from: props.at, to: props.at + 1 } : null, true);
 
   const a = focus.a == null ? undefined : drivers.get(focus.a);
   const b = focus.b == null ? undefined : drivers.get(focus.b);
@@ -27,8 +34,8 @@ export default function Telemetry(props: PanelProps) {
   const lapA = lapOf(laps, focus.a);
   const lapB = lapOf(laps, focus.b);
   const all = combine(carA, carB);
-  const ta = all.status === "ok" && lapA ? buildTrace(lapA, all.data[0]) : null;
-  const tb = all.status === "ok" && lapB ? buildTrace(lapB, all.data[1]) : null;
+  const ta = all.status === "ok" && lapA ? buildTrace(lapA, all.data[0].filter((r) => r.driver_number === focus.a)) : null;
+  const tb = all.status === "ok" && lapB ? buildTrace(lapB, all.data[1].filter((r) => r.driver_number === focus.b)) : null;
 
   return (
     <section data-panel="03" style={{ background: color.panel, display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0 }}>

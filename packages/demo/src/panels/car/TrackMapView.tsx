@@ -62,7 +62,7 @@ export function TrackMapView({ view, drivers, big = false }: TrackMapViewProps) 
         const driver = drivers.get(car.number);
         const isRoleA = car.role === "A";
         return (
-          <g key={`car-${car.number}`} style={{ transform: `translate(${car.at[0]}px,${car.at[1]}px)` }}>
+          <g key={`car-${car.number}`} data-car={car.number} style={{ transform: `translate(${car.at[0]}px,${car.at[1]}px)` }}>
             {car.role && (
               <circle cx={0} cy={0} r={RING_RADIUS} style={{ fill: "none", stroke: isRoleA ? color.accent : color.label, strokeWidth: 1.5 }} />
             )}
