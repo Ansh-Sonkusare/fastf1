@@ -1,4 +1,5 @@
-import { OpenF1Lap, OpenF1Pit, RaceControl } from "@f1/core";
+import { OpenF1Lap, RaceControl } from "@f1/core";
+import type { PitStop } from "../../app/timeline";
 
 export interface LapTimeViewModel {
   lapNumber: number;
@@ -16,39 +17,30 @@ export interface LapTimeViewModel {
 
 /**
  * Identify Safety Car / VSC periods: [lapStart, lapEnd] ranges where the
- * whole field was slowed. A field-wide period is a `scope: "Track"` yellow
- * (not a local `scope: "Sector"` double-yellow) that later clears with a
- * `scope: "Track"` green, or an explicit "SAFETY CAR" message. Neither 2025
- * Abu Dhabi (9839) nor Monza (9912) had one in their real race_control feed
- * (see lapTimes.test.ts).
+ * whole field was slowed. Mirrors `app/timeline.ts`'s `flagAt`, the shell's
+ * proven parser: OpenF1 marks SC/VSC with `category: "SafetyCar"`, a
+ * "DEPLOYED" message to start, and "... IN THIS LAP" / "... ENDING" to end
+ * (never a plain track GREEN). Neither 2025 Abu Dhabi (9839) nor Monza
+ * (9912) had a `SafetyCar` row at all (see lapTimes.test.ts).
  */
 export function identifySCPeriods(
   raceControl: RaceControl[],
   sessionKey: number
 ): Array<[number, number]> {
   const periods: Array<[number, number]> = [];
-  let scStartLap: number | null = null;
+  let startLap: number | null = null;
 
   const events = raceControl
-    .filter((rc) => rc.session_key === sessionKey && rc.category === "Flag")
+    .filter((rc) => rc.session_key === sessionKey && rc.category === "SafetyCar")
     .sort((a, b) => a.date.localeCompare(b.date));
 
   for (const event of events) {
-    const lap = event.lap_number;
-    if (!lap) continue;
-
-    const isTrackWide = event.scope === "Track" || event.scope == null;
-    const isSCMessage = event.message.toUpperCase().includes("SAFETY CAR");
-    const isYellow = event.flag === "YELLOW" || event.flag === "DOUBLE YELLOW";
-    const isClear = event.flag === "GREEN" || event.flag === "CHEQUERED";
-
-    if (scStartLap === null && isSCMessage) {
-      scStartLap = lap;
-    } else if (scStartLap === null && isTrackWide && isYellow) {
-      scStartLap = lap;
-    } else if (scStartLap !== null && isTrackWide && isClear) {
-      periods.push([scStartLap, lap]);
-      scStartLap = null;
+    const msg = event.message.toUpperCase();
+    if (msg.includes("DEPLOYED")) {
+      startLap ??= event.lap_number ?? null;
+    } else if (startLap !== null && (msg.includes("IN THIS LAP") || msg.includes("ENDING"))) {
+      periods.push([startLap, event.lap_number ?? startLap]);
+      startLap = null;
     }
   }
 
@@ -63,28 +55,23 @@ function isInSCPeriod(lapNumber: number, scPeriods: Array<[number, number]>): bo
 }
 
 /**
- * Identify each driver's pit-in laps from the `pit` endpoint, keyed per
- * driver (a real multi-driver field means one driver's pit lap is an
- * ordinary green-flag lap for everyone else). Sourced from `pit`, not
- * `stints`: CONTRACT.md warns stints can open a new stint on consecutive
- * laps for one stop (Vegas 9858, RUS L18/L19) or open a stint per car during
- * an SC pit-lane pass with no real stop, so inferring stops from stint
- * boundaries double-counts or invents them. Every `pit` row still marks its
- * lap as pit-affected here (even a null-`stop_duration` SC drive-through
- * lap is not a normal-pace lap); `stop_duration` nullness only matters for
- * counting real stops, not for clipping the lap-time chart.
+ * Identify each driver's pit-in laps from B's `realPitStops` (the one
+ * definition of a real pit stop, `app/timeline.ts`), keyed per driver (a
+ * real multi-driver field means one driver's pit lap is an ordinary
+ * green-flag lap for everyone else). Sourced from `realPitStops`, not raw
+ * `pit` rows or `stints`: CONTRACT.md warns stints can open a new stint on
+ * consecutive laps for one stop (Vegas 9858, RUS L18/L19), and a raw `stop_
+ * duration` null doesn't mean "not a stop" either (Abu Dhabi HUL L7 is a
+ * real stop with a null stop_duration). `realPitStops` already resolves
+ * both: it's the shared rule this panel and pitStops.ts both use, so the
+ * lap-times chart's pit markers agree with the pit-stops panel's list.
  */
-export function identifyPitLaps(
-  pits: OpenF1Pit[],
-  sessionKey: number
-): Map<number, Set<number>> {
+export function identifyPitLaps(pitStops: readonly PitStop[]): Map<number, Set<number>> {
   const pitLaps = new Map<number, Set<number>>();
-  pits
-    .filter((p) => p.session_key === sessionKey && p.lap_number != null)
-    .forEach((p) => {
-      if (!pitLaps.has(p.driver_number)) pitLaps.set(p.driver_number, new Set());
-      pitLaps.get(p.driver_number)!.add(p.lap_number!);
-    });
+  pitStops.forEach((p) => {
+    if (!pitLaps.has(p.driver)) pitLaps.set(p.driver, new Set());
+    pitLaps.get(p.driver)!.add(p.lap);
+  });
   return pitLaps;
 }
 
@@ -95,11 +82,11 @@ export function identifyPitLaps(
 export function shapeLapTimes(
   laps: OpenF1Lap[],
   sessionKey: number,
-  pits: OpenF1Pit[] = [],
+  pitStops: readonly PitStop[] = [],
   raceControl: RaceControl[] = []
 ): LapTimeViewModel[] {
   const scPeriods = identifySCPeriods(raceControl, sessionKey);
-  const pitLaps = identifyPitLaps(pits, sessionKey);
+  const pitLaps = identifyPitLaps(pitStops);
 
   return laps
     .filter((lap) => lap.session_key === sessionKey)
