@@ -1,12 +1,8 @@
 import { describe, expect, it } from "vitest";
-import abu from "./__fixtures__/abu-dhabi-2025.json";
-import monza from "./__fixtures__/monza-2025.json";
+import { abuRace, monzaRace } from "./__fixtures__/races";
 import { computeStrategy } from "./model";
-import { parseRace } from "./race";
 import type { Race, Strategy } from "./types";
 
-const abuRace = parseRace(abu);
-const monzaRace = parseRace(monza);
 const run = (race: Race, lap: number, focus: number, safetyCar = false) =>
   computeStrategy(race, { lap, focus, pitLoss: 21.4, safetyCar }) as Strategy;
 
