@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { pitLanePassLaps, realPitStops } from "../../app/timeline";
 import type { PanelProps } from "../../app/types";
 import { combine, useOpenF1 } from "../../data/useOpenF1";
 import { AsyncView, Label, MeasuredLegend, PanelFrame, PredictedLegend } from "../../ui/primitives";
@@ -12,29 +13,38 @@ import { DegradationSvg, Ghost, PitWindowSvg, Section, mono } from "./views";
 
 export const DEFAULT_PIT_LOSS = 21.4;
 
-export default function StrategyPredictor({ session, lap, focus, drivers }: PanelProps) {
+export default function StrategyPredictor({ session, lap, focus, drivers, ownLapOf }: PanelProps) {
   const data = combine(
     useOpenF1("laps", session.sessionKey),
     useOpenF1("stints", session.sessionKey),
     useOpenF1("pit", session.sessionKey),
+    useOpenF1("race_control", session.sessionKey),
   );
   const [safetyCar, setSafetyCar] = useState(false);
   const race = useMemo(() => {
     if (data.status !== "ok") return null;
-    const [laps, stints, pit] = data.data;
+    const [laps, stints, pit, raceControl] = data.data;
     const driverRows = [...drivers.values()].map((d) => ({
       driver_number: d.number,
       name_acronym: d.code,
       team_colour: d.color.replace("#", ""),
     }));
-    return parseRace({ laps, stints, pit, drivers: driverRows });
+    const stops = realPitStops(pit, stints, pitLanePassLaps(raceControl));
+    return parseRace({ laps, stints, stops, drivers: driverRows });
   }, [data, drivers]);
+  // A lapped car is a lap behind the cursor; plan from the lap it last completed, never a later one.
+  const ownLap = focus.a == null ? lap : ownLapOf(focus.a, lap);
   const strategy = useMemo(
     () =>
       race && focus.a != null
-        ? computeStrategy(race, { lap, focus: focus.a, pitLoss: DEFAULT_PIT_LOSS, safetyCar })
+        ? computeStrategy(race, {
+            lap: ownLap,
+            focus: focus.a,
+            pitLoss: DEFAULT_PIT_LOSS,
+            safetyCar,
+          })
         : null,
-    [race, lap, focus.a, safetyCar],
+    [race, ownLap, focus.a, safetyCar],
   );
 
   const toggle = (
@@ -64,7 +74,7 @@ export default function StrategyPredictor({ session, lap, focus, drivers }: Pane
           background: safetyCar ? color.predicted : "transparent",
         }}
       />
-      SC L{lap + 1}–{lap + 3}
+      SC L{ownLap + 1}–{ownLap + 3}
     </button>
   );
 
