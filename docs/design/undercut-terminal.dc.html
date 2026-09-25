@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>html,body{margin:0;height:100%;background:#04070d;color:#e8edf6;font-family:'Barlow Semi Condensed',sans-serif;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}*{box-sizing:border-box}a{color:#c6ff3d}a:hover{color:#e2ff8f}button{font-family:inherit}</style>
+</helmet>
+<div ref="{{ rootRef }}" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#04070d;overflow:hidden">
+  <div style="width:1920px;height:1080px;flex-shrink:0;transform:scale({{ scale }});background:#070b14">
+
+    <sc-if value="{{ isDesk }}" hint-placeholder-val="{{ true }}">
+    <div data-screen-label="Desk" style="display:grid;grid-template-rows:44px 38px 626px 342px 26px;grid-template-columns:minmax(0,1fr);gap:1px;height:100%;background:#1b2740">
+
+      <div style="display:flex;align-items:stretch;background:#0b1220;min-width:0">
+        <div style="display:flex;align-items:center;padding:0 16px;background:#c6ff3d;color:#000;font:700 15px/1 'Barlow Semi Condensed',sans-serif;letter-spacing:.16em">UNDERCUT<span style="font-weight:500;letter-spacing:.06em;margin-left:10px;font-size:11px;opacity:.7">STRATEGY TERMINAL</span></div>
+        <div style="display:flex;align-items:center;padding:0 16px;border-right:1px solid #1b2740;font:500 13px/1 'JetBrains Mono',monospace;color:#e8edf6;white-space:nowrap">R17 · NORTE GP · RACE</div>
+        <div style="display:flex;align-items:baseline;gap:10px;padding:0 16px;border-right:1px solid #1b2740;align-self:center"><span style="font:500 11px/1 'Barlow Semi Condensed',sans-serif;letter-spacing:.07em;text-transform:uppercase;color:#8a97ad">Lap</span><span style="font:600 26px/1 'JetBrains Mono',monospace;color:#e8edf6">{{ lapNum }}<span style="color:#56637b;font-size:16px">/57</span></span></div>
+        <div style="display:flex;align-items:baseline;gap:10px;padding:0 16px;border-right:1px solid #1b2740;align-self:center"><span style="font:500 11px/1 'Barlow Semi Condensed',sans-serif;letter-spacing:.07em;text-transform:uppercase;color:#8a97ad">Time</span><span style="font:600 22px/1 'JetBrains Mono',monospace;color:#e8edf6">{{ clock }}</span></div>
+        <div style="display:flex;align-items:center;gap:12px;padding:0 18px;height:100%;background:{{ flag.bg }};color:{{ flag.fg }};box-shadow:inset 0 0 0 {{ flag.glow }}px {{ flag.glowC }};font:700 14px/1 'JetBrains Mono',monospace;letter-spacing:.06em;white-space:nowrap;flex-shrink:0"><span style="width:10px;height:10px;background:{{ flag.fg }}"></span>{{ flag.label }}</div>
+        <div style="display:flex;align-items:center;gap:8px;padding:0 16px;font:700 12px/1 'JetBrains Mono',monospace;letter-spacing:.08em;color:{{ status.c }};white-space:nowrap"><span style="width:8px;height:8px;border-radius:50%;background:{{ status.c }}"></span>{{ status.label }}</div>
+        <div style="flex:1"></div>
+        <sc-for list="{{ weather }}" as="w" hint-placeholder-count="4">
+          <div style="display:flex;align-items:center;gap:8px;padding:0 14px;height:100%;border-left:1px solid #1b2740;background:{{ w.hlBg }}">
+            <div style="display:flex;flex-direction:column;gap:5px">
+              <span style="font:500 11px/1 'Barlow Semi Condensed',sans-serif;letter-spacing:.07em;text-transform:uppercase;color:#8a97ad;font-size:10px">{{ w.label }}</span>
+              <span style="font:500 13px/1 'JetBrains Mono',monospace;color:{{ w.vc }};white-space:nowrap">{{ w.val }}</span>
+            </div>
+            <sc-if value="{{ w.trend }}" hint-placeholder-val="{{ false }}">
+              <svg viewBox="0 0 100 24" preserveAspectRatio="none" style="width:40px;height:18px;display:block;flex-shrink:0"><path d="{{ w.path }}" style="fill:none;stroke:{{ w.color }};stroke-width:1.5;vector-effect:non-scaling-stroke"></path></svg>
+              <span style="font:700 10px/1 'JetBrains Mono',monospace;color:{{ w.color }}">{{ w.dir }}</span>
+            </sc-if>
+          </div>
+        </sc-for>
+        <div style="display:flex;align-items:center;gap:0;padding:0 12px;height:100%;border-left:1px solid #1b2740">
+          <sc-for list="{{ modes }}" as="m" hint-placeholder-count="2">
+            <button onClick="{{ m.onClick }}" style="height:22px;padding:0 10px;border:1px solid #26334f;background:{{ m.bg }};color:{{ m.fg }};font:600 11px/1 'Barlow Semi Condensed',sans-serif;letter-spacing:.06em;cursor:pointer">{{ m.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div data-screen-label="Timeline" style="display:flex;align-items:center;gap:12px;padding:0 12px;background:#0b1220">
+        <button onClick="{{ scrub.onPlay }}" style="width:30px;height:24px;border:1px solid #26334f;background:transparent;color:#e8edf6;font:700 10px/1 'JetBrains Mono',monospace;cursor:pointer">{{ scrub.playIcon }}</button>
+        <button onClick="{{ scrub.onLive }}" style="display:flex;align-items:center;gap:6px;height:24px;padding:0 10px;border:1px solid {{ scrub.liveBd }};background:{{ scrub.liveBg }};color:{{ scrub.liveFg }};font:700 11px/1 'JetBrains Mono',monospace;letter-spacing:.08em;cursor:pointer"><span style="width:7px;height:7px;border-radius:50%;background:{{ scrub.dot }}"></span>LIVE</button>
+        <span style="font:500 11px/1 'JetBrains Mono',monospace;color:#8a97ad;width:200px;white-space:nowrap">{{ scrub.readout }}</span>
+        <div ref="{{ scrubRef }}" onPointerDown="{{ scrub.onDown }}" onPointerMove="{{ scrub.onMove }}" onPointerUp="{{ scrub.onUp }}" style="position:relative;flex:1;height:34px;margin-top:4px;cursor:ew-resize;touch-action:none;user-select:none">
+          <div style="position:absolute;left:0;right:0;top:12px;height:2px;background:#1b2740"></div>
+          <div style="position:absolute;left:0;top:12px;height:2px;width:{{ scrub.head }}%;background:#8a97ad"></div>
+          <div style="position:absolute;top:0;height:26px;left:{{ scrub.live }}%;right:0;background:repeating-linear-gradient(135deg,rgba(255,255,255,.045) 0 1px,transparent 1px 6px)"></div>
+          <sc-if value="{{ scrub.hasSc }}" hint-placeholder-val="{{ true }}"><div style="position:absolute;top:4px;height:18px;left:{{ scrub.scL }}%;width:{{ scrub.scW }}%;background:rgba(245,208,32,.2);border:1px solid rgba(245,208,32,.7)"></div></sc-if>
+          <sc-if value="{{ scrub.hasY }}" hint-placeholder-val="{{ true }}"><div style="position:absolute;top:4px;height:18px;left:{{ scrub.yL }}%;width:{{ scrub.yW }}%;min-width:3px;background:rgba(245,208,32,.55)"></div></sc-if>
+          <sc-for list="{{ scrub.pits }}" as="p" hint-placeholder-count="20"><span style="position:absolute;left:{{ p.left }}%;top:{{ p.top }}px;width:1px;height:{{ p.h }}px;background:{{ p.c }}"></span></sc-for>
+          <sc-for list="{{ scrub.laps }}" as="l" hint-placeholder-count="7"><span style="position:absolute;left:{{ l.left }}%;top:23px;transform:translateX(-50%);font:500 10px/1 'JetBrains Mono',monospace;color:#56637b">{{ l.label }}</span></sc-for>
+          <span style="position:absolute;left:{{ scrub.live }}%;top:0;height:20px;width:2px;margin-left:-1px;background:#ff5a4f"></span>
+          <span style="position:absolute;left:{{ scrub.head }}%;top:0;height:20px;width:2px;margin-left:-1px;background:#c6ff3d"></span>
+          <span style="position:absolute;left:{{ scrub.head }}%;top:7px;width:12px;height:12px;margin-left:-6px;background:#c6ff3d;border:2px solid #070b14"></span>
+        </div>
+        <span style="display:flex;align-items:center;gap:6px;font:500 11px/1 'JetBrains Mono',monospace;color:#8a97ad"><span style="width:12px;height:9px;background:rgba(245,208,32,.35);border:1px solid #f5d020"></span>SC / YELLOW</span>
+        <span style="display:flex;align-items:center;gap:6px;font:500 11px/1 'JetBrains Mono',monospace;color:#8a97ad"><span style="width:1px;height:12px;background:#e8edf6"></span>PIT</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:440px minmax(0,1fr) 520px;gap:1px;min-height:0">
+        <div data-screen-label="Timing" style="background:#0b1220;display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden">
+          <div style="display:flex;align-items:center;gap:14px;height:28px;padding:0 12px;background:#101a2c;border-bottom:1px solid #1b2740;flex-shrink:0"><span style="display:flex;align-items:center;gap:9px;font:600 12px/1 'Barlow Semi Condensed',sans-serif;letter-spacing:.07em;text-transform:uppercase;color:#e8edf6"><span style="width:6px;height:6px;flex-shrink:0;background:#c6ff3d"></span>Timing</span><div style="flex:1"></div><button onClick="{{ toggleExpand }}" style="height:20px;padding:0 8px;border:1px solid #26334f;background:{{ expandBg }};color:{{ expandFg }};font:600 10px/1 'Barlow Semi Condensed',sans-serif;letter-spacing:.06em;cursor:pointer">D · {{ expandLabel }}</button></div>
+          <sc-if value="{{ expand }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid;grid-template-columns:22px 3px 44px 62px 58px 70px 70px minmax(0,1fr);gap:6px;align-items:center;height:22px;padding:0 10px;border-bottom:1px solid #142036;font:500 10px/1 'JetBrains Mono',monospace;letter-spacing:.06em;color:#56637b">
+              <span>P</span><span></span><span>DRV</span><span style="text-align:right">GAP</span><span style="text-align:right">INT</span><span style="text-align:right">LAST</span><span style="text-align:right">BEST</span><span style="text-align:right">TYRE</span>
+            </div>
+            <sc-for list="{{ rows }}" as="r" hint-placeholder-count="20">
+              <div onClick="{{ r.onClick }}" style="display:grid;grid-template-columns:22px 3px 44px 62px 58px 70px 70px minmax(0,1fr);gap:6px;align-items:center;height:28.7px;padding:0 10px;background:{{ r.bg }};border:1px {{ r.bds }} {{ r.bd }};cursor:pointer;font:500 13px/1 'JetBrains Mono',monospace">
+                <span style="color:#e8edf6;font-weight:600">{{ r.pos }}</span>
+                <span style="height:16px;background:{{ r.color }}"></span>
+                <span style="font-weight:700;color:#e8edf6">{{ r.code }}</span>
+                <span style="text-align:right;color:#e8edf6">{{ r.gap }}</span>
+                <span style="text-align:right;color:{{ r.intColor }}">{{ r.int }}</span>
+                <span style="text-align:right;color:{{ r.lastColor }}">{{ r.last }}</span>
+                <span style="text-align:right;color:{{ r.bestColor }}">{{ r.best }}</span>
+                <span style="text-align:right;white-space:nowrap"><span style="color:{{ r.tyreColor }};font-weight:700">{{ r.tyre }}</span><span style="color:#8a97ad"> {{ r.age }}</span></span>
+              </div>
+            </sc-for>
+          </sc-if>
+          <sc-if value="{{ compact }}" hint-placeholder-val="{{ true }}">
+            <div style="display:grid;grid-template-columns:28px 3px minmax(0,1fr) 90px 62px;gap:10px;align-items:center;height:22px;padding:0 12px;border-bottom:1px solid #142036;font:500 10px/1 'JetBrains Mono',monospace;letter-spacing:.06em;color:#56637b">
+              <span>P</span><span></span><span>DRIVER</span><span style="text-align:right">GAP</span><span style="text-align:right">TYRE</span>
+            </div>
+            <sc-for list="{{ rows }}" as="r" hint-placeholder-count="20">
+              <div onClick="{{ r.onClick }}" style="display:grid;grid-template-columns:28px 3px minmax(0,1fr) 90px 62px;gap:10px;align-items:center;height:28.7px;padding:0 12px;background:{{ r.bg }};border:1px {{ r.bds }} {{ r.bd }};cursor:pointer">
+                <span style="font:600 15px/1 'JetBrains Mono',monospace;color:#e8edf6">{{ r.pos }}</span>
+                <span style="height:18px;background:{{ r.color }}"></span>
+                <span style="display:flex;align-items:center;gap:8px;font:700 17px/1 'Barlow Semi Condensed',sans-serif;color:#e8edf6;letter-spacing:.03em">{{ r.code }}<sc-if value="{{ r.hasBadge }}" hint-placeholder-val="{{ false }}"><span style="font:700 10px/1 'JetBrains Mono',monospace;padding:3px 5px;background:{{ r.badgeBg }};color:#000">{{ r.badge }}</span></sc-if><sc-if value="{{ r.inPit }}" hint-placeholder-val="{{ false }}"><span style="font:700 10px/1 'JetBrains Mono',monospace;padding:3px 5px;border:1px solid #ffb547;color:#ffb547">IN PIT</span></sc-if><sc-if value="{{ r.hasChg }}" hint-placeholder-val="{{ false }}"><span style="font:700 11px/1 'JetBrains Mono',monospace;color:{{ r.chgColor }}">{{ r.chg }}</span></sc-if></span>
+                <span style="text-align:right;font:500 15px/1 'JetBrains Mono',monospace;color:#e8edf6">{{ r.gap }}</span>
+                <span style="text-align:right;font:500 14px/1 'JetBrains Mono',monospace;white-space:nowrap"><span style="color:{{ r.tyreColor }};font-weight:700">{{ r.tyre }}</span><span style="color:#8a97ad"> {{ r.age }}</span></span>
+              </div>
+            </sc-for>
+          </sc-if>
+          <sc-if value="{{ showHint }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;align-items:center;gap:10px;margin-top:auto;padding:8px 12px;border-top:1px solid #1b2740;background:#101a2c">
+              <span style="flex:1;font:500 12px/1.4 'Barlow Semi Condensed',sans-serif;color:#c9d2e1">Click a driver to focus A. Shift-click to compare as B.</span>
+              <button onClick="{{ dismissHint }}" style="height:20px;padding:0 8px;border:none;background:#c6ff3d;color:#000;font:700 10px/1 'JetBrains Mono',monospace;cursor:pointer">OK</button>
+            </div>
+          </sc-if>
+        </div>
+
+        <div style="display:grid;grid-template-rows:auto minmax(0,1fr);gap:1px;min-height:0;min-width:0">
+          <div data-screen-label="Strategy call" style="background:#0b1220;display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden;background:#0b1220 repeating-linear-gradient(135deg,rgba(111,211,232,.025) 0 1px,transparent 1px 7px)">
+            <div style="display:flex;align-items:center;gap:14px;height:28px;padding:0 12px;background:#101a2c;border-bottom:1px solid #1b2740;flex-shrink:0"><span style="display:flex;align-items:center;gap:9px;font:600 12px/1 'Barlow Semi Condensed',sans-serif;letter-spacing:.07em;text-transform:uppercase;color:#e8edf6"><span style="width:6px;height:6px;flex-shrink:0;background:#c6ff3d"></span>Strategy · {{ fA.code }}</span><div style="flex:1"></div><span style="font:500 11px/1 'JetBrains Mono',monospace;color:#8a97ad;white-space:nowrap">P{{ fA.pos }} · {{ fA.tyre }} {{ fA.age }} LAPS · AS OF L{{ fA.lap }}</span>
+              <sc-for list="{{ toggles }}" as="t" hint-placeholder-count="2"><button onClick="{{ t.onClick }}" style="height:20px;padding:0 8px;border:1px solid {{ t.bd }};background:{{ t.bg }};color:{{ t.fg }};font:600 10px/1 'Barlow Semi Condensed',sans-serif;letter-spacing:.06em;cursor:pointer">WHAT-IF {{ t.label }}</button></sc-for>
+              <span style="font:700 10px/1 'JetBrains Mono',monospace;letter-spacing:.08em;padding:4px 7px;background:{{ call.tagBg }};color:#000">{{ call.tag }}</span></div>
+            <div style="display:flex;flex-direction:column;gap:12px;padding:20px 22px 18px">
+              <span style="font:600 46px/1 'Barlow Semi Condensed',sans-serif;color:#e8edf6;letter-spacing:-.02em">{{ call.head }}</span>
+              <span style="font:500 18px/1.3 'JetBrains Mono',monospace;color:#6fd3e8">{{ call.sub }}</span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-top:1px solid #1b2740">
+            <sc-for list="{{ call.facts }}" as="x" hint-placeholder-count="5">
+              <div style="display:flex;flex-direction:column;gap:7px;padding:12px 22px;border-right:1px solid #1b2740;border-bottom:1px solid #1b2740">
+                <span style="font:500 11px/1 'Barlow Semi Condensed',sans-serif;letter-spacing:.07em;text-transform:uppercase;color:#8a97ad">{{ x.k }}</span>
+                <span style="font:500 14px/1.2 'JetBrains Mono',monospace;color:{{ x.c }}">{{ x.v }}</span>
+              </div>
+            </sc-for>
+          </div>
+          </div>
+
+          <div data-screen-label="Evidence" style="background:#0b1220;display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden">
+            <div style="display:flex;align-items:stretch;height:28px;background:#101a2c;border-bottom:1px solid #1b2740;flex-shrink:0">
+          <sc-for list="{{ evTabs }}" as="t" hint-placeholder-count="4">
+            <button onClick="{{ t.onClick }}" style="display:flex;align-items:center;gap:8px;padding:0 14px;border:none;border-right:1px solid #1b2740;background:{{ t.bg }};color:{{ t.fg }};font:600 11px/1 'Barlow Semi Condensed',sans-serif;letter-spacing:.06em;text-transform:uppercase;cursor:pointer"><span style="color:{{ t.kc }}">{{ t.key }}</span>{{ t.label }}</button>
+          </sc-for>
+              <div style="flex:1"></div>
+              <span style="display:flex;align-items:center;gap:6px;padding:0 12px;font:500 11px/1 'JetBrains Mono',monospace;color:#6fd3e8"><span style="width:14px;height:9px;border:1px dashed #6fd3e8;background:repeating-linear-gradient(135deg,rgba(111,211,232,.45) 0 1px,transparent 1px 4px)"></span>≈ PREDICTED ± CONFIDENCE</span>
+            </div>
+            <div style="flex:1;min-height:0;display:flex;flex-direction:column">
+              <sc-if value="{{ ev.plans }}" hint-placeholder-val="{{ true }}">
+                <div style="display:grid;grid-template-columns:minmax(0,1fr) 90px 90px 80px 170px;gap:12px;align-items:center;height:26px;padding:0 22px;border-bottom:1px solid #142036;font:500 10px/1 'JetBrains Mono',monospace;letter-spacing:.06em;color:#56637b">
+                  <span>PLAN · CLICK TO APPLY</span><span style="text-align:right">FINISH</span><span style="text-align:right">Δ TIME</span><span style="text-align:right">RANGE</span><span>CONFIDENCE</span>
+                </div>
+                <sc-for list="{{ plans }}" as="p" hint-placeholder-count="4">
+                  <div onClick="{{ p.onClick }}" style="display:grid;grid-template-columns:minmax(0,1fr) 90px 90px 80px 170px;gap:12px;align-items:center;height:44px;padding:0 22px;border-bottom:1px solid #142036;background:{{ p.bg }};cursor:pointer;font:500 14px/1 'JetBrains Mono',monospace" style-hover="background:rgba(111,211,232,.06)">
+                    <span style="display:flex;align-items:center;gap:10px;color:#e8edf6;min-width:0"><span style="width:9px;height:9px;border:2px solid {{ p.ring }};background:{{ p.dot }}"></span>{{ p.name }}<sc-if value="{{ p.isBest }}" hint-placeholder-val="{{ false }}"><span style="font:700 9px/1 'JetBrains Mono',monospace;padding:3px 5px;background:#6fd3e8;color:#000">BEST</span></sc-if></span>
+                    <span style="text-align:right;color:#6fd3e8;font-weight:600">≈P{{ p.finish }}</span>
+                    <span style="text-align:right;color:{{ p.dColor }}">{{ p.delta }}</span>
+                    <span style="text-align:right;color:#8a97ad">±{{ p.range }}</span>
+                    <span style="display:flex;align-items:center;gap:10px"><span style="flex:1;height:4px;background:#13253a"><span style="display:block;height:100%;width:{{ p.conf }}%;background:#6fd3e8;opacity:{{ p.confO }}"></span></span><span style="color:#6fd3e8;width:34px;text-align:right">{{ p.conf }}%</span></span>
+                  </div>
+                </sc-for>
+              </sc-if>
+              <sc-if value="{{ ev.ghost }}" hint-placeholder-val="{{ false }}">
+                <div style="display:grid;grid-template-columns:280px minmax(0,1fr);gap:28px;padding:26px 22px;align-items:center;flex:1">
+                  <div style="display:flex;flex-direction:column;gap:10px">
+                    <span style="font:500 11px/1 'Barlow Semi Condensed',sans-serif;letter-spacing:.07em;text-transform:uppercase;color:#8a97ad;color:#6fd3e8">Ghost · {{ ghost.lapLabel }}</span>
+                    <span style="font:600 56px/1 'JetBrains Mono',monospace;color:#6fd3e8">≈P{{ ghost.pos }}</span>
+                    <span style="font:500 13px/1.45 'JetBrains Mono',monospace;color:#c9d2e1">{{ ghost.line }}</span>
+                    <span style="font:500 13px/1.45 'JetBrains Mono',monospace;color:{{ ghost.airColor }}">{{ ghost.air }}</span>
+                    <span style="display:flex;align-items:center;gap:10px;font:500 12px/1 'JetBrains Mono',monospace;color:#6fd3e8"><span style="width:100px;height:4px;background:#13253a"><span style="display:block;height:100%;width:{{ ghost.prob }}%;background:#6fd3e8"></span></span>{{ ghost.prob }}% · ±{{ ghost.sigma }}s</span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:10px">
+                    <div style="display:flex;justify-content:space-between;font:500 10px/1 'JetBrains Mono',monospace;letter-spacing:.06em;color:#56637b"><span>← AHEAD</span><span>GAP TO LEADER AFTER STOP (S)</span><span>BEHIND →</span></div>
+                    <div style="position:relative;height:110px">
+                      <div style="position:absolute;left:0;right:0;top:42px;height:1px;background:#26334f"></div>
+                      <div style="position:absolute;top:31px;height:23px;left:{{ ghost.bandL }}%;width:{{ ghost.bandW }}%;border:1px dashed #6fd3e8;background:repeating-linear-gradient(135deg,rgba(111,211,232,.3) 0 1px,transparent 1px 4px)"></div>
+                      <sc-for list="{{ ghost.cars }}" as="c" hint-placeholder-count="5">
+                        <div style="position:absolute;top:35px;left:{{ c.left }}%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px">
+                          <span style="width:14px;height:14px;border-radius:50%;background:{{ c.color }};border:2px solid #0b1220;opacity:{{ c.o }}"></span>
+                          <span style="font:600 12px/1 'JetBrains Mono',monospace;color:#c9d2e1;height:12px">{{ c.code }}</span>
+                          <span style="font:400 11px/1 'JetBrains Mono',monospace;color:#56637b;height:11px">{{ c.gap }}</span>
+                        </div>
+                      </sc-for>
+                      <div style="position:absolute;top:0;left:{{ ghost.left }}%;transform:translateX(-50%);display:flex;gap:6px;white-space:nowrap;font:700 12px/1 'JetBrains Mono',monospace;color:#6fd3e8">{{ fA.code }}<span style="font-weight:500">≈{{ ghost.gap }}</span></div>
+                      <span style="position:absolute;top:32px;left:{{ ghost.left }}%;width:21px;height:21px;margin-left:-10.5px;border-radius:50%;border:2px dashed #6fd3e8"></span>
+                    </div>
+                  </div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ ev.win }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;align-items:center;gap:10px;padding:12px 22px 0;font:500 11px/1 'Barlow Semi Condensed',sans-serif;letter-spacing:.07em;text-transform:uppercase;color:#8a97ad"><span>Race-time cost by stop lap</span><div style="flex:1"></div><span style="color:#6fd3e8">OPT L{{ win.opt }} → {{ win.optComp }}</span></div>
+                <svg viewBox="0 0 620 232" style="flex:1;min-height:0;width:100%;display:block;padding:6px 16px 10px">
+                  <defs><pattern id="hp" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="1.2" height="5" style="fill:#6fd3e8;opacity:.5"></rect></pattern></defs>
+                  <sc-for list="{{ win.zones }}" as="z" hint-placeholder-count="3">
+                    <rect x="{{ z.x }}" y="18" width="{{ z.w }}" height="176" style="fill:{{ z.fill }}"></rect>
+                    <text x="{{ z.lx }}" y="30" style="fill:{{ z.color }};font:600 9px 'JetBrains Mono',monospace;text-anchor:middle;letter-spacing:.08em">{{ z.label }}</text>
+                  </sc-for>
+                  <sc-for list="{{ win.yt }}" as="y" hint-placeholder-count="4">
+                    <line x1="40" x2="610" y1="{{ y.y }}" y2="{{ y.y }}" style="stroke:#16223a"></line>
+                    <text x="34" y="{{ y.ty }}" style="fill:#56637b;font:400 9px 'JetBrains Mono',monospace;text-anchor:end">{{ y.label }}</text>
+                  </sc-for>
+                  <line x1="40" x2="610" y1="{{ win.stayY }}" y2="{{ win.stayY }}" style="stroke:#8a97ad;stroke-dasharray:2 4"></line>
+                  <text x="606" y="{{ win.stayTY }}" style="fill:#8a97ad;font:500 9px 'JetBrains Mono',monospace;text-anchor:end">STAY OUT +{{ win.stay }}s</text>
+                  <path d="{{ win.band }}" style="fill:url(#hp)"></path>
+                  <path d="{{ win.curve }}" style="fill:none;stroke:#6fd3e8;stroke-width:1.6;stroke-dasharray:5 3"></path>
+                  <rect x="{{ win.optX }}" y="{{ win.optY }}" width="8" height="8" style="fill:#0b1220;stroke:#6fd3e8;stroke-width:1.6;transform:translate(-4px,-4px)"></rect>
+                  <line x1="{{ win.nowX }}" x2="{{ win.nowX }}" y1="18" y2="194" style="stroke:#c6ff3d;stroke-width:1.2"></line>
+                  <text x="{{ win.nowX }}" y="208" style="fill:#c6ff3d;font:600 9px 'JetBrains Mono',monospace;text-anchor:middle">NOW</text>
+                  <sc-for list="{{ win.xt }}" as="x" hint-placeholder-count="5">
+                    <text x="{{ x.x }}" y="222" style="fill:#56637b;font:400 9px 'JetBrains Mono',monospace;text-anchor:middle">{{ x.label }}</text>
+                  </sc-for>
+                </svg>
+              </sc-if>
+              <sc-if value="{{ ev.deg }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;align-items:center;gap:10px;padding:12px 22px 0;font:500 11px/1 'Barlow Semi Condensed',sans-serif;letter-spacing:.07em;text-transform:uppercase;color:#8a97ad"><span>Tyre degradation · fuel-corrected</span><div style="flex:1"></div><span>DOTS = MEASURED {{ fA.code }}</span></div>
+                <svg viewBox="0 0 400 232" style="flex:1;min-height:0;width:100%;display:block;padding:6px 16px 10px">
+                  <sc-for list="{{ deg.yt }}" as="y" hint-placeholder-count="4">
+                    <line x1="40" x2="392" y1="{{ y.y }}" y2="{{ y.y }}" style="stroke:#16223a"></line>
+                    <text x="34" y="{{ y.ty }}" style="fill:#56637b;font:400 9px 'JetBrains Mono',monospace;text-anchor:end">{{ y.label }}</text>
+                  </sc-for>
+                  <sc-for list="{{ deg.curves }}" as="c" hint-placeholder-count="3">
+                    <path d="{{ c.band }}" style="fill:{{ c.color }};opacity:.12"></path>
+                    <path d="{{ c.d }}" style="fill:none;stroke:{{ c.color }};stroke-width:1.4;stroke-dasharray:4 3"></path>
+                    <text x="{{ c.lx }}" y="{{ c.ly }}" style="fill:{{ c.color }};font:700 9px 'JetBrains Mono',monospace">{{ c.label }}</text>
+                  </sc-for>
+                  <sc-for list="{{ deg.dots }}" as="p" hint-placeholder-count="10">
+                    <circle cx="{{ p.x }}" cy="{{ p.y }}" r="2.2" style="fill:{{ p.c }};opacity:{{ p.o }}"></circle>
+                  </sc-for>
+                  <line x1="{{ deg.nowX }}" x2="{{ deg.nowX }}" y1="16" y2="194" style="stroke:#c6ff3d;stroke-width:1"></line>
+                  <text x="{{ deg.nowX }}" y="12" style="fill:#c6ff3d;font:600 9px 'JetBrains Mono',monospace;text-anchor:middle">AGE {{ fA.age }}</text>
+                  <sc-for list="{{ deg.xt }}" as="x" hint-placeholder-count="5">
+                    <text x="{{ x.x }}" y="208" style="fill:#56637b;font:400 9px 'JetBrains Mono',monospace;text-anchor:middle">{{ x.label }}</text>
+                  </sc-for>
+                  <text x="392" y="224" style="fill:#56637b;font:400 9px 'JetBrains Mono',monospace;text-anchor:end">TYRE AGE (LAPS)</text>
+                </svg>
+              </sc-if>
+              <sc-if value="{{ ev.alerts }}" hint-placeholder-val="{{ false }}">
+                <sc-for list="{{ alerts }}" as="a" hint-placeholder-count="3">
+                  <div style="display:grid;grid-template-columns:56px minmax(0,1fr) 60px;gap:16px;align-items:start;padding:16px 22px;border-bottom:1px solid #142036">
+                    <span style="font:700 10px/1 'JetBrains Mono',monospace;letter-spacing:.06em;text-align:center;padding:5px 0;background:{{ a.color }};color:#000">{{ a.level }}</span>
+                    <div style="display:flex;flex-direction:column;gap:6px;min-width:0">
+                      <span style="font:600 15px/1.25 'Barlow Semi Condensed',sans-serif;color:#e8edf6">{{ a.title }}</span>
+                      <span style="font:400 13px/1.45 'Barlow Semi Condensed',sans-serif;color:#aab5c7;text-wrap:pretty">{{ a.body }}</span>
+                    </div>
+                    <span style="font:600 14px/1 'JetBrains Mono',monospace;color:#6fd3e8;text-align:right">≈{{ a.prob }}%</span>
+                  </div>
+                </sc-for>
+              </sc-if>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-rows:370px minmax(0,1fr);gap:1px;min-height:0">
+          <div data-screen-label="Track" style="background:#0b1220;display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden">
+            <div style="display:flex;align-items:center;gap:14px;height:28px;padding:0 12px;background:#101a2c;border-bottom:1px solid #1b2740;flex-shrink:0"><span style="display:flex;align-items:center;gap:9px;font:600 12px/1 'Barlow Semi Condensed',sans-serif;letter-spacing:.07em;text-transform:uppercase;color:#e8edf6"><span style="width:6px;height:6px;flex-shrink:0;background:#c6ff3d"></span>Track</span><div style="flex:1"></div><span style="display:flex;align-items:center;gap:6px;font:500 11px/1 'JetBrains Mono',monospace;color:#8a97ad"><span style="width:14px;height:3px;background:#3ecf6e"></span>DRS</span><span style="display:flex;align-items:center;gap:6px;font:500 11px/1 'JetBrains Mono',monospace;color:#8a97ad"><span style="width:14px;height:3px;background:#f5d020"></span>YELLOW</span></div>
+            <div style="flex:1;min-height:0"><svg viewBox="0 0 460 300" style="width:100%;height:100%;display:block;padding:10px">
+            <path d="{{ track.d }}" style="fill:none;stroke:#16223a;stroke-width:16;stroke-linejoin:round"></path>
+            <sc-for list="{{ track.sectors }}" as="s" hint-placeholder-count="3">
+              <path d="{{ s.d }}" style="fill:none;stroke:{{ s.color }};stroke-width:2;stroke-linejoin:round"></path>
+              <text x="{{ s.lx }}" y="{{ s.ly }}" style="fill:{{ s.tc }};font:600 11px 'JetBrains Mono',monospace;text-anchor:middle">{{ s.label }}</text>
+            </sc-for>
+            <sc-for list="{{ track.drs }}" as="z" hint-placeholder-count="2">
+              <path d="{{ z.d }}" style="fill:none;stroke:#3ecf6e;stroke-width:4;opacity:.5"></path>
+            </sc-for>
+            <rect x="{{ track.sfx }}" y="{{ track.sfy }}" width="3" height="16" style="fill:#e8edf6"></rect>
+            <text x="{{ track.pitX }}" y="{{ track.pitY }}" style="fill:#56637b;font:600 9px 'JetBrains Mono',monospace;text-anchor:middle">PIT</text>
+            <sc-for list="{{ dots }}" as="c" hint-placeholder-count="20">
+              <g data-car="{{ c.id }}" transform="{{ c.tr }}">
+                <circle cx="0" cy="0" r="{{ c.ring }}" style="fill:none;stroke:{{ c.ringColor }};stroke-width:1.5"></circle>
+                <circle cx="0" cy="0" r="6.5" style="fill:{{ c.color }};stroke:#070b14;stroke-width:1.5"></circle>
+                <text x="10.5" y="-9.5" style="fill:{{ c.tc }};font:700 12px 'JetBrains Mono',monospace">{{ c.label }}</text>
+              </g>
+            </sc-for>
+          </svg></div>
+          </div>
+          <div data-screen-label="Race control" style="background:#0b1220;display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden">
+            <div style="display:flex;align-items:center;gap:14px;height:28px;padding:0 12px;background:#101a2c;border-bottom:1px solid #1b2740;flex-shrink:0"><span style="display:flex;align-items:center;gap:9px;font:600 12px/1 'Barlow Semi Condensed',sans-serif;letter-spacing:.07em;text-transform:uppercase;color:#e8edf6"><span style="width:6px;height:6px;flex-shrink:0;background:#c6ff3d"></span>Race control</span><div style="flex:1"></div><button onClick="{{ onHist }}" style="height:20px;padding:0 8px;border:1px solid #26334f;background:transparent;color:#8a97ad;font:600 10px/1 'Barlow Semi Condensed',sans-serif;letter-spacing:.06em;cursor:pointer">H · {{ histLabel }}</button></div>
+            <div style="flex:1;min-height:0;overflow:auto">
+              <sc-for list="{{ latest }}" as="f" hint-placeholder-count="2">
+                <div style="display:grid;grid-template-columns:40.8px 55px minmax(0,1fr);gap:12px;padding:12px 12px;border-bottom:1px solid #142036;align-items:start;background:{{ f.bg }}">
+              <span style="font:500 12px/1.35 'JetBrains Mono',monospace;color:#56637b">L{{ f.lap }}</span>
+              <span style="font:700 10px/1 'JetBrains Mono',monospace;padding:4px 0;text-align:center;background:{{ f.kc }};color:#000">{{ f.kind }}</span>
+              <div style="display:flex;flex-direction:column;gap:4px;min-width:0">
+                <sc-if value="{{ f.hasWho }}" hint-placeholder-val="{{ false }}"><span style="display:flex;align-items:center;gap:7px;font:700 13px/1 'JetBrains Mono',monospace"><span style="width:3px;height:13px;background:{{ f.wc }}"></span>{{ f.who }}</span></sc-if>
+                <span style="font:400 15px/1.35 'Barlow Semi Condensed',sans-serif;color:{{ f.tc }};text-wrap:pretty">{{ f.text }}</span>
+              </div>
+            </div>
+              </sc-for>
+              <sc-if value="{{ hist }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;align-items:center;gap:4px;height:28px;padding:0 12px;background:#101a2c;border-bottom:1px solid #1b2740">
+                  <span style="font:500 11px/1 'Barlow Semi Condensed',sans-serif;letter-spacing:.07em;text-transform:uppercase;color:#8a97ad;color:#56637b;margin-right:6px">History</span>
+                  <sc-for list="{{ feedTabs }}" as="t" hint-placeholder-count="4"><button onClick="{{ t.onClick }}" style="height:20px;padding:0 8px;border:none;background:{{ t.bg }};color:{{ t.fg }};font:600 10px/1 'JetBrains Mono',monospace;cursor:pointer">{{ t.label }}</button></sc-for>
+                </div>
+                <sc-for list="{{ feed }}" as="f" hint-placeholder-count="8">
+                  <div style="display:grid;grid-template-columns:37.4px 49.5px minmax(0,1fr);gap:12px;padding:8px 12px;border-bottom:1px solid #142036;align-items:start;background:{{ f.bg }}">
+              <span style="font:500 11px/1.35 'JetBrains Mono',monospace;color:#56637b">L{{ f.lap }}</span>
+              <span style="font:700 9px/1 'JetBrains Mono',monospace;padding:4px 0;text-align:center;background:{{ f.kc }};color:#000">{{ f.kind }}</span>
+              <div style="display:flex;flex-direction:column;gap:4px;min-width:0">
+                <sc-if value="{{ f.hasWho }}" hint-placeholder-val="{{ false }}"><span style="display:flex;align-items:center;gap:7px;font:700 11px/1 'JetBrains Mono',monospace"><span style="width:3px;height:11px;background:{{ f.wc }}"></span>{{ f.who }}</span></sc-if>
+                <span style="font:400 13px/1.35 'Barlow Semi Condensed',sans-serif;color:{{ f.tc }};text-wrap:pretty">{{ f.text }}</span>
+              </div>
+            </div>
+                </sc-for>
+              </sc-if>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div data-screen-label="Analysis" style="background:#0b1220;display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden">
+        <div style="display:flex;align-items:stretch;height:28px;background:#101a2c;border-bottom:1px solid #1b2740;flex-shrink:0">
+          <sc-for list="{{ anTabs }}" as="t" hint-placeholder-count="4">
+            <button onClick="{{ t.onClick }}" style="display:flex;align-items:center;gap:8px;padding:0 14px;border:none;border-right:1px solid #1b2740;background:{{ t.bg }};color:{{ t.fg }};font:600 11px/1 'Barlow Semi Condensed',sans-serif;letter-spacing:.06em;text-transform:uppercase;cursor:pointer"><span style="color:{{ t.kc }}">{{ t.key }}</span>{{ t.label }}</button>
+          </sc-for>
+          <div style="flex:1"></div>
+          <div style="display:flex;align-items:center;gap:16px;padding:0 12px"><span style="display:flex;align-items:center;gap:6px;font:500 11px/1 'JetBrains Mono',monospace;color:#8a97ad"><span style="width:16px;height:0;border-top:2px solid {{ tel.cA }}"></span>A {{ fA.code }}</span><span style="display:flex;align-items:center;gap:6px;font:500 11px/1 'JetBrains Mono',monospace;color:#8a97ad"><span style="width:16px;height:0;border-top:2px dashed {{ tel.cB }}"></span>B {{ fB.code }}</span></div>
+        </div>
+        <div style="flex:1;min-height:0;display:flex;flex-direction:column">
+          <sc-if value="{{ an.compare }}" hint-placeholder-val="{{ true }}">
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:1px;background:#1b2740;flex:1;min-height:0">
+              <div style="background:#0b1220;display:flex;flex-direction:column;min-height:0">
+                <div style="display:flex;align-items:center;gap:10px;padding:10px 16px 0;font:500 11px/1 'Barlow Semi Condensed',sans-serif;letter-spacing:.07em;text-transform:uppercase;color:#8a97ad"><span>Telemetry · {{ telLap }}</span><div style="flex:1"></div><span style="color:#c9d2e1;text-transform:none;letter-spacing:0">{{ tel.readout }}</span></div>
+                <svg viewBox="0 0 900 350" onMouseMove="{{ tel.onMove }}" onMouseLeave="{{ tel.onLeave }}" style="flex:1;min-height:0;width:100%;display:block;padding:4px 12px 8px;cursor:crosshair">
+                  <sc-for list="{{ tel.drs }}" as="z" hint-placeholder-count="2">
+                    <rect x="{{ z.x }}" y="8" width="{{ z.w }}" height="124" style="fill:#3ecf6e;opacity:.07"></rect>
+                    <text x="{{ z.lx }}" y="20" style="fill:#3ecf6e;font:600 10px 'JetBrains Mono',monospace;text-anchor:middle">DRS</text>
+                  </sc-for>
+                  <sc-for list="{{ tel.lanes }}" as="l" hint-placeholder-count="5">
+                    <line x1="40" x2="890" y1="{{ l.y }}" y2="{{ l.y }}" style="stroke:#16223a"></line>
+                    <text x="4" y="{{ l.ty }}" style="fill:#56637b;font:500 11px 'JetBrains Mono',monospace">{{ l.label }}</text>
+                  </sc-for>
+                  <sc-for list="{{ tel.secs }}" as="s" hint-placeholder-count="2">
+                    <line x1="{{ s.x }}" x2="{{ s.x }}" y1="8" y2="342" style="stroke:#26334f;stroke-dasharray:3 3"></line>
+                    <text x="{{ s.lx }}" y="348" style="fill:#56637b;font:500 10px 'JetBrains Mono',monospace;text-anchor:middle">{{ s.label }}</text>
+                  </sc-for>
+                  <line x1="40" x2="890" y1="{{ tel.zeroY }}" y2="{{ tel.zeroY }}" style="stroke:#34425f"></line>
+                  <sc-for list="{{ tel.paths }}" as="p" hint-placeholder-count="8">
+                    <path d="{{ p.d }}" style="fill:none;stroke:{{ p.c }};stroke-width:{{ p.w }};stroke-dasharray:{{ p.dash }};stroke-linejoin:round"></path>
+                  </sc-for>
+                  <sc-if value="{{ tel.hasCur }}" hint-placeholder-val="{{ false }}">
+                    <line x1="{{ tel.curX }}" x2="{{ tel.curX }}" y1="8" y2="336" style="stroke:#c6ff3d;opacity:.8"></line>
+                  </sc-if>
+                </svg>
+              </div>
+              <div style="background:#0b1220;display:flex;flex-direction:column;min-height:0">
+                <div style="display:flex;align-items:center;gap:14px;padding:10px 16px 0;font:500 11px/1 'Barlow Semi Condensed',sans-serif;letter-spacing:.07em;text-transform:uppercase;color:#8a97ad"><span>Lap times</span><div style="flex:1"></div><span style="color:#f5d020">▮ SC</span><span style="color:#6fd3e8">- - ≈ {{ fA.code }} ON SELECTED PLAN</span></div>
+                <svg viewBox="0 0 900 350" style="flex:1;min-height:0;width:100%;display:block;padding:4px 12px 8px">
+                  <defs><pattern id="hp2" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="1.2" height="5" style="fill:#6fd3e8;opacity:.45"></rect></pattern></defs>
+                  <sc-for list="{{ lapc.yt }}" as="y" hint-placeholder-count="5">
+                    <line x1="44" x2="890" y1="{{ y.y }}" y2="{{ y.y }}" style="stroke:#16223a"></line>
+                    <text x="38" y="{{ y.ty }}" style="fill:#56637b;font:400 11px 'JetBrains Mono',monospace;text-anchor:end">{{ y.label }}</text>
+                  </sc-for>
+                  <rect x="{{ lapc.scX }}" y="16" width="{{ lapc.scW }}" height="300" style="fill:#f5d020;opacity:.1"></rect>
+                  <text x="{{ lapc.scLX }}" y="30" style="fill:#f5d020;font:700 11px 'JetBrains Mono',monospace;text-anchor:middle">SC</text>
+                  <sc-if value="{{ lapc.hasWhatIfSc }}" hint-placeholder-val="{{ false }}">
+                    <rect x="{{ lapc.sc2X }}" y="16" width="{{ lapc.sc2W }}" height="300" style="fill:url(#hp2);stroke:#f5d020;stroke-dasharray:3 3;opacity:.7"></rect>
+                    <text x="{{ lapc.sc2LX }}" y="30" style="fill:#f5d020;font:700 11px 'JetBrains Mono',monospace;text-anchor:middle">≈SC</text>
+                  </sc-if>
+                  <rect x="{{ lapc.futX }}" y="16" width="{{ lapc.futW }}" height="300" style="fill:#6fd3e8;opacity:.03"></rect>
+                  <path d="{{ lapc.band }}" style="fill:url(#hp2)"></path>
+                  <path d="{{ lapc.pred }}" style="fill:none;stroke:#6fd3e8;stroke-width:1.8;stroke-dasharray:6 4"></path>
+                  <path d="{{ lapc.b }}" style="fill:none;stroke:{{ tel.cB }};stroke-width:1.4;stroke-dasharray:4 3;opacity:.85"></path>
+                  <path d="{{ lapc.a }}" style="fill:none;stroke:{{ tel.cA }};stroke-width:1.8"></path>
+                  <sc-for list="{{ lapc.pits }}" as="p" hint-placeholder-count="3">
+                    <line x1="{{ p.x }}" x2="{{ p.x }}" y1="16" y2="316" style="stroke:{{ p.c }};stroke-dasharray:2 3;opacity:.6"></line>
+                    <rect x="{{ p.rx }}" y="{{ p.ry }}" width="8" height="8" style="fill:#0b1220;stroke:{{ p.c }};stroke-width:1.5"></rect>
+                  </sc-for>
+                  <line x1="{{ lapc.nowX }}" x2="{{ lapc.nowX }}" y1="16" y2="316" style="stroke:#c6ff3d"></line>
+                  <text x="{{ lapc.nowX }}" y="12" style="fill:#c6ff3d;font:600 11px 'JetBrains Mono',monospace;text-anchor:middle">NOW</text>
+                  <sc-for list="{{ lapc.xt }}" as="x" hint-placeholder-count="6">
+                    <text x="{{ x.x }}" y="334" style="fill:#56637b;font:400 11px 'JetBrains Mono',monospace;text-anchor:middle">{{ x.label }}</text>
+                  </sc-for>
+                </svg>
+              </div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ an.tyres }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;padding:8px 16px">
+              <div style="display:grid;grid-template-columns:44px minmax(0,1fr);gap:10px;height:14px">
+                <span></span>
+                <div style="position:relative">
+                  <sc-for list="{{ gantt.ticks }}" as="t" hint-placeholder-count="6"><span style="position:absolute;left:{{ t.left }}%;transform:translateX(-50%);font:400 10px/1 'JetBrains Mono',monospace;color:#56637b">{{ t.label }}</span></sc-for>
+                </div>
+              </div>
+              <sc-for list="{{ gantt.rows }}" as="r" hint-placeholder-count="20">
+                <div style="display:grid;grid-template-columns:44px minmax(0,1fr);gap:10px;align-items:center;height:14.4px;background:{{ r.bg }}">
+                  <span style="display:flex;align-items:center;gap:5px;font:700 10px/1 'JetBrains Mono',monospace;color:#e8edf6"><span style="width:2px;height:10px;background:{{ r.color }}"></span>{{ r.code }}</span>
+                  <div style="position:relative;height:100%">
+                    <sc-for list="{{ r.stints }}" as="s" hint-placeholder-count="2">
+                      <div style="position:absolute;top:2px;bottom:2px;left:{{ s.left }}%;width:{{ s.w }}%;background:{{ s.bg }};border:{{ s.bd }};display:flex;align-items:center;padding-left:4px;overflow:hidden;font:700 8px/1 'JetBrains Mono',monospace;color:{{ s.fg }}">{{ s.label }}</div>
+                    </sc-for>
+                    <sc-for list="{{ r.pits }}" as="p" hint-placeholder-count="1"><span style="position:absolute;top:0;bottom:0;left:{{ p.left }}%;width:1px;background:{{ p.c }}"></span></sc-for>
+                    <span style="position:absolute;top:-1px;bottom:-1px;left:{{ gantt.now }}%;width:1px;background:#c6ff3d"></span>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{ an.sectors }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;padding:8px 16px">
+              <div style="display:grid;grid-template-columns:44px 64px 64px 64px minmax(0,1fr) 48px 48px 48px 48px;gap:10px;height:14px;font:500 10px/1 'JetBrains Mono',monospace;color:#56637b">
+                <span>DRV</span><span style="text-align:right">S1</span><span style="text-align:right">S2</span><span style="text-align:right">S3</span><span style="text-align:center">{{ miniHead }}</span><span style="text-align:right">I1</span><span style="text-align:right">I2</span><span style="text-align:right">FL</span><span style="text-align:right">ST</span>
+              </div>
+              <sc-for list="{{ sectors }}" as="r" hint-placeholder-count="20">
+                <div style="display:grid;grid-template-columns:44px 64px 64px 64px minmax(0,1fr) 48px 48px 48px 48px;gap:10px;align-items:center;height:14.4px;font:500 11px/1 'JetBrains Mono',monospace;background:{{ r.bg }}">
+                  <span style="display:flex;align-items:center;gap:5px;font-weight:700;font-size:10px;color:#e8edf6"><span style="width:2px;height:10px;background:{{ r.color }}"></span>{{ r.code }}</span>
+                  <sc-for list="{{ r.secs }}" as="s" hint-placeholder-count="3"><span style="text-align:right;color:{{ s.c }}">{{ s.t }}</span></sc-for>
+                  <div style="display:flex;gap:1px;height:8px">
+                    <sc-for list="{{ r.minis }}" as="m" hint-placeholder-count="24"><span style="flex:1;background:{{ m.c }};margin-left:{{ m.ml }}px;opacity:{{ m.o }}"></span></sc-for>
+                  </div>
+                  <sc-for list="{{ r.traps }}" as="t" hint-placeholder-count="4"><span style="text-align:right;color:{{ t.c }}">{{ t.v }}</span></sc-for>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{ an.stops }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:40px;padding:10px 16px;grid-auto-flow:column;grid-template-rows:repeat(7,auto)">
+              <sc-for list="{{ stops }}" as="p" hint-placeholder-count="12">
+                <div style="display:grid;grid-template-columns:24px 50px minmax(0,1fr) 56px 56px;gap:10px;align-items:center;height:38px;border-bottom:1px solid #142036;font:500 13px/1 'JetBrains Mono',monospace">
+                  <span style="color:#56637b">{{ p.rank }}</span>
+                  <span style="display:flex;align-items:center;gap:6px;font-weight:700;color:#e8edf6"><span style="width:2px;height:12px;background:{{ p.color }}"></span>{{ p.code }}</span>
+                  <span style="display:flex;align-items:center;gap:8px;min-width:0"><span style="height:4px;width:{{ p.w }}%;background:{{ p.bar }}"></span><span style="color:#56637b;font-size:11px">L{{ p.lap }}</span></span>
+                  <span style="text-align:right;color:{{ p.sc }}">{{ p.stat }}s</span>
+                  <span style="text-align:right;color:#8a97ad">{{ p.lane }}s</span>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:stretch;background:#0b1220">
+        <sc-for list="{{ keys }}" as="k" hint-placeholder-count="4">
+          <button onClick="{{ k.onClick }}" style="display:flex;align-items:center;gap:8px;padding:0 14px;border:none;border-right:1px solid #1b2740;background:{{ k.bg }};color:{{ k.fg }};font:600 11px/1 'Barlow Semi Condensed',sans-serif;letter-spacing:.06em;text-transform:uppercase;cursor:pointer"><span style="color:{{ k.kc }}">{{ k.key }}</span>{{ k.label }}</button>
+        </sc-for>
+        <div style="flex:1"></div>
+        <span style="display:flex;align-items:center;gap:18px;padding:0 14px;font:500 11px/1 'JetBrains Mono',monospace;letter-spacing:.06em;color:#56637b"><span>1–5 EVIDENCE</span><span>6–9 ANALYSIS</span><span>SPACE PLAY/PAUSE</span><span>←/→ 10S · SHIFT 60S</span></span>
+      </div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ isWall }}" hint-placeholder-val="{{ false }}">
+    <div data-screen-label="Wall" style="display:grid;grid-template-rows:112px minmax(0,1fr) 66px;grid-template-columns:minmax(0,1fr);gap:1px;height:100%;background:#1b2740">
+      <div style="display:flex;align-items:stretch;background:#0b1220">
+        <div style="display:flex;flex-direction:column;justify-content:center;gap:8px;padding:0 26px;background:#c6ff3d;color:#000"><span style="font:700 26px/1 'Barlow Semi Condensed',sans-serif;letter-spacing:.14em">UNDERCUT</span><span style="font:600 13px/1 'Barlow Semi Condensed',sans-serif;letter-spacing:.06em">R17 · NORTE GP</span></div>
+        <div style="display:flex;align-items:baseline;gap:12px;padding:0 20px;border-right:1px solid #1b2740;align-self:center"><span style="font:500 11px/1 'Barlow Semi Condensed',sans-serif;letter-spacing:.07em;text-transform:uppercase;color:#8a97ad;font-size:15px">Lap</span><span style="font:600 76px/1 'JetBrains Mono',monospace;color:#e8edf6">{{ lapNum }}<span style="color:#56637b;font-size:36px">/57</span></span></div>
+        <div style="display:flex;align-items:baseline;gap:12px;padding:0 20px;align-self:center"><span style="font:500 11px/1 'Barlow Semi Condensed',sans-serif;letter-spacing:.07em;text-transform:uppercase;color:#8a97ad;font-size:15px">Time</span><span style="font:600 44px/1 'JetBrains Mono',monospace;color:#e8edf6">{{ clock }}</span></div>
+        <div style="display:flex;align-items:center;gap:12px;padding:0 22px;height:100%;background:{{ flag.bg }};color:{{ flag.fg }};box-shadow:inset 0 0 0 {{ flag.glow }}px {{ flag.glowC }};font:700 28px/1 'JetBrains Mono',monospace;letter-spacing:.06em;white-space:nowrap;flex-shrink:0"><span style="width:18px;height:18px;background:{{ flag.fg }}"></span>{{ flag.label }}</div>
+        <div style="flex:1"></div>
+        <sc-for list="{{ weather }}" as="w" hint-placeholder-count="4">
+          <div style="display:flex;align-items:center;gap:8px;padding:0 14px;height:100%;border-left:1px solid #1b2740;background:{{ w.hlBg }}">
+            <div style="display:flex;flex-direction:column;gap:5px">
+              <span style="font:500 11px/1 'Barlow Semi Condensed',sans-serif;letter-spacing:.07em;text-transform:uppercase;color:#8a97ad;font-size:13px">{{ w.label }}</span>
+              <span style="font:500 22px/1 'JetBrains Mono',monospace;color:{{ w.vc }};white-space:nowrap">{{ w.val }}</span>
+            </div>
+            <sc-if value="{{ w.trend }}" hint-placeholder-val="{{ false }}">
+              <svg viewBox="0 0 100 24" preserveAspectRatio="none" style="width:60px;height:27px;display:block;flex-shrink:0"><path d="{{ w.path }}" style="fill:none;stroke:{{ w.color }};stroke-width:1.5;vector-effect:non-scaling-stroke"></path></svg>
+              <span style="font:700 13px/1 'JetBrains Mono',monospace;color:{{ w.color }}">{{ w.dir }}</span>
+            </sc-if>
+          </div>
+        </sc-for>
+        <div style="display:flex;align-items:center;gap:10px;padding:0 24px;border-left:1px solid #1b2740;font:700 18px/1 'JetBrains Mono',monospace;letter-spacing:.08em;color:{{ status.c }};white-space:nowrap"><span style="width:12px;height:12px;border-radius:50%;background:{{ status.c }}"></span>{{ status.label }}</div>
+        <div style="display:flex;align-items:center;gap:0;padding:0 12px;height:100%;border-left:1px solid #1b2740">
+          <sc-for list="{{ modes }}" as="m" hint-placeholder-count="2">
+            <button onClick="{{ m.onClick }}" style="height:22px;padding:0 10px;border:1px solid #26334f;background:{{ m.bg }};color:{{ m.fg }};font:600 11px/1 'Barlow Semi Condensed',sans-serif;letter-spacing:.06em;cursor:pointer">{{ m.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:600px minmax(0,1fr) 640px;gap:1px;min-height:0">
+        <div style="background:#0b1220;display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden">
+          <div style="display:flex;align-items:center;height:40px;padding:0 18px;background:#101a2c;border-bottom:1px solid #1b2740"><span style="display:flex;align-items:center;gap:9px;font:600 12px/1 'Barlow Semi Condensed',sans-serif;letter-spacing:.07em;text-transform:uppercase;color:#e8edf6;font-size:15px"><span style="width:6px;height:6px;flex-shrink:0;background:#c6ff3d"></span>Running order</span><div style="flex:1"></div><span style="font:500 11px/1 'Barlow Semi Condensed',sans-serif;letter-spacing:.07em;text-transform:uppercase;color:#8a97ad;font-size:13px;color:#56637b">GAP · TYRE</span></div>
+          <sc-for list="{{ rows }}" as="r" hint-placeholder-count="20">
+            <div style="display:grid;grid-template-columns:40px 5px minmax(0,1fr) 150px 90px;gap:14px;align-items:center;height:42.5px;padding:0 18px;background:{{ r.bg }};border:2px {{ r.bds }} {{ r.bd }}">
+              <span style="font:600 24px/1 'JetBrains Mono',monospace;color:#e8edf6">{{ r.pos }}</span>
+              <span style="height:28px;background:{{ r.color }}"></span>
+              <span style="display:flex;align-items:center;gap:12px;font:700 28px/1 'Barlow Semi Condensed',sans-serif;color:#e8edf6;letter-spacing:.03em">{{ r.code }}<sc-if value="{{ r.hasBadge }}" hint-placeholder-val="{{ false }}"><span style="font:700 15px/1 'JetBrains Mono',monospace;padding:4px 7px;background:{{ r.badgeBg }};color:#000">{{ r.badge }}</span></sc-if><sc-if value="{{ r.inPit }}" hint-placeholder-val="{{ false }}"><span style="font:700 14px/1 'JetBrains Mono',monospace;padding:4px 7px;border:2px solid #ffb547;color:#ffb547">IN PIT</span></sc-if><sc-if value="{{ r.hasChg }}" hint-placeholder-val="{{ false }}"><span style="font:700 18px/1 'JetBrains Mono',monospace;color:{{ r.chgColor }}">{{ r.chg }}</span></sc-if></span>
+              <span style="text-align:right;font:500 24px/1 'JetBrains Mono',monospace;color:#e8edf6">{{ r.gap }}</span>
+              <span style="text-align:right;font:500 22px/1 'JetBrains Mono',monospace;white-space:nowrap"><span style="color:{{ r.tyreColor }};font-weight:700">{{ r.tyre }}</span><span style="color:#8a97ad"> {{ r.age }}</span></span>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="display:grid;grid-template-rows:520px minmax(0,1fr);gap:1px;min-height:0">
+          <div style="background:#0b1220;display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden">
+            <div style="display:flex;align-items:center;gap:18px;height:40px;padding:0 18px;background:#101a2c;border-bottom:1px solid #1b2740"><span style="display:flex;align-items:center;gap:9px;font:600 12px/1 'Barlow Semi Condensed',sans-serif;letter-spacing:.07em;text-transform:uppercase;color:#e8edf6;font-size:15px"><span style="width:6px;height:6px;flex-shrink:0;background:#c6ff3d"></span>Track</span><div style="flex:1"></div><span style="display:flex;align-items:center;gap:8px;font:500 14px/1 'JetBrains Mono',monospace;color:#8a97ad"><span style="width:18px;height:4px;background:#3ecf6e"></span>DRS</span><span style="display:flex;align-items:center;gap:8px;font:500 14px/1 'JetBrains Mono',monospace;color:#8a97ad"><span style="width:18px;height:4px;background:#f5d020"></span>YELLOW</span></div>
+            <div style="flex:1;min-height:0"><svg viewBox="0 0 460 300" style="width:100%;height:100%;display:block;padding:10px">
+            <path d="{{ track.d }}" style="fill:none;stroke:#16223a;stroke-width:16;stroke-linejoin:round"></path>
+            <sc-for list="{{ track.sectors }}" as="s" hint-placeholder-count="3">
+              <path d="{{ s.d }}" style="fill:none;stroke:{{ s.color }};stroke-width:2;stroke-linejoin:round"></path>
+              <text x="{{ s.lx }}" y="{{ s.ly }}" style="fill:{{ s.tc }};font:600 11px 'JetBrains Mono',monospace;text-anchor:middle">{{ s.label }}</text>
+            </sc-for>
+            <sc-for list="{{ track.drs }}" as="z" hint-placeholder-count="2">
+              <path d="{{ z.d }}" style="fill:none;stroke:#3ecf6e;stroke-width:4;opacity:.5"></path>
+            </sc-for>
+            <rect x="{{ track.sfx }}" y="{{ track.sfy }}" width="3" height="16" style="fill:#e8edf6"></rect>
+            <text x="{{ track.pitX }}" y="{{ track.pitY }}" style="fill:#56637b;font:600 9px 'JetBrains Mono',monospace;text-anchor:middle">PIT</text>
+            <sc-for list="{{ dots }}" as="c" hint-placeholder-count="20">
+              <g data-car="{{ c.id }}" transform="{{ c.tr }}">
+                <circle cx="0" cy="0" r="{{ c.ring }}" style="fill:none;stroke:{{ c.ringColor }};stroke-width:1.5"></circle>
+                <circle cx="0" cy="0" r="8" style="fill:{{ c.color }};stroke:#070b14;stroke-width:1.5"></circle>
+                <text x="12" y="-11" style="fill:{{ c.tc }};font:700 15px 'JetBrains Mono',monospace">{{ c.label }}</text>
+              </g>
+            </sc-for>
+          </svg></div>
+          </div>
+          <div style="background:#0b1220;display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden">
+            <div style="display:flex;align-items:center;height:40px;padding:0 18px;background:#101a2c;border-bottom:1px solid #1b2740"><span style="display:flex;align-items:center;gap:9px;font:600 12px/1 'Barlow Semi Condensed',sans-serif;letter-spacing:.07em;text-transform:uppercase;color:#e8edf6;font-size:15px"><span style="width:6px;height:6px;flex-shrink:0;background:#c6ff3d"></span>Race control · latest</span></div>
+            <sc-for list="{{ latest }}" as="f" hint-placeholder-count="2">
+              <div style="display:grid;grid-template-columns:61.199999999999996px 77px minmax(0,1fr);gap:12px;padding:18px 20px;border-bottom:1px solid #142036;align-items:start;background:{{ f.bg }}">
+              <span style="font:500 18px/1.35 'JetBrains Mono',monospace;color:#56637b">L{{ f.lap }}</span>
+              <span style="font:700 14px/1 'JetBrains Mono',monospace;padding:4px 0;text-align:center;background:{{ f.kc }};color:#000">{{ f.kind }}</span>
+              <div style="display:flex;flex-direction:column;gap:4px;min-width:0">
+                <sc-if value="{{ f.hasWho }}" hint-placeholder-val="{{ false }}"><span style="display:flex;align-items:center;gap:7px;font:700 18px/1 'JetBrains Mono',monospace"><span style="width:3px;height:18px;background:{{ f.wc }}"></span>{{ f.who }}</span></sc-if>
+                <span style="font:400 23px/1.35 'Barlow Semi Condensed',sans-serif;color:{{ f.tc }};text-wrap:pretty">{{ f.text }}</span>
+              </div>
+            </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="background:#0b1220;display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden;background:#0b1220 repeating-linear-gradient(135deg,rgba(111,211,232,.025) 0 1px,transparent 1px 8px)">
+          <div style="display:flex;align-items:center;gap:14px;height:40px;padding:0 18px;background:#101a2c;border-bottom:1px solid #1b2740"><span style="display:flex;align-items:center;gap:9px;font:600 12px/1 'Barlow Semi Condensed',sans-serif;letter-spacing:.07em;text-transform:uppercase;color:#e8edf6;font-size:15px"><span style="width:6px;height:6px;flex-shrink:0;background:#c6ff3d"></span>Strategy · {{ fA.code }}</span><div style="flex:1"></div><span style="font:700 13px/1 'JetBrains Mono',monospace;letter-spacing:.08em;padding:6px 9px;background:{{ call.tagBg }};color:#000">{{ call.tag }}</span></div>
+          <div style="display:flex;flex-direction:column;gap:20px;padding:34px 30px 30px">
+            <span style="font:500 18px/1 'JetBrains Mono',monospace;color:#8a97ad">P{{ fA.pos }} · {{ fA.tyre }} {{ fA.age }} LAPS · AS OF L{{ fA.lap }}</span>
+            <span style="font:600 76px/1 'Barlow Semi Condensed',sans-serif;color:#e8edf6;letter-spacing:-.025em;text-wrap:balance">{{ call.head }}</span>
+            <span style="font:500 28px/1.3 'JetBrains Mono',monospace;color:#6fd3e8;text-wrap:pretty">{{ call.sub }}</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border-top:1px solid #1b2740">
+            <sc-for list="{{ call.facts }}" as="x" hint-placeholder-count="5">
+              <div style="display:flex;flex-direction:column;gap:7px;padding:18px 30px;border-right:1px solid #1b2740;border-bottom:1px solid #1b2740">
+                <span style="font:500 11px/1 'Barlow Semi Condensed',sans-serif;letter-spacing:.07em;text-transform:uppercase;color:#8a97ad">{{ x.k }}</span>
+                <span style="font:500 24px/1.2 'JetBrains Mono',monospace;color:{{ x.c }}">{{ x.v }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:24px;padding:0 24px;background:#0b1220">
+        <span style="display:flex;align-items:center;gap:9px;font:600 12px/1 'Barlow Semi Condensed',sans-serif;letter-spacing:.07em;text-transform:uppercase;color:#e8edf6;font-size:14px"><span style="width:6px;height:6px;flex-shrink:0;background:#c6ff3d"></span>Race</span>
+        <div style="position:relative;flex:1;height:50px;margin-top:10px">
+          <div style="position:absolute;left:0;right:0;top:16px;height:2px;background:#1b2740"></div>
+          <div style="position:absolute;left:0;top:16px;height:2px;width:{{ scrub.head }}%;background:#8a97ad"></div>
+          <div style="position:absolute;top:0;height:34px;left:{{ scrub.live }}%;right:0;background:repeating-linear-gradient(135deg,rgba(255,255,255,.045) 0 1px,transparent 1px 6px)"></div>
+          <sc-if value="{{ scrub.hasSc }}" hint-placeholder-val="{{ true }}"><div style="position:absolute;top:8px;height:18px;left:{{ scrub.scL }}%;width:{{ scrub.scW }}%;background:rgba(245,208,32,.2);border:1px solid rgba(245,208,32,.7)"></div></sc-if>
+          <sc-if value="{{ scrub.hasY }}" hint-placeholder-val="{{ true }}"><div style="position:absolute;top:8px;height:18px;left:{{ scrub.yL }}%;width:{{ scrub.yW }}%;min-width:3px;background:rgba(245,208,32,.55)"></div></sc-if>
+          <sc-for list="{{ scrub.pits }}" as="p" hint-placeholder-count="20"><span style="position:absolute;left:{{ p.left }}%;top:{{ p.top }}px;width:1px;height:{{ p.h }}px;background:{{ p.c }}"></span></sc-for>
+          <sc-for list="{{ scrub.laps }}" as="l" hint-placeholder-count="7"><span style="position:absolute;left:{{ l.left }}%;top:32px;transform:translateX(-50%);font:500 13px/1 'JetBrains Mono',monospace;color:#56637b">{{ l.label }}</span></sc-for>
+          <span style="position:absolute;left:{{ scrub.live }}%;top:0;height:28px;width:2px;margin-left:-1px;background:#ff5a4f"></span>
+          <span style="position:absolute;left:{{ scrub.head }}%;top:0;height:28px;width:2px;margin-left:-1px;background:#c6ff3d"></span>
+          <span style="position:absolute;left:{{ scrub.head }}%;top:11px;width:12px;height:12px;margin-left:-6px;background:#c6ff3d;border:2px solid #070b14"></span>
+        </div>
+        <span style="display:flex;align-items:center;gap:8px;font:500 14px/1 'JetBrains Mono',monospace;color:#8a97ad"><span style="width:14px;height:11px;background:rgba(245,208,32,.35);border:1px solid #f5d020"></span>SC / YELLOW</span>
+        <span style="display:flex;align-items:center;gap:8px;font:500 14px/1 'JetBrains Mono',monospace;color:#8a97ad"><span style="width:2px;height:16px;background:#e8edf6"></span>PIT</span>
+      </div>
+    </div>
+    </sc-if>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;mode&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;desk&quot;,&quot;wall&quot;],&quot;default&quot;:&quot;desk&quot;,&quot;tsType&quot;:&quot;'desk'|'wall'&quot;,&quot;section&quot;:&quot;Layout&quot;},&quot;live&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Simulation&quot;},&quot;pitLoss&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:21.4,&quot;min&quot;:16,&quot;max&quot;:28,&quot;step&quot;:0.2,&quot;unit&quot;:&quot;s&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Strategy model&quot;},&quot;showMinis&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Display&quot;}}">
+class Component extends DCLogic {
+  state = { mode: null, tab: 'plans', atab: 'compare', scale: 1, a: 2, b: 1, sc: false, rain: false, plan: null, cur: null, feed: 'ALL', expand: false, hov: null, open: {}, hist: false, follow: true, playing: true, drag: false, tick: 0,
+    hintSeen: (() => { try { return !!localStorage.getItem('pitwall.towerHint'); } catch (e) { return false; } })() };
+  constructor(p) { super(p); this.D = this.build(); this.tLive = this.D.tStart; this.t = this.D.tStart; this.rootRef = React.createRef(); this.scrubRef = React.createRef(); this.posAt = {}; this.prevRank = null; this.prevT = null; }
+  componentDidMount() {
+    this.fit = () => { const w = window.innerWidth || document.documentElement.clientWidth, h = window.innerHeight || document.documentElement.clientHeight; if (!w || !h) return; const k = Math.min(w / 1920, h / 1080); if (Math.abs(k - (this.state.scale || 0)) > .0005) this.setState({ scale: k }); }; this.fit(); window.addEventListener('resize', this.fit);
+    this.paintDots();
+    let last = Date.now(), acc = 0, lastT = null;
+    this.step = () => {
+      const now = Date.now(), dt = Math.min(.5, (now - last) / 1000); last = now;
+      if (this.props.live ?? true) this.tLive = Math.min(this.D.tEnd, this.tLive + dt);
+      if (this.state.follow) this.t = this.tLive;
+      else if (this.state.playing && !this.state.drag) { this.t = Math.min(this.tLive, this.t + dt); if (this.t >= this.tLive - .01) this.setState({ follow: true }); }
+      this.fit();
+      acc += dt;
+      if (acc >= .25 && this.t !== lastT) { acc = 0; lastT = this.t; this.setState(s => ({ tick: s.tick + 1 })); }
+    };
+    this.iv = setInterval(this.step, 100);
+    const paint = () => { this.paintDots(); this.raf = requestAnimationFrame(paint); };
+    this.raf = requestAnimationFrame(paint);
+    this.onKey = e => { const tg = e.target && e.target.tagName; if (tg === 'INPUT' || tg === 'TEXTAREA' || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); this.nudge((e.key === 'ArrowLeft' ? -1 : 1) * (e.shiftKey ? 60 : 10)); return; }
+      const a = this.keyActions()[e.key.length === 1 ? e.key.toLowerCase() : e.key]; if (a) { e.preventDefault(); a(); } };
+    window.addEventListener('keydown', this.onKey);
+  }
+  componentWillUnmount() { cancelAnimationFrame(this.raf); clearInterval(this.iv); window.removeEventListener('keydown', this.onKey); window.removeEventListener('resize', this.fit); }
+  toggleOpen(k) { this.setState(s => ({ open: { ...(s.open || {}), [k]: !(s.open || {})[k] } })); }
+  goLive() { this.t = this.tLive; this.setState(s => ({ follow: true, playing: true, tick: s.tick + 1 })); }
+  nudge(d) { this.t = Math.max(0, Math.min(this.tLive, this.t + d)); this.setState(s => ({ follow: this.t >= this.tLive - .01, tick: s.tick + 1 })); }
+  keyActions() { const T = id => () => this.setState({ tab: id }), A = id => () => this.setState({ atab: id }); return { '1': T('plans'), '2': T('ghost'), '3': T('win'), '4': T('deg'), '5': T('alerts'), '6': A('compare'), '7': A('tyres'), '8': A('sectors'), '9': A('stops'), d: () => this.setState(s => ({ expand: !s.expand })), h: () => this.setState(s => ({ hist: !s.hist })), l: () => this.goLive(), m: () => this.setState(s => ({ mode: (s.mode || this.props.mode || 'desk') === 'wall' ? 'desk' : 'wall' })), ' ': () => this.setState(s => s.follow ? { follow: false, playing: false } : { playing: !s.playing }) }; }
+
+  build() {
+    let sd = 11; const rnd = () => { sd = (sd * 16807) % 2147483647; return (sd - 1) / 2147483646; };
+    const TEAM = { Halcyon: '#ff8a3d', Meridian: '#4b82ff', Kestrel: '#e8414f', Obsidian: '#1fc4a3', Arcadia: '#3aa663', Norden: '#c9ced6', Solace: '#ff5aa8', Vantor: '#7b6bff', Ibex: '#9bb3d1', Corsa: '#d1a92c' };
+    const L = [['MOR','Halcyon'],['KAT','Meridian'],['ALV','Halcyon'],['DUV','Kestrel'],['RAS','Meridian'],['HEN','Kestrel'],['OKO','Obsidian'],['BRU','Arcadia'],['SAL','Obsidian'],['TAN','Norden'],['FIS','Arcadia'],['LIM','Solace'],['NAK','Norden'],['ORT','Vantor'],['PEL','Solace'],['QUI','Ibex'],['WEB','Vantor'],['ZAN','Corsa'],['YAM','Ibex'],['GRA','Corsa']];
+    const ST = "M1H24|M1H23|M1H20M39|S1H18S45|M1H21|S1H17M29|M1H25|M1H20M29|S1H16S45|H1M30|M1H22|S1H19S29M45|M1H21|H1M29|M1H23|S1M15H29|M1H19S45|M1H26|S1H14M29|H1S29M46".split('|').map(s => [...s.matchAll(/([SMHI])(\d+)/g)].map(m => ({ c: m[1], s: +m[2] })));
+    const TOT = 57, SC = [27, 28, 29], LOSS = 21.4, LSC = 9.5;
+    const P = { S: [91.4, .085, .0025], M: [91.5, .05, .0011], H: [92.3, .045, .0018], I: [93.4, .05, .001] };
+    // track
+    const N = 400, raw = [];
+    for (let i = 0; i < N; i++) { const th = i / N * Math.PI * 2; const r = 1 + .22 * Math.sin(2 * th + .4) + .14 * Math.sin(3 * th + 1.1) + .07 * Math.cos(5 * th + .3) + .04 * Math.sin(7 * th); raw.push([r * Math.cos(th) * 1.35, -r * Math.sin(th)]); }
+    const xs = raw.map(p => p[0]), ys = raw.map(p => p[1]);
+    const mnx = Math.min(...xs), mxx = Math.max(...xs), mny = Math.min(...ys), mxy = Math.max(...ys);
+    const sc = Math.min(416 / (mxx - mnx), 256 / (mxy - mny));
+    const ox = (460 - (mxx - mnx) * sc) / 2, oy = (300 - (mxy - mny) * sc) / 2;
+    const pts = raw.map(p => [ox + (p[0] - mnx) * sc, oy + (p[1] - mny) * sc]);
+    const ang = raw.map((p, i) => { const a = raw[(i - 1 + N) % N], b = raw[(i + 1) % N]; const a1 = Math.atan2(p[1] - a[1], p[0] - a[0]), a2 = Math.atan2(b[1] - p[1], b[0] - p[0]); let q = Math.abs(a2 - a1); if (q > Math.PI) q = 2 * Math.PI - q; return q; });
+    const sm = ang.map((_, i) => { let s = 0; for (let k = -5; k <= 5; k++) s += ang[(i + k + N) % N]; return s / 11; });
+    const mx = Math.max(...sm);
+    const v = sm.map(a => 330 - 245 * Math.pow(a / mx, 1.3));
+    for (let pass = 0; pass < 2; pass++) {
+      for (let i = 1; i < 2 * N; i++) { const j = i % N, p = v[(i - 1) % N]; v[j] = Math.min(v[j], p + Math.max(.6, 5.2 * (1 - p / 345))); }
+      for (let i = 2 * N - 1; i >= 0; i--) { const j = i % N, n = (j + 1) % N; v[j] = Math.min(v[j], v[n] + 6.5); }
+    }
+    const runs = []; let rs = -1;
+    for (let i = 0; i <= N; i++) { const on = i < N && v[i] >= 325; if (on && rs < 0) rs = i; if (!on && rs >= 0) { runs.push([rs, i - 1]); rs = -1; } }
+    const drs = runs.filter(r => r[1] - r[0] > 14).sort((a, b) => (b[1] - b[0]) - (a[1] - a[0])).slice(0, 2).map(r => [Math.max(r[0] - 12, 0), r[1]]).sort((a, b) => a[0] - b[0]);
+    const tf = [0]; { const sum = v.reduce((a, x) => a + 1 / x, 0); let acc = 0; v.forEach(x => { acc += 1 / x / sum; tf.push(acc); }); }
+    const cx = pts.reduce((a, p) => a + p[0], 0) / N, cy = pts.reduce((a, p) => a + p[1], 0) / N;
+    const pb = pts[N - 10], pn = Math.hypot(cx - pb[0], cy - pb[1]) || 1;
+    const pitXY = [pb[0] + (cx - pb[0]) / pn * 18, pb[1] + (cy - pb[1]) / pn * 18];
+    const pitLbl = [pb[0] + (cx - pb[0]) / pn * 34, pb[1] + (cy - pb[1]) / pn * 34 + 3];
+    // race truth
+    const dr = L.map(([code, team], i) => { const st = ST[i]; st.forEach((x, k) => x.e = k < st.length - 1 ? st[k + 1].s - 1 : TOT); return { id: i, code, team, color: TEAM[team], st, pits: st.slice(1).map(x => x.s - 1), cross: [i * .25], lapT: [0], loss: [0], flag: [''], comp: [''], age: [0], out: [false] }; });
+    for (let l = 1; l <= TOT; l++) {
+      const isSc = SC.includes(l); const ord = [...dr].sort((a, b) => a.cross[l - 1] - b.cross[l - 1]); const lead = ord[0].cross[l - 1] + 117;
+      ord.forEach((x, r) => {
+        const s = x.st.find(z => l >= z.s && l <= z.e), age = l - s.s + 1, [b, k1, k2] = P[s.c];
+        let t = b + k1 * age + k2 * age * age - .055 * (l - 1) + x.id * .2 + (rnd() - .5) * .32; if (l === 1) t += 2.6;
+        const pit = x.pits.includes(l), ls = pit ? (isSc ? LSC : LOSS) : 0;
+        const c = (isSc ? Math.max(lead + r * .9, x.cross[l - 1] + 108) : x.cross[l - 1] + t) + ls;
+        x.cross.push(c); x.lapT.push(c - x.cross[l - 1]); x.loss.push(ls); x.flag.push(pit ? 'pit' : isSc ? 'sc' : ''); x.comp.push(s.c); x.age.push(age); x.out.push(l === s.s && s.s > 1);
+      });
+    }
+    const leadC = []; for (let l = 0; l <= TOT; l++) leadC.push(Math.min(...dr.map(x => x.cross[l])));
+    const A0 = dr[2], tStart = A0.cross[38] - A0.loss[38] - 16;
+    const tEnd = Math.max(...dr.map(x => x.cross[TOT])) + 2;
+    const tSC0 = leadC[26] - 20, tSC1 = leadC[29], tY0 = tStart - 45, tY1 = tStart + 55, tChq = leadC[TOT], tDRS = leadC[30];
+    const flags = [{ t: 0, k: 'GRN' }, { t: tSC0, k: 'SC' }, { t: tSC1, k: 'GRN' }, { t: tY0, k: 'YEL' }, { t: tY1, k: 'GRN' }, { t: tChq, k: 'CHQ' }];
+    const rain = [[0, 8], [leadC[20], 12], [leadC[30], 18], [leadC[34], 24], [tStart - 3, 41], [leadC[44], 55], [leadC[50], 38]];
+    const ev = []; const E = (t, kind, text, who, up) => ev.push({ t, kind, text, who: who || '', up: !!up });
+    E(0, 'FLAG', 'LIGHTS OUT · RACE START');
+    E(tSC0, 'FLAG', 'SAFETY CAR DEPLOYED · DEBRIS TURN 6');
+    E(tSC1 - 70, 'FLAG', 'SAFETY CAR IN THIS LAP');
+    E(tSC1, 'FLAG', 'GREEN FLAG · RACING RESUMES');
+    E(tDRS, 'RC', 'DRS ENABLED');
+    E(leadC[33] + 20, 'RC', 'INCIDENT TURN 12 · BRU / FIS · NOTED');
+    E(leadC[35] + 40, 'PEN', 'CAR 11 (NAK) TIME DELETED LAP 35 · TRACK LIMITS TURN 4', 'NAK');
+    E(leadC[36] + 50, 'PEN', 'CAR 11 (NAK) 5 SECOND TIME PENALTY · TRACK LIMITS', 'NAK');
+    E(leadC[32] + 30, 'RADIO', '“These tyres have nothing left.”', 'HEN');
+    E(leadC[35] + 10, 'RADIO', '“Pace is good. Box window opens in five.”', 'KAT · ENG');
+    E(tStart - 40, 'RADIO', '“Rears are starting to go. How long on this set?”', 'ALV');
+    E(tStart - 22, 'RADIO', '“Box this lap, box this lap. Mediums ready.”', 'ALV · ENG');
+    E(tY0, 'FLAG', 'YELLOW FLAG SECTOR 2 · CAR 23 (PEL) SLOW AT TURN 9');
+    E(tY1, 'FLAG', 'SECTOR 2 CLEAR · GREEN FLAG');
+    E(tChq, 'FLAG', 'CHEQUERED FLAG');
+    rain.slice(1).forEach(([t, val], k) => { const up = val > rain[k][1]; E(t, 'WX', 'Rain probability ' + (up ? 'up' : 'down') + ' to ' + val + '% within 30 min', '', up && val - rain[k][1] >= 10); });
+    const stops = [];
+    dr.forEach(x => x.pits.forEach(l => { const t = x.cross[l] - x.loss[l]; const stat = x.code === 'SAL' ? 4.9 : 2.05 + rnd() * 1.3; stops.push({ id: x.id, lap: l, t, stat, lane: stat + 18.4 + rnd() * .9 }); E(t, 'PIT', x.code + ' pits · ' + x.comp[l] + ' → ' + x.comp[l + 1], x.code); }));
+    for (let l = 2; l <= TOT; l++) {
+      if (SC.includes(l) || SC.includes(l - 1)) continue;
+      const r0 = [...dr].sort((a, b) => a.cross[l - 1] - b.cross[l - 1]).map(x => x.id), r1 = [...dr].sort((a, b) => a.cross[l] - b.cross[l]).map(x => x.id);
+      const pitted = id => dr[id].flag[l] === 'pit' || dr[id].flag[l - 1] === 'pit';
+      r1.forEach((id, p) => { const was = r0.indexOf(id); if (p >= was || pitted(id)) return; const x = dr[id];
+        r0.slice(p, was).forEach(o => { if (r1.indexOf(o) > p && !pitted(o)) E((x.cross[l - 1] + x.cross[l]) / 2, 'OVT', x.code + ' passes ' + dr[o].code + ' for P' + (p + 1), x.code); });
+      });
+    }
+    ev.sort((a, b) => a.t - b.t);
+    ev.forEach(e => { let k = 0; while (k < TOT && leadC[k] <= e.t) k++; e.lap = Math.max(1, Math.min(TOT, k)); });
+    const sector = dr.map(x => ({
+      secs: [.318, .365, .317].map(f => ({ t: ((91.8 + x.id * .05) * f + (rnd() - .5) * .16).toFixed(3), st: rnd() < .08 ? 'P' : rnd() < .35 ? 'G' : 'Y' })),
+      minis: Array.from({ length: 24 }, () => { const r = rnd(); return r < .06 ? 'P' : r < .42 ? 'G' : 'Y'; }),
+      traps: [292 + rnd() * 9, 248 + rnd() * 8, 281 + rnd() * 8, 318 + rnd() * 9].map(Math.round)
+    }));
+    return { dr, N, pts, v, tf, drs, sector, stops, ev, P, TOT, S1: 130, S2: 270, tStart, tEnd, flags, rain, tSC0, tSC1, tY0, tY1, leadC, pitXY, pitLbl, lapAvg: tChq / TOT };
+  }
+
+  dfrac(q) { const tf = this.D.tf, N = this.D.N; q = Math.max(0, Math.min(1, q)); let lo = 0, hi = N; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (tf[m] > q) hi = m; else lo = m; } return (lo + (q - tf[lo]) / ((tf[hi] - tf[lo]) || 1)) / N; }
+  tAt(x, p) { const D = this.D; if (p >= D.TOT) return x.cross[D.TOT]; if (p <= 0) return x.cross[0]; const k = Math.floor(p), l = k + 1, i = (p - k) * D.N, i0 = Math.floor(i); const q = D.tf[i0] + (D.tf[Math.min(D.N, i0 + 1)] - D.tf[i0]) * (i - i0); return x.cross[k] + q * (x.lapT[l] - x.loss[l]); }
+  carState(x, t) {
+    const TOT = this.D.TOT;
+    if (t >= x.cross[TOT]) return { l: TOT, prog: TOT, fin: true, inPit: false };
+    if (t < x.cross[0]) return { l: 1, prog: -x.id * .002, fin: false, inPit: false };
+    let lo = 1, hi = TOT; while (lo < hi) { const m = (lo + hi) >> 1; if (x.cross[m] > t) hi = m; else lo = m + 1; }
+    const l = lo, e = t - x.cross[l - 1], drive = x.lapT[l] - x.loss[l], inPit = x.loss[l] > 0 && e > drive;
+    return { l, prog: l - 1 + (inPit ? .999 : this.dfrac(e / drive)), fin: false, inPit };
+  }
+  snapshot(t) {
+    const D = this.D, TOT = D.TOT;
+    const cs = D.dr.map(x => ({ x, ...this.carState(x, t) }));
+    cs.forEach(c => { if (c.fin) c.prog = TOT + (1e6 - c.x.cross[TOT]) * 1e-9; });
+    cs.sort((a, b) => b.prog - a.prog);
+    const lead = cs[0].x;
+    cs.forEach((c, r) => {
+      const x = c.x, l = c.l; c.rank = r;
+      c.gap = r === 0 ? 0 : c.fin ? x.cross[TOT] - lead.cross[TOT] : Math.max(0, t - this.tAt(lead, Math.min(c.prog, TOT)));
+      c.int = r === 0 ? 0 : c.gap - cs[r - 1].gap;
+      c.tyre = x.comp[l]; c.age = x.age[l];
+      c.pitsDone = x.pits.filter(p => p < l).length + (c.inPit ? 1 : 0);
+      let best = null; for (let k = 2; k < l; k++) if (!x.flag[k] && !x.out[k] && (best == null || x.lapT[k] < best)) best = x.lapT[k];
+      c.last = l > 1 ? x.lapT[l - 1] : null; c.best = best;
+    });
+    const byId = {}; cs.forEach(c => byId[c.x.id] = c);
+    return { cs, byId, lap: Math.min(TOT, cs[0].l) };
+  }
+  paintDots() {
+    const root = this.rootRef.current; if (!root) return;
+    const D = this.D, N = D.N, t = this.t; const cache = {};
+    root.querySelectorAll('[data-car]').forEach(g => {
+      const id = +g.getAttribute('data-car'); g.setAttribute('transform', cache[id] || (cache[id] = this.carTr(id, t)));
+    });
+  }
+  carTr(id, t) {
+    const D = this.D, N = D.N, s = this.carState(D.dr[id], t); let px, py;
+    if (s.inPit) { px = D.pitXY[0]; py = D.pitXY[1]; }
+    else { const idx = (((s.prog % 1) + 1) % 1) * N, i0 = Math.floor(idx) % N, i1 = (i0 + 1) % N, fr = idx - Math.floor(idx); px = D.pts[i0][0] + (D.pts[i1][0] - D.pts[i0][0]) * fr; py = D.pts[i0][1] + (D.pts[i1][1] - D.pts[i0][1]) * fr; }
+    return 'translate(' + px.toFixed(1) + ',' + py.toFixed(1) + ')';
+  }
+  componentDidUpdate() { this.paintDots(); }
+  flagAt(t) { let f = this.D.flags[0]; this.D.flags.forEach(x => { if (x.t <= t) f = x; }); return f; }
+  rainAt(t) { let v = 8, since = 0, up = false; this.D.rain.forEach(([rt, rv]) => { if (rt <= t) { up = rv > v; v = rv; since = rt; } }); return { v, since, up }; }
+  wxAt(t) { const p = t / this.D.lapAvg; return { air: 24.1 - p * .035 + .06 * Math.sin(p * 1.7), trk: 41.5 - p * .13 + .15 * Math.sin(p * .9), wind: 2.2 + p * .05 + .12 * Math.sin(p * 2.3), rain: this.rainAt(t).v }; }
+
+  lt(c, age, L, d, sc, rain) {
+    if (sc && L >= 40 && L <= 42) return 117;
+    const [b, k1, k2] = this.D.P[c]; let t = b + k1 * age + k2 * age * age - .055 * (L - 1) + d * .2;
+    if (c === 'I') t += rain && L >= 48 ? -1.2 : 5.5;
+    else if (rain && L >= 48) t += Math.min(5, 1.6 * (L - 47));
+    return t;
+  }
+  sim(f, stops, sc, rain, loss, per) {
+    let c = f.tyre, age = f.age, T = 0; const out = [];
+    for (let L = this.N0; L <= this.D.TOT; L++) {
+      let t = this.lt(c, age, L, f.d, sc, rain);
+      const s = stops.find(x => x.lap === L);
+      if (s) { t += sc && L >= 40 && L <= 42 ? loss * .52 : loss; c = s.c; age = 0; }
+      T += t; out.push({ L, t, pit: !!s }); age++;
+    }
+    return per ? out : T;
+  }
+  telFor(d) {
+    const { v, N } = this.D; const sg = d % 2 ? 1 : -1;
+    const vv = v.map((x, i) => x * (1 + sg * .012 * (x / 330 - .72) - d * .0004) + 1.2 * Math.sin(i / 37 + d));
+    const th = [], br = [], gr = [], tm = []; let t = 0;
+    vv.forEach((x, i) => { const dv = x - vv[(i - 1 + N) % N]; const b = dv < -.8; br.push(b ? 1 : 0); th.push(b ? 0 : (dv > .15 || x >= 325) ? 100 : Math.round(60 + 40 * x / 330)); gr.push(1 + [95, 130, 160, 190, 225, 260, 295].filter(q => x >= q).length); t += (5300 / N) / (x / 3.6); tm.push(t); });
+    return { vv, th, br, gr, tm };
+  }
+  fmt(t) { const m = Math.floor(t / 60); const s = (t - m * 60).toFixed(3); return m + ':' + (s.length < 6 ? '0' + s : s); }
+  mmss(t) { t = Math.max(0, Math.round(t)); return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); }
+  seenHint() { if (this.state.hintSeen) return; try { localStorage.setItem('pitwall.towerHint', '1'); } catch (e) {} this.setState({ hintSeen: true }); }
+  pick(d) {
+    return e => {
+      this.seenHint();
+      if (e && e.shiftKey) { if (d !== this.state.a) this.setState({ b: d }); }
+      else this.setState(s => ({ a: d, b: s.b === d ? s.a : s.b, plan: null }));
+    };
+  }
+  scrubAt(e) {
+    const el = this.scrubRef.current; if (!el) return;
+    const r = el.getBoundingClientRect(); const q = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+    this.t = Math.min(this.tLive, q * this.D.tEnd); this.setState(s => ({ follow: false, tick: s.tick + 1 }));
+  }
+
+  compute(loss, snap) {
+    const D = this.D, S = this.state, TOT = D.TOT, N = D.N;
+    const CY = '#6fd3e8', PU = '#b06cff', GR = '#3ecf6e', YE = '#e6c229', AM = '#ffb547', RD = '#ff5a4f';
+    const TC = { S: '#ee4a3f', M: '#f2c230', H: '#e8e8e3', I: '#3fb56a' };
+    const order = snap.cs;
+    const mk = c => { const x = c.x, laps = []; for (let l = 1; l < c.l; l++) laps.push({ l, t: x.lapT[l], flag: x.flag[l], c: x.comp[l], age: x.age[l], out: x.out[l] }); return { d: x.id, code: x.code, color: x.color, gap: c.gap, int: c.int, tyre: c.tyre, age: c.age, rank: c.rank, l: c.l, laps, st: x.st, pits: x.pits.filter(p => p < c.l) }; };
+    const f = mk(snap.byId[S.a]), fb = mk(snap.byId[S.b]);
+    const NOW = Math.min(f.l, TOT - 3); this.N0 = NOW;
+    const cA = f.color, cB = fb.color === f.color ? '#e8edf6' : fb.color;
+    const others = order.filter(c => c.x.id !== f.d).map(c => ({ code: c.x.code, color: c.x.color, gap: c.gap }));
+
+    const comps = S.rain ? ['S', 'M', 'H', 'I'] : ['S', 'M', 'H'];
+    const stay = this.sim(f, [], S.sc, S.rain, loss);
+    const costs = [];
+    for (let L = NOW; L < TOT; L++) { let best = null; comps.forEach(c => { const T = this.sim(f, [{ lap: L, c }], S.sc, S.rain, loss); if (!best || T < best.T) best = { T, c }; }); costs.push({ L, ...best }); }
+    const minT = Math.min(stay, ...costs.map(c => c.T));
+    const opt = costs.reduce((a, b) => b.T < a.T ? b : a);
+    const wx = L => 40 + (L - NOW) / (TOT - 1 - NOW) * 570, wy = c => 194 - Math.min(c, 16) / 16 * 176;
+    const bandW = L => .3 + .09 * (L - NOW);
+    const curve = costs.map((c, i) => (i ? 'L' : 'M') + wx(c.L).toFixed(1) + ',' + wy(c.T - minT).toFixed(1)).join('');
+    const band = costs.map((c, i) => (i ? 'L' : 'M') + wx(c.L).toFixed(1) + ',' + wy(Math.max(0, c.T - minT - bandW(c.L))).toFixed(1)).join('') + [...costs].reverse().map(c => 'L' + wx(c.L).toFixed(1) + ',' + wy(c.T - minT + bandW(c.L)).toFixed(1)).join('') + 'Z';
+    const thr = 2.5;
+    let u0 = opt.L - 1; while (u0 - 1 >= NOW && costs[u0 - 1 - NOW].T - minT < thr) u0--;
+    let o1 = opt.L + 1; while (o1 + 1 < TOT && costs[o1 + 1 - NOW].T - minT < thr) o1++;
+    const zone = (a, b, fill, color, label) => ({ x: wx(a - .5), w: Math.max(0, wx(b + .5) - wx(a - .5)), lx: (wx(a - .5) + wx(b + .5)) / 2, fill, color, label });
+    const zones = [];
+    if (opt.L - 2 >= u0) zones.push(zone(Math.max(NOW, u0), opt.L - 2, 'rgba(255,181,71,.10)', AM, 'UNDERCUT'));
+    zones.push(zone(Math.max(NOW, opt.L - 1), Math.min(TOT - 1, opt.L + 1), 'rgba(111,211,232,.14)', CY, 'OPTIMAL'));
+    if (o1 >= opt.L + 2) zones.push(zone(opt.L + 2, o1, 'rgba(155,140,255,.10)', '#a99cff', 'OVERCUT'));
+    const xt = []; for (let L = Math.ceil(NOW / 4) * 4; L < TOT; L += 4) xt.push({ x: wx(L), label: 'L' + L });
+    const win = {
+      zones, curve, band, opt: opt.L, optComp: opt.c, optX: wx(opt.L), optY: wy(0), nowX: wx(NOW),
+      stay: (stay - minT).toFixed(1), stayY: wy(stay - minT), stayTY: wy(stay - minT) - 5,
+      yt: [0, 4, 8, 12, 16].map(c => ({ y: wy(c), ty: wy(c) + 3, label: '+' + c })), xt
+    };
+
+    const cand = [
+      { name: 'Stay out · ' + f.tyre + ' to flag', stops: [] },
+      { name: 'Pit now L' + NOW + ' → M', stops: [{ lap: NOW, c: 'M' }] },
+      { name: 'Pit L' + opt.L + ' → ' + opt.c, stops: [{ lap: opt.L, c: opt.c }] },
+      { name: 'Undercut L' + (NOW + 1) + ' → M', stops: [{ lap: NOW + 1, c: 'M' }] }
+    ];
+    if (S.sc && NOW < 40) cand.push({ name: 'Pit under SC L40 → S', stops: [{ lap: 40, c: 'S' }] });
+    if (S.rain && NOW < 47) cand.push({ name: 'Pit L47 → Inter', stops: [{ lap: 47, c: 'I' }] });
+    const uniq = []; cand.forEach(c => { const k = JSON.stringify(c.stops); if (!uniq.some(u => JSON.stringify(u.stops) === k)) uniq.push(c); });
+    const planT = uniq.map(p => this.sim(f, p.stops, S.sc, S.rain, loss));
+    const oFin = order.filter(c => c.x.id !== f.d).map(c => { const x = c.x; const st = x.pits.filter(l => l >= NOW).map(l => ({ lap: l, c: x.comp[l + 1] })); return c.gap + this.sim({ tyre: c.tyre, age: c.age, d: x.id }, st, S.sc, S.rain, loss); });
+    const bestT = Math.min(...planT);
+    const sel = S.plan == null || S.plan >= uniq.length ? planT.indexOf(bestT) : S.plan;
+    const plans = uniq.map((p, i) => {
+      const T = planT[i]; const sl = p.stops.length ? p.stops[0].lap : TOT;
+      const conf = Math.max(.35, .9 - .01 * (sl - NOW) - (S.rain ? .18 : 0) - (S.sc ? .08 : 0) - (p.stops.length ? 0 : .04));
+      const finish = 1 + oFin.filter(o => o < f.gap + T).length;
+      const dl = T - bestT;
+      return { name: p.name, finish, delta: dl < .05 ? '±0.0' : '+' + dl.toFixed(1) + 's', dColor: dl < .05 ? CY : dl < 3 ? '#aab5c7' : RD, range: ((1 - conf) * 8).toFixed(1) + 's', conf: Math.round(conf * 100), confO: .45 + conf * .55, isBest: T === bestT, bg: i === sel ? 'rgba(111,211,232,.08)' : 'transparent', ring: i === sel ? CY : '#34425f', dot: i === sel ? CY : 'transparent', onClick: () => this.setState({ plan: i }) };
+    });
+    const selStops = uniq[sel].stops;
+
+    const gl = S.sc ? loss * .52 : loss; const rg = f.gap + gl;
+    const ahead = others.filter(o => o.gap < rg), behind = others.filter(o => o.gap >= rg);
+    const A = ahead[ahead.length - 1], B = behind[0];
+    const mA = A ? rg - A.gap : 99, mB = B ? B.gap - rg : 99; const sig = .6;
+    const gprob = Math.round(Math.max(.35, Math.min(.95, .5 + Math.min(mA, mB) / sig * .3)) * 100);
+    const lo = rg - 6, span = 12;
+    const ghost = {
+      lapLabel: 'pit now, L' + NOW, pos: ahead.length + 1, gap: '+' + rg.toFixed(1), sigma: sig.toFixed(1), prob: gprob,
+      line: 'Pit loss ' + gl.toFixed(1) + 's · ' + (A ? mA.toFixed(1) + 's behind ' + A.code : 'clear') + (B ? ' · ' + mB.toFixed(1) + 's ahead of ' + B.code : ''),
+      air: mA > 1.2 ? 'Clear air on exit' : 'Traffic on exit: in ' + (A ? A.code : '') + ' dirty air', airColor: mA > 1.2 ? GR : AM,
+      left: (rg - lo) / span * 100, bandL: (rg - sig - lo) / span * 100, bandW: sig * 2 / span * 100,
+      cars: others.filter(o => o.gap > lo && o.gap < lo + span).map(o => { const lbl = o === A || o === B; return { code: lbl ? o.code : '', color: o.color, left: (o.gap - lo) / span * 100, gap: lbl ? '+' + o.gap.toFixed(1) : '', o: lbl ? 1 : .5 }; })
+    };
+
+    const pi = plans[sel], s0 = selStops[0], pitSoon = !!s0 && s0.lap <= NOW + 1;
+    const restT = planT.filter((_, i) => i !== sel), nextD = restT.length ? Math.min(...restT) - planT[sel] : 0;
+    const clear = mA > 1.2, airTxt = clear ? 'clear air' : 'traffic behind ' + (A ? A.code : '');
+    const call = {
+      head: !s0 ? 'Stay out on ' + f.tyre + ' to the flag' : pitSoon ? (s0.lap === NOW ? 'Pit now' : 'Pit next lap') + ' → ' + s0.c : 'Stay out · pit L' + s0.lap + ' → ' + s0.c,
+      sub: pitSoon ? 'Rejoin ≈P' + ghost.pos + ', ' + airTxt + ' (' + ghost.prob + '%)' : 'Finish ≈P' + pi.finish + ' (' + pi.conf + '%)',
+      tag: pi.isBest ? 'RECOMMENDED' : 'APPLIED · ' + pi.delta + ' VS BEST', tagBg: pi.isBest ? CY : AM,
+      facts: [
+        { k: 'Pit loss', v: gl.toFixed(1) + 's' + (S.sc ? ' under SC' : ''), c: '#e8edf6' },
+        { k: pitSoon ? 'Rejoins behind' : 'Pit now rejoins', v: (pitSoon ? '' : '≈P' + ghost.pos + ' · ') + (A ? A.code + ' by ≈' + mA.toFixed(1) + 's' : 'clear track'), c: clear ? '#e8edf6' : AM },
+        { k: 'Ahead of', v: B ? B.code + ' by ≈' + mB.toFixed(1) + 's' : '—', c: '#e8edf6' },
+        { k: 'Finish', v: '≈P' + pi.finish + ' ±' + pi.range, c: CY },
+        { k: pi.isBest ? 'Next best plan' : 'Best plan', v: nextD >= 0 ? '+' + nextD.toFixed(1) + 's slower' : (-nextD).toFixed(1) + 's faster', c: '#aab5c7' }
+      ]
+    };
+
+    const alerts = [];
+    const bhc = order[f.rank + 1], ahc = order[f.rank - 1];
+    if (bhc) { const bh = { code: bhc.x.code, int: bhc.int, tyre: bhc.tyre, age: bhc.age }; const p = Math.max(.1, Math.min(.95, .95 - .17 * bh.int + (bh.age > f.age ? .05 : 0) + (S.sc ? .1 : 0))); alerts.push({ level: p > .6 ? 'HIGH' : 'MED', color: p > .6 ? RD : AM, bg: p > .6 ? 'rgba(255,90,79,.07)' : 'rgba(255,181,71,.06)', bd: p > .6 ? 'rgba(255,90,79,.35)' : 'rgba(255,181,71,.3)', title: 'Undercut threat · ' + bh.code + ' +' + bh.int.toFixed(1) + 's', body: bh.code + ' on ' + bh.tyre + ' ' + bh.age + ' laps. A stop this lap puts them ≈' + (2 * 1.3 - bh.int).toFixed(1) + 's ahead after two laps on fresh tyres.', prob: Math.round(p * 100) }); }
+    if (ahc) { const gain = this.lt(f.tyre, f.age, NOW, f.d, false, false) - this.lt('M', 1, NOW, f.d, false, false); const p = Math.max(.1, Math.min(.9, .5 + (gain * 2 - f.int) * .25)); alerts.push({ level: 'OPP', color: CY, bg: 'rgba(111,211,232,.05)', bd: 'rgba(111,211,232,.3)', title: 'Undercut on ' + ahc.x.code + ' · gap ' + f.int.toFixed(1) + 's', body: 'Fresh M worth ≈' + gain.toFixed(1) + 's/lap over the ' + f.tyre + ' ' + f.age + ' laps. Two laps gains ≈' + (gain * 2).toFixed(1) + 's against a ' + f.int.toFixed(1) + 's gap.', prob: Math.round(p * 100) }); }
+    if (S.rain) alerts.push({ level: 'WX', color: '#3a7fd9', bg: 'rgba(58,127,217,.07)', bd: 'rgba(58,127,217,.35)', title: 'Rain modelled from L48', body: 'Dry compounds lose up to 5s/lap. The Inter crossover is at L47–48.', prob: 62 });
+    else { const ageC = f.age + 11; alerts.push({ level: 'DEG', color: '#8a97ad', bg: 'rgba(255,255,255,.02)', bd: '#16223a', title: f.tyre + ' losing ≈' + ((this.lt(f.tyre, ageC, 0, 0) - this.lt(f.tyre, f.age, 0, 0))).toFixed(1) + 's by age ' + ageC, body: 'Degradation model fitted to ' + Math.max(1, f.age - 2) + ' clean laps. The confidence band widens past the measured range.', prob: 74 }); }
+
+    const dx = a => 40 + a / 40 * 352, dy = t => 194 - (t - 91) / 4.5 * 178;
+    const curves = comps.map(c => {
+      const [b, k1, k2] = D.P[c]; const pts = []; for (let a = 0; a <= 40; a += 2) pts.push([a, b + k1 * a + k2 * a * a + f.d * .2]);
+      const bw = a => .08 + .012 * a;
+      const d = pts.map((p, i) => (i ? 'L' : 'M') + dx(p[0]).toFixed(1) + ',' + dy(Math.min(p[1], 95.5)).toFixed(1)).join('');
+      const bd = pts.map((p, i) => (i ? 'L' : 'M') + dx(p[0]).toFixed(1) + ',' + dy(Math.min(p[1] + bw(p[0]), 95.5)).toFixed(1)).join('') + [...pts].reverse().map(p => 'L' + dx(p[0]).toFixed(1) + ',' + dy(Math.min(p[1] - bw(p[0]), 95.5)).toFixed(1)).join('') + 'Z';
+      const last = pts.filter(p => p[1] < 95.3).pop();
+      return { d, band: bd, color: TC[c], label: c, lx: dx(last[0]) + 4, ly: dy(last[1]) + 3 };
+    });
+    const cst = f.st.find(z => f.l >= z.s && f.l <= z.e) || f.st[f.st.length - 1];
+    const dots = f.laps.filter(x => !x.flag && !x.out && x.l > 1).map(x => ({ x: dx(x.age), y: dy(x.t + .055 * (x.l - 1)), c: TC[x.c], o: x.l >= cst.s ? 1 : .3 })).filter(p => p.y > 10 && p.y < 196);
+    const deg = { curves, dots, nowX: dx(f.age), yt: [91, 92, 93, 94, 95].map(t => ({ y: dy(t), ty: dy(t) + 3, label: t.toFixed(0) })), xt: [0, 10, 20, 30, 40].map(a => ({ x: dx(a), label: a })) };
+
+    const ta = this.telFor(f.d), tb = this.telFor(fb.d);
+    const tx = i => 40 + i / (N - 1) * 850;
+    const line = (arr, fy) => arr.map((q, i) => (i ? 'L' : 'M') + tx(i).toFixed(1) + ',' + fy(q).toFixed(1)).join('');
+    const step = (arr, fy) => 'M' + tx(0).toFixed(1) + ',' + fy(arr[0]).toFixed(1) + arr.map((q, i) => 'H' + tx(i).toFixed(1) + 'V' + fy(q).toFixed(1)).join('');
+    const ySp = q => 132 - (q - 60) / 280 * 122, yTh = q => 184 - q / 100 * 42, yBr = q => 206 - q * 14, yGr = q => 262 - (q - 1) / 7 * 48;
+    const delta = ta.tm.map((t, i) => t - tb.tm[i]);
+    const dmax = Math.max(.2, Math.ceil(Math.max(...delta.map(Math.abs)) * 10) / 10);
+    const yDl = q => 305 - q / dmax * 30;
+    const paths = [
+      { d: line(tb.vv, ySp), c: cB, w: 1.4, dash: '4 3' }, { d: line(ta.vv, ySp), c: cA, w: 1.8, dash: 'none' },
+      { d: line(tb.th, yTh), c: cB, w: 1.2, dash: '4 3' }, { d: line(ta.th, yTh), c: cA, w: 1.5, dash: 'none' },
+      { d: step(tb.br, q => yBr(q) + 1), c: cB, w: 1.2, dash: '4 3' }, { d: step(ta.br, yBr), c: cA, w: 1.5, dash: 'none' },
+      { d: step(tb.gr, yGr), c: cB, w: 1.2, dash: '4 3' }, { d: step(ta.gr, yGr), c: cA, w: 1.5, dash: 'none' },
+      { d: line(delta, yDl), c: '#e8edf6', w: 1.6, dash: 'none' }
+    ];
+    const ci = S.cur;
+    const tel = {
+      cA, cB, paths, zeroY: yDl(0),
+      drs: D.drs.map(r => ({ x: tx(r[0]), w: tx(r[1]) - tx(r[0]), lx: (tx(r[0]) + tx(r[1])) / 2 })),
+      lanes: [{ y: 132, ty: 20, label: 'KM/H' }, { y: 184, ty: 150, label: 'THR %' }, { y: 206, ty: 200, label: 'BRK' }, { y: 262, ty: 222, label: 'GEAR' }, { y: 335, ty: 290, label: 'Δ ' + dmax.toFixed(1) + 's' }],
+      secs: [{ x: tx(D.S1), lx: tx(D.S1 / 2), label: 'S1' }, { x: tx(D.S2), lx: tx((D.S1 + D.S2) / 2), label: 'S2' }],
+      hasCur: ci != null, curX: ci != null ? tx(ci) : 0,
+      readout: ci != null ? (Math.round(ci * 5300 / N) + ' m · ' + Math.round(ta.vv[ci]) + ' / ' + Math.round(tb.vv[ci]) + ' km/h · G' + ta.gr[ci] + '/' + tb.gr[ci] + ' · Δ ' + (delta[ci] >= 0 ? '+' : '') + delta[ci].toFixed(3) + 's') : 'Δ at line ' + (delta[N - 1] >= 0 ? '+' : '') + delta[N - 1].toFixed(3) + 's · hover to scrub',
+      onMove: e => { const r = e.currentTarget.getBoundingClientRect(); const x = (e.clientX - r.left) / r.width * 900; const i = Math.round((x - 40) / 850 * (N - 1)); this.setState({ cur: Math.max(0, Math.min(N - 1, i)) }); },
+      onLeave: () => this.setState({ cur: null })
+    };
+
+    const lx = l => 44 + (l - 1) / (TOT - 1) * 846, lo2 = 89.6, hi2 = 95.4;
+    const ly = t => 16 + (hi2 - Math.max(lo2, Math.min(hi2, t))) / (hi2 - lo2) * 300;
+    const lpath = x => x.laps.map((q, i) => (i ? 'L' : 'M') + lx(q.l).toFixed(1) + ',' + ly(q.t).toFixed(1)).join('');
+    const pl = this.sim(f, selStops, S.sc, S.rain, loss, true);
+    const lbw = k => .12 + .035 * k;
+    const lastA = f.laps[f.laps.length - 1] || { l: 1, t: 92 };
+    const pred = 'M' + lx(lastA.l).toFixed(1) + ',' + ly(lastA.t).toFixed(1) + pl.map(q => 'L' + lx(q.L).toFixed(1) + ',' + ly(q.t).toFixed(1)).join('');
+    const lband = pl.map((q, k) => (k ? 'L' : 'M') + lx(q.L).toFixed(1) + ',' + ly(q.t - lbw(k)).toFixed(1)).join('') + [...pl].reverse().map((q, k) => 'L' + lx(q.L).toFixed(1) + ',' + ly(q.t + lbw(pl.length - 1 - k)).toFixed(1)).join('') + 'Z';
+    const lpits = [...f.pits.map(l => ({ l, c: cA })), ...fb.pits.map(l => ({ l, c: cB })), ...selStops.map(s => ({ l: s.lap, c: CY }))].map(p => ({ x: lx(p.l), rx: lx(p.l) - 4, ry: 20, c: p.c }));
+    const lapc = {
+      a: lpath(f), b: lpath(fb), pred, band: lband, pits: lpits, nowX: lx(NOW - .5),
+      scX: lx(26.5), scW: lx(29.5) - lx(26.5), scLX: lx(28),
+      hasWhatIfSc: S.sc && NOW < 40, sc2X: lx(39.5), sc2W: lx(42.5) - lx(39.5), sc2LX: lx(41),
+      futX: lx(NOW - .5), futW: lx(TOT) - lx(NOW - .5),
+      yt: [90, 91, 92, 93, 94, 95].map(t => ({ y: ly(t), ty: ly(t) + 3, label: '1:' + (t - 60).toFixed(0) })),
+      xt: [1, 10, 20, 30, 40, 50, 57].map(l => ({ x: lx(l), label: l }))
+    };
+
+    const gp = l => (l - 1) / TOT * 100;
+    const pat = c => 'repeating-linear-gradient(135deg,' + c + '66 0 2px,transparent 2px 6px)';
+    const hatch = (a, b, comp, label) => ({ left: gp(a), w: (b - a + 1) / TOT * 100, bg: pat(TC[comp]), bd: '1px dashed ' + TC[comp], fg: TC[comp], label });
+    const gantt = {
+      now: gp(snap.lap + .5), ticks: [1, 10, 20, 30, 40, 50, 57].map(l => ({ left: gp(l + .5), label: l })),
+      rows: order.map(c => {
+        const x = c.x, cl = c.l, stints = [], pits = [];
+        x.st.forEach(s => { const e = Math.min(s.e, cl); if (s.s <= e) stints.push({ left: gp(s.s), w: (e - s.s + 1) / TOT * 100, bg: TC[s.c], bd: 'none', fg: '#000000', label: e - s.s + 1 >= 4 ? s.c + ' ' + (e - s.s + 1) : '' }); });
+        x.pits.filter(l => l < cl).forEach(l => pits.push({ left: gp(l + 1), c: '#e8edf6' }));
+        if (x.id === f.d) {
+          let from = cl + 1, comp = c.tyre;
+          selStops.forEach(s => { if (s.lap < cl) return; if (s.lap >= from) stints.push(hatch(from, s.lap, comp, '')); pits.push({ left: gp(s.lap + 1), c: CY }); from = s.lap + 1; comp = s.c; });
+          if (from <= TOT) stints.push(hatch(from, TOT, comp, selStops.length ? '≈' + comp : ''));
+        } else {
+          x.st.forEach(s => { const a = Math.max(s.s, cl + 1); if (a <= s.e) stints.push(hatch(a, s.e, s.c, s.s > cl ? '≈' + s.c : '')); });
+          x.pits.filter(l => l >= cl).forEach(l => pits.push({ left: gp(l + 1), c: '#6a7790' }));
+        }
+        return { code: x.code, color: x.color, stints, pits, bg: x.id === f.d ? 'rgba(111,211,232,.06)' : 'transparent' };
+      })
+    };
+
+    const SCOL = { P: PU, G: GR, Y: YE };
+    const trapMax = [0, 1, 2, 3].map(k => Math.max(...D.sector.map(s => s.traps[k])));
+    const sectors = order.map(c => { const x = c.x, i = x.id; return {
+      code: x.code, color: x.color, bg: i === f.d || i === fb.d ? 'rgba(255,255,255,.05)' : 'transparent',
+      secs: D.sector[i].secs.map(s => ({ t: s.t, c: SCOL[s.st] })),
+      minis: D.sector[i].minis.map((m, k) => ({ c: SCOL[m], ml: k && k % 8 === 0 ? 4 : 0, o: m === 'Y' ? .55 : 1 })),
+      traps: D.sector[i].traps.map((v, k) => ({ v, c: v === trapMax[k] ? PU : '#aab5c7' }))
+    }; });
+
+    const tog = (label, on, key) => ({ label, onClick: () => this.setState(s => ({ [key]: !s[key], plan: null })), bg: on ? 'rgba(111,211,232,.12)' : 'transparent', bd: on ? CY : '#26334f', fg: on ? CY : '#8a97ad', dot: on ? CY : 'transparent' });
+    const toggles = [tog('SC L40–42', S.sc, 'sc'), tog('RAIN L48+', S.rain, 'rain')];
+
+    const pts = D.pts; const seg = (a, b) => 'M' + pts.slice(a, b + 1).map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join('L');
+    const lab = (i, l, c, tc) => { const p = pts[i], q = pts[(i + 3) % N]; const nx = -(q[1] - p[1]), ny = q[0] - p[0]; const n = Math.hypot(nx, ny) || 1; return { lx: p[0] + nx / n * 20, ly: p[1] + ny / n * 20 + 4, label: l, color: c, tc }; };
+    const yel = this.flagAt(this.t).k === 'YEL';
+    const track = {
+      d: 'M' + pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join('L') + 'Z',
+      sectors: [{ d: seg(0, D.S1), ...lab(65, 'S1', '#6a7790', '#8a97ad') }, { d: seg(D.S1, D.S2), ...lab(200, 'S2', yel ? '#f5d020' : '#6a7790', yel ? '#f5d020' : '#8a97ad') }, { d: seg(D.S2, N - 1) + 'L' + pts[0].join(','), ...lab(335, 'S3', '#6a7790', '#8a97ad') }],
+      drs: D.drs.map(r => ({ d: seg(r[0], r[1]) })), sfx: pts[0][0] - 2, sfy: pts[0][1] - 8, pitX: D.pitLbl[0], pitY: D.pitLbl[1]
+    };
+
+    return { call, nPlans: plans.length, nAlerts: alerts.length, win, plans, ghost, alerts, deg, tel, lapc, gantt, sectors, toggles, track, telLap: 'lap ' + Math.max(1, NOW - 1),
+      fA: { code: f.code, color: f.color, pos: f.rank + 1, tyre: f.tyre, age: f.age, lap: NOW }, fB: { code: fb.code },
+      compLegend: [{ label: 'SOFT', color: TC.S }, { label: 'MEDIUM', color: TC.M }, { label: 'HARD', color: TC.H }] };
+  }
+
+  renderVals() {
+    const S = this.state, D = this.D, t = this.t, TOT = D.TOT;
+    const loss = this.props.pitLoss ?? 21.4, minis = this.props.showMinis ?? true, mode = this.props.mode ?? 'both', live = this.props.live ?? true;
+    const PU = '#b06cff', GR = '#3ecf6e', AM = '#ffb547', RD = '#ff5a4f', CY = '#6fd3e8';
+    const TC = { S: '#ee4a3f', M: '#f2c230', H: '#e8e8e3', I: '#3fb56a' };
+    const snap = this.snapshot(t);
+    if (this.prevT == null || Math.abs(t - this.prevT) > 3) this.posAt = {};
+    else snap.cs.forEach(c => { const p = this.prevRank[c.x.id]; if (p != null && p !== c.rank) this.posAt[c.x.id] = { t, up: c.rank < p }; });
+    this.prevRank = {}; snap.cs.forEach(c => { this.prevRank[c.x.id] = c.rank; }); this.prevT = t;
+    const fl = this.flagAt(t);
+    const key = [S.a, S.b, S.sc, S.rain, S.plan, loss, S.cur, snap.byId[S.a].l, snap.lap, minis, fl.k].join('|');
+    if (key !== this._k) { this._k = key; this._v = this.compute(loss, snap); if (!minis) this._v.sectors = this._v.sectors.map(r => ({ ...r, minis: [] })); }
+    const V = this._v;
+
+    const bests = snap.cs.map(c => c.best).filter(b => b != null); const fastest = bests.length ? Math.min(...bests) : 0;
+    const rows = snap.cs.map(c => {
+      const x = c.x, isA = x.id === S.a, isB = x.id === S.b, pa = this.posAt[x.id], hl = pa ? Math.max(0, 1 - (t - pa.t) / 6) : 0;
+      return { d: x.id, pos: c.rank + 1, code: x.code, color: x.color,
+        gap: c.rank ? '+' + c.gap.toFixed(1) : 'LEADER', int: c.rank ? '+' + c.int.toFixed(3) : '—', intColor: c.rank && c.int < 1 ? GR : '#e8edf6',
+        last: c.last ? this.fmt(c.last) : '—', lastColor: c.last && Math.abs(c.last - fastest) < 1e-9 ? PU : c.last && c.best && c.last <= c.best + 1e-9 ? GR : '#e8edf6',
+        best: c.best ? this.fmt(c.best) : '—', bestColor: c.best === fastest ? PU : '#aab5c7',
+        tyre: c.tyre, tyreColor: TC[c.tyre], age: c.age, pits: c.pitsDone,
+        bg: hl > 0 ? 'rgba(198,255,61,' + (.28 * hl).toFixed(3) + ')' : isA ? 'rgba(198,255,61,.13)' : isB ? 'rgba(255,255,255,.06)' : c.rank % 2 ? 'rgba(140,170,255,.035)' : 'transparent',
+        bd: isA ? '#c6ff3d' : isB ? '#8a97ad' : 'transparent', bds: isB ? 'dashed' : 'solid',
+        hasBadge: isA || isB, badge: isA ? 'A' : 'B', badgeBg: isA ? '#c6ff3d' : '#8a97ad',
+        inPit: c.inPit, hasChg: hl > 0, chg: pa && pa.up ? '▲' : '▼', chgColor: pa && pa.up ? GR : RD,
+        onClick: this.pick(x.id), open: S.expand || S.hov === x.id,
+        onEnter: () => this.setState({ hov: x.id }), onLeave: () => this.setState(s => s.hov === x.id ? { hov: null } : null) };
+    });
+    const rk = snap.byId;
+    const dots = [...D.dr].sort((p, q) => (p.id === S.a ? 2 : p.id === S.b ? 1 : 0) - (q.id === S.a ? 2 : q.id === S.b ? 1 : 0)).map(x => { const isA = x.id === S.a, isB = x.id === S.b; return { id: x.id, tr: this.carTr(x.id, t), color: x.color, ring: isA || isB ? 13 : 0, ringColor: isA ? '#c6ff3d' : '#8a97ad', label: isA || isB || rk[x.id].rank < 3 ? x.code : '', tc: isA ? '#ffffff' : '#aab5c7' }; });
+
+    const fhl = Math.max(0, 1 - (t - fl.t) / 8);
+    const FL = { GRN: ['GREEN', '#173323', GR, '62,207,110'], SC: ['SAFETY CAR', '#f5d020', '#000000', '245,208,32'], YEL: ['YELLOW · SECTOR 2', '#f5d020', '#000000', '245,208,32'], CHQ: ['CHEQUERED', '#e8edf6', '#000000', '228,231,235'] }[fl.k];
+    const flag = { label: FL[0], bg: FL[1], fg: FL[2], glow: (fhl * 12).toFixed(1), glowC: 'rgba(' + FL[3] + ',' + (.45 * fhl).toFixed(2) + ')' };
+
+    const now = this.wxAt(t), past = this.wxAt(Math.max(0, t - 300)), rn = this.rainAt(t);
+    const rhl = rn.up ? Math.max(0, 1 - (t - rn.since) / 10) : 0;
+    const WM = [['air', 'Air', '°C', 1, .6, '#c9d2e1'], ['trk', 'Track', '°C', 1, 1.2, AM], ['wind', 'Wind', ' m/s', 1, .8, '#9bb3d1'], ['rain', 'Rain', '%', 0, 5, '#3a7fd9']];
+    const weather = WM.map(([k, label, u, dp, th, color]) => {
+      const dv = now[k] - past[k], trend = Math.abs(dv) >= th, sm = [];
+      if (trend) for (let i = 0; i <= 24; i++) sm.push(this.wxAt(Math.max(0, t - 600 + i * 25))[k]);
+      const mn = Math.min(...sm), mx = Math.max(...sm);
+      const path = trend ? sm.map((q, i) => (i ? 'L' : 'M') + (i / 24 * 100).toFixed(1) + ',' + (22 - (q - mn) / (mx - mn || 1) * 20).toFixed(1)).join('') : '';
+      const hl = k === 'rain' ? rhl : 0;
+      return { label, val: now[k].toFixed(dp) + u, trend, path, color, dir: dv > 0 ? '▲' : '▼', hlBg: hl > 0 ? 'rgba(58,127,217,' + (.4 * hl).toFixed(3) + ')' : 'transparent', vc: hl > 0 ? '#ffffff' : '#c9d2e1' };
+    });
+
+    const codes = [V.fA.code, V.fB.code];
+    const inv = e => codes.some(c => e.who.indexOf(c) === 0 || e.text.indexOf(c) >= 0);
+    const imp = e => e.kind === 'FLAG' || e.kind === 'PEN' || (e.kind === 'WX' && e.up) || inv(e);
+    const KC = { FLAG: '#f5d020', RADIO: '#9bb3d1', OVT: GR, RC: '#8a97ad', PIT: '#e8edf6', PEN: RD, WX: '#3a7fd9' };
+    const past2 = D.ev.filter(e => e.t <= t);
+    const fmtE = e => { const dd = e.who && D.dr.find(x => x.code === e.who.split(' ')[0]); const hl = Math.max(0, 1 - (t - e.t) / 8); return { lap: e.lap, kind: e.kind, kc: KC[e.kind], hasWho: !!e.who, who: e.who, wc: dd ? dd.color : '#6a7790', text: e.text, tc: e.kind === 'RADIO' ? '#e8edf6' : '#c9d2e1', bg: hl > 0 ? 'rgba(' + (e.kind === 'FLAG' ? '245,208,32' : '111,211,232') + ',' + (.22 * hl).toFixed(3) + ')' : 'transparent' }; };
+    const latest = past2.filter(imp).slice(-2).reverse().map(fmtE);
+    const match = { ALL: () => true, RC: k => k === 'RC' || k === 'FLAG' || k === 'PIT' || k === 'PEN' || k === 'WX', RADIO: k => k === 'RADIO', OVT: k => k === 'OVT' };
+    const feed = past2.filter(e => match[S.feed](e.kind)).slice(-80).reverse().map(fmtE);
+    const feedTabs = ['ALL', 'RC', 'RADIO', 'OVT'].map(k => ({ label: k, bg: S.feed === k ? '#e8edf6' : 'transparent', fg: S.feed === k ? '#000000' : '#8a97ad', onClick: () => this.setState({ feed: k }) }));
+
+    const done = D.stops.filter(s => s.t <= t).sort((a, b) => a.stat - b.stat);
+    const maxSt = done.length ? Math.max(...done.map(s => s.stat)) : 1;
+    const mkStop = (s, i, bar, sc) => { const x = D.dr[s.id]; return { rank: i + 1, code: x.code, color: x.color, lap: s.lap, stat: s.stat.toFixed(2), lane: s.lane.toFixed(1), w: s.stat / maxSt * 100, bar, sc }; };
+    const stops = done.slice(0, 12).map((s, i) => mkStop(s, i, i === 0 ? PU : '#34425f', i === 0 ? PU : '#e8edf6'));
+    const sal = done.findIndex(s => D.dr[s.id].code === 'SAL'); if (sal >= 12) stops.push(mkStop(done[sal], sal, RD, RD));
+
+    const pc = x => x / D.tEnd * 100, tl = this.tLive;
+    const scrub = {
+      head: pc(t), live: pc(tl), hasSc: tl > D.tSC0, scL: pc(D.tSC0), scW: Math.max(0, pc(Math.min(tl, D.tSC1)) - pc(D.tSC0)),
+      hasY: tl > D.tY0, yL: pc(D.tY0), yW: Math.max(0, pc(Math.min(tl, D.tY1)) - pc(D.tY0)),
+      pits: D.stops.filter(s => s.t <= tl).map(s => { const a = s.id === S.a, b = s.id === S.b; return { left: pc(s.t), c: a ? '#e8edf6' : b ? '#8a97ad' : '#4a525c', top: a || b ? 2 : 10, h: a || b ? 26 : 12 }; }),
+      laps: [1, 10, 20, 30, 40, 50, 57].map(l => ({ left: pc(D.leadC[l - 1]), label: 'L' + l })),
+      playIcon: S.follow || S.playing ? '❚❚' : '▶',
+      onPlay: () => this.setState(s => s.follow ? { follow: false, playing: false } : { playing: !s.playing }),
+      onLive: () => { this.t = this.tLive; this.setState(s => ({ follow: true, playing: true, tick: s.tick + 1 })); },
+      liveBg: S.follow ? 'rgba(255,90,79,.14)' : 'transparent', liveBd: S.follow ? RD : '#26334f', liveFg: S.follow ? RD : '#aab5c7', dot: S.follow ? RD : '#6a7790',
+      readout: S.follow ? 'Following live · L' + snap.lap : 'L' + snap.lap + ' · ' + this.mmss(tl - t) + ' behind live',
+      onDown: e => { try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {} this.setState({ drag: true }); this.scrubAt(e); },
+      onMove: e => { if (this.state.drag) this.scrubAt(e); },
+      onUp: () => this.setState({ drag: false })
+    };
+    const status = !live && S.follow ? { label: 'PAUSED', c: '#8a97ad' } : S.follow ? { label: 'LIVE', c: RD } : { label: 'REPLAY −' + this.mmss(tl - t), c: '#aab5c7' };
+
+    const O = S.open || {};
+    const drawers = [['ghost', 'Ghost projection'], ['plans', 'Plans · ' + V.nPlans], ['win', 'Pit window'], ['deg', 'Tyre degradation'], ['alerts', 'Threats · ' + V.nAlerts]].map(([k, l]) => ({ label: l, mark: O[k] ? '−' : '+', bg: O[k] ? 'rgba(111,211,232,.12)' : 'transparent', bd: O[k] ? CY : '#26334f', fg: O[k] ? CY : '#aab5c7', onClick: () => this.setState(s => ({ open: { ...(s.open || {}), [k]: !(s.open || {})[k] } })) }));
+    const fk = (key, label, on, fn) => ({ key, label, onClick: fn, bg: on ? '#c6ff3d' : '#141414', fg: on ? '#000000' : '#e8edf6', capBg: on ? '#000000' : '#26334f', capFg: on ? '#c6ff3d' : '#e8edf6' });
+    const fkeys = [fk('1', 'DETAIL', S.expand, () => this.setState(s => ({ expand: !s.expand }))), fk('2', 'GHOST', O.ghost, () => this.toggleOpen('ghost')), fk('3', 'PLANS', O.plans, () => this.toggleOpen('plans')), fk('4', 'WINDOW', O.win, () => this.toggleOpen('win')), fk('5', 'DEG', O.deg, () => this.toggleOpen('deg')), fk('6', 'THREATS', O.alerts, () => this.toggleOpen('alerts')), fk('7', 'HISTORY', S.hist, () => this.setState(s => ({ hist: !s.hist }))), fk('8', 'LIVE', S.follow, () => this.goLive())];
+    const md = S.mode || (this.props.mode === 'wall' ? 'wall' : 'desk');
+    const tb = (on, set, key, label) => ({ key, label, onClick: set, bg: on ? '#c6ff3d' : 'transparent', fg: on ? '#000000' : '#8a97ad', kc: on ? '#000000' : '#56637b' });
+    const evTabs = [['plans', '1', 'Plans · ' + V.nPlans], ['ghost', '2', 'Ghost rejoin'], ['win', '3', 'Pit window'], ['deg', '4', 'Degradation'], ['alerts', '5', 'Threats · ' + V.nAlerts]].map(([id, k, l]) => tb(S.tab === id, () => this.setState({ tab: id }), k, l));
+    const anTabs = [['compare', '6', 'Compare A/B'], ['tyres', '7', 'Tyre strategy'], ['sectors', '8', 'Sectors'], ['stops', '9', 'Pit stops']].map(([id, k, l]) => tb(S.atab === id, () => this.setState({ atab: id }), k, l));
+    const modes = ['desk', 'wall'].map(m => ({ label: m.toUpperCase(), onClick: () => this.setState({ mode: m }), bg: md === m ? '#c6ff3d' : 'transparent', fg: md === m ? '#000000' : '#8a97ad' }));
+    const keys = [tb(S.expand, () => this.setState(s => ({ expand: !s.expand })), 'D', 'Tower detail'), tb(S.hist, () => this.setState(s => ({ hist: !s.hist })), 'H', 'Full history'), tb(S.follow, () => this.goLive(), 'L', 'Go live'), tb(false, () => this.setState({ mode: md === 'wall' ? 'desk' : 'wall' }), 'M', 'Wall / desk')];
+    const UI = { isDesk: md === 'desk', isWall: md === 'wall', scale: (S.scale || (() => { const w = window.innerWidth || document.documentElement.clientWidth, h = window.innerHeight || document.documentElement.clientHeight; return w && h ? Math.min(w / 1920, h / 1080) : 1; })()).toFixed(4), evTabs, anTabs, modes, keys,
+      ev: { plans: S.tab === 'plans', ghost: S.tab === 'ghost', win: S.tab === 'win', deg: S.tab === 'deg', alerts: S.tab === 'alerts' },
+      an: { compare: S.atab === 'compare', tyres: S.atab === 'tyres', sectors: S.atab === 'sectors', stops: S.atab === 'stops' } };
+    const ts = Math.max(0, Math.floor(t)); const h = Math.floor(ts / 3600), m = Math.floor(ts % 3600 / 60), sec = ts % 60;
+    return { ...V, ...UI, rows, dots, flag, weather, latest, feed, feedTabs, stops, scrub, status, drawers, rootRef: this.rootRef, scrubRef: this.scrubRef,
+      open: { ghost: !!O.ghost, plans: !!O.plans, win: !!O.win, deg: !!O.deg, alerts: !!O.alerts },
+      hist: S.hist, histLabel: S.hist ? 'HIDE HISTORY' : 'FULL HISTORY · ' + past2.length, onHist: () => this.setState(s => ({ hist: !s.hist })),
+      showHint: !S.hintSeen, dismissHint: () => this.seenHint(), toggleExpand: () => this.setState(s => ({ expand: !s.expand })),
+      expand: S.expand, compact: !S.expand, expandLabel: S.expand ? 'DETAIL ON' : 'DETAIL OFF', expandBg: S.expand ? '#c6ff3d' : 'transparent', expandFg: S.expand ? '#000000' : '#8a97ad', expandBd: S.expand ? '#e8edf6' : '#26334f',
+      clock: h + ':' + String(m).padStart(2, '0') + ':' + String(sec).padStart(2, '0'), lapNum: snap.lap, liveLabel: status.label, miniHead: minis ? 'MINI-SECTORS 1–24' : '',
+      nFeed: past2.length };
+  }
+}
+</script>
+</body>
+</html>
