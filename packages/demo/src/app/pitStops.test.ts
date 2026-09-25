@@ -61,3 +61,9 @@ describe("realPitStops pass-lap confirmation (hand-built)", () => {
     expect(stops.map((s) => [s.lap, s.stationary])).toEqual([[4, 2.4]]);
   });
 });
+
+describe("realPitStops with a misdated stint", () => {
+  it("Australia 9693 BOR: the lap-3 drive-through isn't a stop; his timed lap-33 stop owns the MEDIUM change", () => {
+    expect(of(australia, 5).map((s) => s.lap)).toEqual([33, 44]);
+  });
+});

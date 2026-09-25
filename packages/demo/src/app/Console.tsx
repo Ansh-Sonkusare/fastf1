@@ -13,7 +13,7 @@ import { color, font, type } from "../ui/tokens";
 import { formatDeepLink, parseDeepLink } from "./deepLink";
 import { replayReducer, resolveFocus } from "./replay";
 import { SeasonDrawer, buttonStyle } from "./SeasonDrawer";
-import { classificationOrder, sessionTitle, toConsoleSessions, toDriverMap } from "./session";
+import { classificationOrder, pickSession, sessionTitle, toConsoleSessions, toDriverMap } from "./session";
 import {
   buildTimeline,
   driverLapBlock,
@@ -41,10 +41,7 @@ export function Console({ initialData }: { initialData?: DemoInitialData }) {
   );
   const [sessionKey, setSessionKey] = useState<number | null>(link.session);
   const [pickedRound, setPickedRound] = useState<number | null>(null);
-  const session =
-    sessions.find((s) => s.sessionKey === sessionKey) ??
-    sessions.find((s) => pickedRound !== null && s.round === pickedRound) ??
-    sessions.at(-1);
+  const session = pickSession(sessions, sessionKey, pickedRound);
 
   const drawer = (round: number, close: () => void, pick?: (round: number) => void) => (
     <SeasonDrawer
@@ -60,13 +57,14 @@ export function Console({ initialData }: { initialData?: DemoInitialData }) {
     />
   );
 
-  if (rawSessions.status === "error" && isLocked(rawSessions.error)) {
+  const offline = offlineStatus(rawSessions);
+  if (offline) {
     const today = new Date().toISOString().slice(0, 10);
     const races = (schedule?.Races ?? []).filter((r) => r.date < today);
     return (
       <LockedConsole
         races={races}
-        inferred={rawSessions.error.inferred}
+        status={offline}
         round={pickedRound ?? Number(races.at(-1)?.round ?? 1)}
         onRound={(round) => {
           setPickedRound(round);
@@ -279,15 +277,24 @@ function PanelGrid({ render }: { render: (slot: Slot) => ReactNode }) {
  * OpenF1 is locked (live session): no session keys, so no panel data. Everything Jolpica-backed
  * still works: the race list and the season drawer. Panels keep their frames and say why.
  */
+type OfflineStatus = "connecting" | "unreachable" | "locked";
+
+/** The shell renders from Jolpica alone until OpenF1's session list arrives. */
+function offlineStatus(q: { status: string; error?: unknown }): OfflineStatus | null {
+  if (q.status === "loading") return "connecting";
+  if (q.status === "error" && isLocked(q.error)) return q.error.inferred ? "unreachable" : "locked";
+  return null;
+}
+
 function LockedConsole({
   races,
-  inferred,
+  status,
   round,
   onRound,
   drawer,
 }: {
   races: readonly Race[];
-  inferred: boolean;
+  status: OfflineStatus;
   round: number;
   onRound: (round: number) => void;
   drawer: (round: number, close: () => void) => ReactNode;
@@ -309,9 +316,11 @@ function LockedConsole({
         <Stat label="Lap">
           <span style={{ font: type.big, color: color.dim }}>—</span>
         </Stat>
-        <div aria-label="Track status" style={{ ...pillStyle, background: color.amber, color: color.bg }}>
-          {inferred ? "OPENF1 UNREACHABLE · RETRYING" : "OPENF1 LOCKED · LIVE SESSION"}
-        </div>
+        {status !== "connecting" && (
+          <div aria-label="Track status" style={{ ...pillStyle, background: color.amber, color: color.bg }}>
+            {status === "unreachable" ? "OPENF1 UNREACHABLE · RETRYING" : "OPENF1 LOCKED · LIVE SESSION"}
+          </div>
+        )}
         <div style={{ flex: 1 }} />
         <button type="button" onClick={() => setDrawerOpen(true)} style={buttonStyle}>
           SEASON
@@ -321,7 +330,11 @@ function LockedConsole({
         render={(slot) =>
           PANELS.filter((p) => p.slot === slot).map((p) => (
             <PanelFrame key={p.num} num={p.num} title={p.title}>
-              <LockedNote inferred={inferred} />
+              {status === "connecting" ? (
+                <Label tone={color.dim}>Connecting to OpenF1…</Label>
+              ) : (
+                <LockedNote inferred={status === "unreachable"} />
+              )}
             </PanelFrame>
           ))
         }

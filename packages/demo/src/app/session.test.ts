@@ -1,6 +1,7 @@
 import type { OpenF1Driver, Race, Session, SessionResult } from "@f1/core";
 import { describe, expect, it } from "vitest";
-import { classificationOrder, sessionTitle, toConsoleSessions, toDriverMap } from "./session";
+import { classificationOrder, pickSession, sessionTitle, toConsoleSessions, toDriverMap } from "./session";
+import type { ConsoleSession } from "./types";
 import australia from "../panels/tower/__fixtures__/australia.json";
 
 const session = (session_key: number, date_start: string, extra: Partial<Session> = {}): Session => ({
@@ -57,5 +58,23 @@ describe("classificationOrder", () => {
     const order = classificationOrder(australia.result as unknown as SessionResult[]);
     expect(order.slice(0, 3)).toEqual([4, 1, 63]);
     expect(order.slice(14).sort((a, b) => a - b)).toEqual([5, 6, 7, 14, 30, 55]);
+  });
+});
+
+describe("pickSession", () => {
+  const s = (sessionKey: number, round: number) => ({ sessionKey, round }) as ConsoleSession;
+  const sessions = [s(9693, 1), s(9858, 22), s(9839, 24)];
+
+  it("an explicit session wins", () => {
+    expect(pickSession(sessions, 9858, 1)?.sessionKey).toBe(9858);
+  });
+
+  it("keeps the round picked while OpenF1 was locked once sessions arrive", () => {
+    expect(pickSession(sessions, null, 1)?.sessionKey).toBe(9693);
+  });
+
+  it("falls back to the latest race", () => {
+    expect(pickSession(sessions, null, null)?.sessionKey).toBe(9839);
+    expect(pickSession(sessions, null, 7)?.sessionKey).toBe(9839);
   });
 });

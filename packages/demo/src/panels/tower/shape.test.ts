@@ -114,7 +114,7 @@ describe("stop count", () => {
   it("a pass-lap row without stop_duration counts only with a compound change (N3)", () => {
     const aus = australia as unknown as Full;
     const changed = aus.stints.map((x) =>
-      x.driver_number === 4 && x.lap_start === 4 ? { ...x, compound: "HARD" } : x,
+      x.driver_number !== 4 ? x : x.lap_start === 4 ? { ...x, compound: "HARD" } : x.lap_start === 34 ? { ...x, compound: "MEDIUM" } : x,
     );
     expect(stops(aus, 57)(4)).toBe(2);
     expect(stops({ ...aus, stints: changed }, 57)(4)).toBe(3);

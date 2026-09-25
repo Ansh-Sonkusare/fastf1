@@ -28,6 +28,19 @@ export function toConsoleSessions(
 }
 
 /** "Round 24 · Abu Dhabi Grand Prix · Race" */
+/** Explicit session, else the round picked (possibly while OpenF1 was locked), else the latest race. */
+export function pickSession(
+  sessions: readonly ConsoleSession[],
+  sessionKey: number | null,
+  pickedRound: number | null,
+): ConsoleSession | undefined {
+  return (
+    sessions.find((s) => s.sessionKey === sessionKey) ??
+    sessions.find((s) => pickedRound !== null && s.round === pickedRound) ??
+    sessions.at(-1)
+  );
+}
+
 export const sessionTitle = (s: ConsoleSession) =>
   `${s.round === null ? "" : `Round ${s.round} · `}${s.name} · Race`;
 
