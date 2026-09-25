@@ -38,7 +38,18 @@ function PitStopsList({
   const fastest = viewModels[0]?.stationaryDuration;
 
   return (
-    <div style={{ padding: "8px 12px", overflowY: "auto", flex: 1 }}>
+    <div
+      style={{
+        padding: "8px 12px",
+        overflowY: "auto",
+        flex: 1,
+        display: "grid",
+        gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+        gridAutoFlow: "column",
+        gridTemplateRows: `repeat(${Math.ceil(viewModels.length / 2)}, auto)`,
+        columnGap: 24,
+      }}
+    >
       {viewModels.map((s) => {
         const driver = drivers.get(s.driverNumber);
         const isFastest = s.stationaryDuration === fastest;
