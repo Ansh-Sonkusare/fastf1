@@ -1,9 +1,5 @@
 import React, { useState } from "react";
-import type { RaceEvent, RaceControlCategory, RaceEventType } from "./shape";
-import {
-  filterRaceEventsByCategory,
-  filterRaceEventsByType,
-} from "./shape";
+import type { RaceEvent } from "./shape";
 
 export interface RaceControlProps {
   /**
@@ -254,18 +250,23 @@ const RaceEventItem: React.FC<RaceEventItemProps> = ({
             {getDriverInitials(event.driverNumber)}
           </span>
         )}
-        <span
-          style={{
-            fontSize: "13px",
-            lineHeight: 1.35,
-            color: "#c3c9d1",
-            wordWrap: "break-word",
-          }}
-        >
-          {event.message}
-        </span>
+        {event.message !== undefined && (
+          <span
+            style={{
+              fontSize: "13px",
+              lineHeight: 1.35,
+              color: "#c3c9d1",
+              wordWrap: "break-word",
+            }}
+          >
+            {event.message}
+          </span>
+        )}
 
-        {/* Radio playback link if available - only shown on hover/click */}
+        {/* OpenF1's team_radio endpoint has no transcript, only the audio
+            clip URL, so radio events render a playable clip instead of a
+            message string. Hidden in phase 1 pending panel wiring; enabled
+            for browser proof in phase 2. */}
         {event.type === "radio" && event.recordingUrl && (
           <audio
             controls
