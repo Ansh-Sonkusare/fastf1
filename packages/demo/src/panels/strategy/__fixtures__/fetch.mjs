@@ -2,8 +2,23 @@ import { writeFileSync } from "node:fs";
 
 const SESSIONS = { "abu-dhabi-2025": 9839, "monza-2025": 9912 };
 const KEEP = {
-  laps: ["session_key", "driver_number", "lap_number", "date_start", "lap_duration", "is_pit_out_lap"],
-  stints: ["session_key", "driver_number", "stint_number", "lap_start", "lap_end", "compound", "tyre_age_at_start"],
+  laps: [
+    "session_key",
+    "driver_number",
+    "lap_number",
+    "date_start",
+    "lap_duration",
+    "is_pit_out_lap",
+  ],
+  stints: [
+    "session_key",
+    "driver_number",
+    "stint_number",
+    "lap_start",
+    "lap_end",
+    "compound",
+    "tyre_age_at_start",
+  ],
   pit: ["session_key", "driver_number", "lap_number", "lane_duration", "pit_duration"],
   drivers: ["session_key", "driver_number", "name_acronym", "team_colour"],
 };
