@@ -1,0 +1,4 @@
+time	decision	alternatives	reason	evidence
+2026-09-25T10:25	Start phase 1 on lane E	wait for B contract	protocol says "start now" with max swarm overlap	GOAL.md addendum 2
+2026-09-25T10:45	Create pure shaping functions and tests for weather and race control	include in components now	phase 1 focuses on shape + tests first; components consume them	GOAL.md phase 1 + LAYOUT.md
+2026-09-25T10:52	Write presentational components as phase 1 deliverable	wait for B contract	reference design shows weather/race-control layouts; start simple	reference.html sections 08, 09
