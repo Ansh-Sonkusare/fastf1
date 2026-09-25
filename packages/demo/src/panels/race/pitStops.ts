@@ -1,56 +1,38 @@
-import { OpenF1Pit } from "@f1/core";
+import type { PitStop } from "../../app/timeline";
 
 export interface PitStopViewModel {
   rank: number;
   driverNumber: number;
   lapNumber: number;
   stopNumber: number;
-  stationaryDuration: number | null | undefined; // seconds, stop_duration
-  laneDuration: number | null | undefined; // seconds, lane_duration
-  totalDuration: number | null | undefined; // seconds, pit_duration
+  stationaryDuration: number | null; // seconds; null when OpenF1 didn't time it. Render as unknown, never 0.
+  laneDuration: number | null; // seconds in the pit lane
 }
 
 /**
- * Shape pit stop data from OpenF1 into view model.
- * Each pit stop shows stationary time vs lane time.
+ * Shape B's `realPitStops` (the one definition of a real pit stop, in
+ * `app/timeline.ts`) into a view model for the ranked list.
  * Ranked fastest stationary time first, per the reference design (panel 07);
  * a stop with no recorded stationary time sorts last but is still shown.
- *
- * A null `stop_duration` is NOT proof of a non-stop: real 2025 stops
- * sometimes have it null too (Vegas HUL L30, Zandvoort ANT L53, Abu Dhabi
- * HUL L7 — see pitStops.test.ts). Only a genuine SC-pit-lane drive-through
- * should be excluded, and that takes a compound-change check against
- * `stints` that this function doesn't have the data for. TODO: once B
- * publishes `realPitStops(pits, stints, passLaps)` in `app/`, filter through
- * it here instead of passing every row.
  */
-export function shapePitStops(
-  pits: OpenF1Pit[],
-  sessionKey: number
-): PitStopViewModel[] {
-  const bySessionAndLap = pits
-    .filter(
-      (p): p is OpenF1Pit & { lap_number: number } =>
-        p.session_key === sessionKey && p.lap_number != null
-    )
-    .sort((a, b) => a.lap_number - b.lap_number);
+export function shapePitStops(stops: readonly PitStop[]): PitStopViewModel[] {
+  const byLap = [...stops].sort((a, b) => a.lap - b.lap);
 
   // Real OpenF1 rows never carry `stop_number` (see DATA.md); derive each
   // driver's stop count in chronological order instead of trusting the field.
   const stopCountByDriver = new Map<number, number>();
 
-  return bySessionAndLap
-    .map((p) => {
-      const stopNumber = (stopCountByDriver.get(p.driver_number) ?? 0) + 1;
-      stopCountByDriver.set(p.driver_number, stopNumber);
+  return byLap
+    .map((s) => {
+      const stopNumber = (stopCountByDriver.get(s.driver) ?? 0) + 1;
+      stopCountByDriver.set(s.driver, stopNumber);
       return {
         rank: 0, // assigned below, after sorting by stationary time
-        driverNumber: p.driver_number,
-        lapNumber: p.lap_number,
-        stopNumber: p.stop_number ?? stopNumber,
-        stationaryDuration: p.stop_duration,
-        laneDuration: p.lane_duration,
-        totalDuration: p.pit_duration,
+        driverNumber: s.driver,
+        lapNumber: s.lap,
+        stopNumber,
+        stationaryDuration: s.stationary,
+        laneDuration: s.lane,
       };
     })
     .sort((a, b) => {
@@ -61,12 +43,8 @@ export function shapePitStops(
     .map((stop, idx) => ({ ...stop, rank: idx + 1 }));
 }
 
-/**
- * Get max pit duration for scaling in chart
- */
+/** Get max lane duration for scaling in chart. */
 export function getMaxPitDuration(stops: PitStopViewModel[]): number {
-  const max = Math.max(
-    ...stops.map((s) => s.totalDuration ?? 0)
-  );
+  const max = Math.max(...stops.map((s) => s.laneDuration ?? 0));
   return max > 0 ? max : 30; // default 30s if no data
 }

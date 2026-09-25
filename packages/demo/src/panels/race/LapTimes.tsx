@@ -1,4 +1,5 @@
 import type { PanelProps } from "../../app/types";
+import { pitLanePassLaps, realPitStops } from "../../app/timeline";
 import { combine, useOpenF1 } from "../../data/useOpenF1";
 import { AsyncView, MeasuredLegend, PanelFrame, Swatch } from "../../ui/primitives";
 import { color } from "../../ui/tokens";
@@ -7,14 +8,16 @@ import { filterChartLaps, shapeLapTimes, type LapTimeViewModel } from "./lapTime
 export default function LapTimes({ session, lap, focus, drivers }: PanelProps) {
   const laps = useOpenF1("laps", session.sessionKey);
   const pits = useOpenF1("pit", session.sessionKey);
+  const stints = useOpenF1("stints", session.sessionKey);
   const raceControl = useOpenF1("race_control", session.sessionKey);
-  const combined = combine(laps, pits, raceControl);
+  const combined = combine(laps, pits, stints, raceControl);
 
   return (
     <PanelFrame num="04" title="Lap times" right={<MeasuredLegend />}>
       <AsyncView state={combined} isEmpty={([rows]) => rows.length === 0}>
-        {([lapRows, pitRows, rcRows]) => {
-          const viewModels = shapeLapTimes(lapRows, session.sessionKey, pitRows, rcRows).filter(
+        {([lapRows, pitRows, stintRows, rcRows]) => {
+          const pitStops = realPitStops(pitRows, stintRows, pitLanePassLaps(rcRows));
+          const viewModels = shapeLapTimes(lapRows, session.sessionKey, pitStops, rcRows).filter(
             (v) => v.lapNumber <= lap,
           );
           return <LapTimesChart viewModels={viewModels} focus={focus} drivers={drivers} />;
