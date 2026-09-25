@@ -1,17 +1,22 @@
 import type { PanelProps } from "../../app/types";
-import { useOpenF1 } from "../../data/useOpenF1";
+import { pitLanePassLaps, realPitStops } from "../../app/timeline";
+import { combine, useOpenF1 } from "../../data/useOpenF1";
 import { AsyncView, Label, Measured, PanelFrame } from "../../ui/primitives";
 import { color } from "../../ui/tokens";
 import { getMaxPitDuration, shapePitStops, type PitStopViewModel } from "./pitStops";
 
 export default function PitStops({ session, lap, drivers }: PanelProps) {
   const pits = useOpenF1("pit", session.sessionKey);
+  const stints = useOpenF1("stints", session.sessionKey);
+  const raceControl = useOpenF1("race_control", session.sessionKey);
+  const combined = combine(pits, stints, raceControl);
 
   return (
     <PanelFrame num="07" title="Pit stops">
-      <AsyncView state={pits} isEmpty={(rows) => rows.length === 0}>
-        {(rows) => {
-          const viewModels = shapePitStops(rows, session.sessionKey).filter((s) => s.lapNumber <= lap);
+      <AsyncView state={combined} isEmpty={([rows]) => rows.length === 0}>
+        {([pitRows, stintRows, rcRows]) => {
+          const pitStops = realPitStops(pitRows, stintRows, pitLanePassLaps(rcRows));
+          const viewModels = shapePitStops(pitStops).filter((s) => s.lapNumber <= lap);
           return <PitStopsList viewModels={viewModels} drivers={drivers} />;
         }}
       </AsyncView>
