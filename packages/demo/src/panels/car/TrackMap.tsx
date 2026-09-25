@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { PanelProps } from "../../app/types";
 import { combine, useAsync, useOpenF1 } from "../../data/useOpenF1";
-import { AsyncView, PanelFrame } from "../../ui/primitives";
+import { AsyncView, PanelFrame, useLayoutMode } from "../../ui/primitives";
 import { color, type } from "../../ui/tokens";
 import { blockFilter, getCircuit } from "./data";
 import { runningOrder } from "./order";
@@ -10,6 +10,7 @@ import { TrackMapLegend, TrackMapView } from "./TrackMapView";
 
 export default function TrackMap(props: PanelProps) {
   const { session, lap, playing, focus, drivers, lapWindow } = props;
+  const big = useLayoutMode() === "wall";
   const sk = session.sessionKey;
   const laps = useOpenF1("laps", sk);
   const raceControl = useOpenF1("race_control", sk);
@@ -35,7 +36,7 @@ export default function TrackMap(props: PanelProps) {
       title="Track"
       right={
         <>
-          <TrackMapLegend />
+          <TrackMapLegend big={big} />
           <span style={{ font: type.label, color: color.dim }}>{playing ? "● REPLAY" : "PAUSED"}</span>
         </>
       }
@@ -57,6 +58,7 @@ export default function TrackMap(props: PanelProps) {
                   order: runningOrder(allLaps, lap),
                 })}
                 drivers={drivers}
+                big={big}
               />
             )
           }

@@ -1,15 +1,21 @@
-import { Swatch } from "../../ui/primitives";
 import { color, font } from "../../ui/tokens";
-
-const B_RING = "#7d8692";
 import type { TrackView } from "./track";
 
 interface TrackMapViewProps {
   readonly view: TrackView;
   readonly drivers: ReadonlyMap<number, { code: string; color: string }>;
+  /** Wall mode: bigger dots and labels (matches undercut-terminal.dc.html). */
+  readonly big?: boolean;
 }
 
-export function TrackMapView({ view, drivers }: TrackMapViewProps) {
+/** Focus ring radius is fixed regardless of mode, per undercut-terminal.dc.html. */
+const RING_RADIUS = 13;
+
+export function TrackMapView({ view, drivers, big = false }: TrackMapViewProps) {
+  const carRadius = big ? 8 : 6.5;
+  const labelFont = big ? 15 : 12;
+  const labelAt: readonly [number, number] = big ? [12, -11] : [10.5, -9.5];
+
   return (
     <svg role="img" aria-label="Track map" viewBox="0 0 460 300" style={{ width: "100%", display: "block", padding: "6px" }}>
       <path d={view.outline} style={{ fill: "none", stroke: "#252b33", strokeWidth: 12, strokeLinejoin: "round" }} />
@@ -57,15 +63,17 @@ export function TrackMapView({ view, drivers }: TrackMapViewProps) {
         const isRoleA = car.role === "A";
         return (
           <g key={`car-${car.number}`} style={{ transform: `translate(${car.at[0]}px,${car.at[1]}px)` }}>
-            {car.role && <circle cx={0} cy={0} r={10} style={{ fill: "none", stroke: isRoleA ? color.text : B_RING, strokeWidth: 1.5 }} />}
-            <circle cx={0} cy={0} r={5.5} style={{ fill: driver?.color ?? B_RING, stroke: color.bg, strokeWidth: 1.5 }} />
+            {car.role && (
+              <circle cx={0} cy={0} r={RING_RADIUS} style={{ fill: "none", stroke: isRoleA ? color.accent : color.label, strokeWidth: 1.5 }} />
+            )}
+            <circle cx={0} cy={0} r={carRadius} style={{ fill: driver?.color ?? color.label, stroke: color.bg, strokeWidth: 1.5 }} />
             {car.labelled && driver && (
               <text
-                x={9}
-                y={-8}
+                x={labelAt[0]}
+                y={labelAt[1]}
                 style={{
                   fill: isRoleA ? "#ffffff" : color.textMuted,
-                  font: `700 10px ${font.mono}`,
+                  font: `700 ${labelFont}px ${font.mono}`,
                 }}
               >
                 {driver.code}
@@ -78,11 +86,24 @@ export function TrackMapView({ view, drivers }: TrackMapViewProps) {
   );
 }
 
-export function TrackMapLegend() {
+export function TrackMapLegend({ big = false }: { big?: boolean }) {
   return (
     <>
-      <Swatch tone={color.drs}>DRS</Swatch>
-      <Swatch tone={color.yellow}>YELLOW</Swatch>
+      <LegendSwatch tone={color.drs} big={big}>
+        DRS
+      </LegendSwatch>
+      <LegendSwatch tone={color.yellow} big={big}>
+        YELLOW
+      </LegendSwatch>
     </>
+  );
+}
+
+function LegendSwatch({ tone, big, children }: { tone: string; big: boolean; children: string }) {
+  return (
+    <span style={{ display: "flex", alignItems: "center", gap: big ? 8 : 6, font: `500 ${big ? 14 : 11}px/1 ${font.mono}`, color: color.label }}>
+      <span style={{ width: big ? 18 : 14, height: big ? 4 : 3, background: tone }} />
+      {children}
+    </span>
   );
 }
