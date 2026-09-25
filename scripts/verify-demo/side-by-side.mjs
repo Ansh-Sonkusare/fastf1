@@ -35,8 +35,9 @@ const design = join(repo, "docs/design");
 const server = createServer((req, res) => {
   const file = req.url === "/" ? "undercut-terminal.dc.html" : decodeURIComponent(req.url.slice(1));
   try {
+    const data = readFileSync(join(design, file));
     res.writeHead(200, { "content-type": file.endsWith(".js") ? "text/javascript" : "text/html" });
-    res.end(readFileSync(join(design, file)));
+    res.end(data);
   } catch {
     res.writeHead(404).end();
   }
