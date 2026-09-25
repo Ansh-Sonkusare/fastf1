@@ -5,9 +5,9 @@ export interface PitStopViewModel {
   driverNumber: number;
   lapNumber: number;
   stopNumber: number;
-  stationaryDuration: number | null; // seconds, stop_duration
-  laneDuration: number | null; // seconds, lane_duration
-  totalDuration: number | null; // seconds, pit_duration
+  stationaryDuration: number | null | undefined; // seconds, stop_duration
+  laneDuration: number | null | undefined; // seconds, lane_duration
+  totalDuration: number | null | undefined; // seconds, pit_duration
 }
 
 /**

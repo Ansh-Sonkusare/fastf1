@@ -3,15 +3,15 @@ import { OpenF1Lap, Stint, RaceControl } from "@f1/core";
 export interface LapTimeViewModel {
   lapNumber: number;
   driverNumber: number;
-  duration: number | null; // seconds
-  s1: number | null;
-  s2: number | null;
-  s3: number | null;
+  duration: number | null | undefined; // seconds
+  s1: number | null | undefined;
+  s2: number | null | undefined;
+  s3: number | null | undefined;
   isPitLap: boolean;
   isSlowed: boolean; // true for SC/VSC periods
-  i1Speed: number | null;
-  i2Speed: number | null;
-  stSpeed: number | null;
+  i1Speed: number | null | undefined;
+  i2Speed: number | null | undefined;
+  stSpeed: number | null | undefined;
 }
 
 /**
@@ -151,6 +151,6 @@ export function getDriverLapStats(
     bestLap: Math.min(...durations),
     avgLap:
       durations.reduce((a, b) => a + b, 0) / durations.length,
-    lastLap: driverLaps[driverLaps.length - 1].duration,
+    lastLap: driverLaps[driverLaps.length - 1].duration as number | null,
   };
 }

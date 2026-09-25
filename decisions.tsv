@@ -1,0 +1,3 @@
+time	decision	alternatives	reason	evidence
+2026-09-25T10:25:00Z	Phase 1 focus: pure shaping functions	Wait for B contract; rebuild stubs; wire everything upfront	B hasn't published contract yet. Lane D can create shaping functions and tests independently. Stubs created in phase 2 after B merges.	GOAL.md addendum 2: "C-F start now: phase 1 = pure shaping functions ... Phase 2 = wire to B's contract"
+2026-09-25T10:26:00Z	Create fixture files with real OpenF1 data	Use mocks; generate random data	Real data improves confidence that shaping handles edge cases. Fixtures are small trimmed real rows per GOAL.md for Abu Dhabi + Monza.	GOAL.md: "Fixtures are small trimmed real rows for 2025 Abu Dhabi plus Monza"

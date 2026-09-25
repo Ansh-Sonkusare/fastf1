@@ -35,7 +35,7 @@ describe("PitStops shaping", () => {
   it("filters out pits with no lap number", () => {
     const pitWithoutLap = {
       ...abuDhabiPits[0],
-      lap_number: null,
+      lap_number: undefined,
     };
 
     const viewModels = shapePitStops([pitWithoutLap], 9999);

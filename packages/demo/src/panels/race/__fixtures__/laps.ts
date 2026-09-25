@@ -20,9 +20,6 @@ export const abuDhabiLaps: OpenF1Lap[] = [
     i2_speed: 295,
     st_speed: 240,
     is_pit_out_lap: true,
-    segments_sector_1: null,
-    segments_sector_2: null,
-    segments_sector_3: null,
   },
   {
     session_key: 9999,
@@ -38,9 +35,6 @@ export const abuDhabiLaps: OpenF1Lap[] = [
     i2_speed: 298,
     st_speed: 242,
     is_pit_out_lap: false,
-    segments_sector_1: null,
-    segments_sector_2: null,
-    segments_sector_3: null,
   },
   {
     session_key: 9999,
@@ -56,9 +50,6 @@ export const abuDhabiLaps: OpenF1Lap[] = [
     i2_speed: 301,
     st_speed: 243,
     is_pit_out_lap: false,
-    segments_sector_1: null,
-    segments_sector_2: null,
-    segments_sector_3: null,
   },
   // Safety Car lap - longer duration
   {
@@ -75,9 +66,6 @@ export const abuDhabiLaps: OpenF1Lap[] = [
     i2_speed: 270,
     st_speed: 220,
     is_pit_out_lap: false,
-    segments_sector_1: null,
-    segments_sector_2: null,
-    segments_sector_3: null,
   },
   {
     session_key: 9999,
@@ -93,9 +81,6 @@ export const abuDhabiLaps: OpenF1Lap[] = [
     i2_speed: 302,
     st_speed: 244,
     is_pit_out_lap: false,
-    segments_sector_1: null,
-    segments_sector_2: null,
-    segments_sector_3: null,
   },
   // Pit lap
   {
@@ -112,9 +97,6 @@ export const abuDhabiLaps: OpenF1Lap[] = [
     i2_speed: 300,
     st_speed: 238,
     is_pit_out_lap: false,
-    segments_sector_1: null,
-    segments_sector_2: null,
-    segments_sector_3: null,
   },
 
   // Lewis Hamilton - driver 44
@@ -132,9 +114,6 @@ export const abuDhabiLaps: OpenF1Lap[] = [
     i2_speed: 293,
     st_speed: 238,
     is_pit_out_lap: true,
-    segments_sector_1: null,
-    segments_sector_2: null,
-    segments_sector_3: null,
   },
   {
     session_key: 9999,
@@ -150,9 +129,6 @@ export const abuDhabiLaps: OpenF1Lap[] = [
     i2_speed: 296,
     st_speed: 240,
     is_pit_out_lap: false,
-    segments_sector_1: null,
-    segments_sector_2: null,
-    segments_sector_3: null,
   },
   {
     session_key: 9999,
@@ -168,8 +144,5 @@ export const abuDhabiLaps: OpenF1Lap[] = [
     i2_speed: 299,
     st_speed: 242,
     is_pit_out_lap: false,
-    segments_sector_1: null,
-    segments_sector_2: null,
-    segments_sector_3: null,
   },
 ];

@@ -28,8 +28,6 @@ export const TyreStrategyGantt: React.FC<TyreStrategyGanttProps> = ({
     driverStints.get(stint.driverNumber)!.push(stint);
   });
 
-  const barHeight = 100; // percentage of container
-
   return (
     <div
       style={{
@@ -75,10 +73,6 @@ export const TyreStrategyGantt: React.FC<TyreStrategyGanttProps> = ({
       {/* Driver rows */}
       {Array.from(driverStints.entries()).map(([driverNumber, driverStintsArray]) => {
         const driver = drivers.get(driverNumber);
-        const totalStints = driverStintsArray.reduce(
-          (sum, s) => sum + s.duration,
-          0
-        );
 
         return (
           <div

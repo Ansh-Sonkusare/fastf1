@@ -7,8 +7,8 @@ export interface TyreStintViewModel {
   lapStart: number;
   lapEnd: number;
   duration: number; // lap count
-  tyreAgeAtStart: number | null; // in laps
-  estimatedAgeAtEnd: number | null; // calculated: ageAtStart + duration
+  tyreAgeAtStart: number | null | undefined; // in laps
+  estimatedAgeAtEnd: number | null | undefined; // calculated: ageAtStart + duration
 }
 
 /**
