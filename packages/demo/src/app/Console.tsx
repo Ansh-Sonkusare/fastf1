@@ -1,0 +1,287 @@
+import { useF1Schedule } from "@f1/react";
+import { Suspense, useEffect, useMemo, useReducer, useState, type ReactNode } from "react";
+import type { DemoInitialData } from "../data/initial";
+import { getRaceSessions } from "../data/openf1";
+import { combine, useAsync, useOpenF1 } from "../data/useOpenF1";
+import { PANELS, type PanelSlot } from "../panels/registry";
+import { buildTower } from "../panels/tower/shape";
+import { formatClock } from "../ui/format";
+import { Label } from "../ui/primitives";
+import { color, font, type } from "../ui/tokens";
+import { formatDeepLink, parseDeepLink } from "./deepLink";
+import { replayReducer } from "./replay";
+import { SeasonDrawer, buttonStyle } from "./SeasonDrawer";
+import { sessionTitle, toConsoleSessions, toDriverMap } from "./session";
+import { buildTimeline, flagAt, lapCrossings, raceClockAt, type FlagKind } from "./timeline";
+import type { ConsoleSession, PanelProps } from "./types";
+
+const YEAR = 2025;
+const TICK_MS = 1500;
+const NO_LINK = parseDeepLink("");
+
+export function Console({ initialData }: { initialData?: DemoInitialData }) {
+  const link = useMemo(() => parseDeepLink(window.location.search), []);
+  const { data: schedule } = useF1Schedule(YEAR, { initialData: initialData?.schedule });
+  const rawSessions = useAsync(`sessions:${YEAR}`, () => getRaceSessions(YEAR));
+  const sessions = useMemo(
+    () => (rawSessions.status === "ok" ? toConsoleSessions(rawSessions.data, schedule?.Races ?? [], Date.now()) : []),
+    [rawSessions, schedule],
+  );
+  const [sessionKey, setSessionKey] = useState<number | null>(link.session);
+  const session =
+    sessions.find((s) => s.sessionKey === sessionKey) ?? (sessionKey === null ? sessions.at(-1) : undefined);
+
+  if (rawSessions.status === "error") return <Fullscreen tone={color.red}>OpenF1 sessions failed · {rawSessions.error.message}</Fullscreen>;
+  if (!session) return <Fullscreen>{sessions.length ? `Unknown session ${sessionKey}` : "LOADING SESSIONS…"}</Fullscreen>;
+  return (
+    <SessionConsole
+      key={session.sessionKey}
+      session={session}
+      sessions={sessions}
+      link={session.sessionKey === link.session ? link : NO_LINK}
+      onSession={setSessionKey}
+      drawer={(close) => (
+        <SeasonDrawer
+          year={YEAR}
+          schedule={schedule}
+          round={session.round ?? initialData?.latestRound ?? 1}
+          initialData={initialData}
+          onPickRound={(round) => {
+            const next = sessions.find((s) => s.round === round);
+            if (next) setSessionKey(next.sessionKey);
+            close();
+          }}
+          onClose={close}
+        />
+      )}
+    />
+  );
+}
+
+function SessionConsole({
+  session,
+  sessions,
+  link,
+  onSession,
+  drawer,
+}: {
+  session: ConsoleSession;
+  sessions: readonly ConsoleSession[];
+  link: ReturnType<typeof parseDeepLink>;
+  onSession: (key: number) => void;
+  drawer: (close: () => void) => ReactNode;
+}) {
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const driversQ = useOpenF1("drivers", session.sessionKey);
+  const lapsQ = useOpenF1("laps", session.sessionKey);
+  const raceControlQ = useOpenF1("race_control", session.sessionKey);
+  const base = combine(driversQ, lapsQ);
+  const [state, dispatch] = useReducer(replayReducer, {
+    lap: link.lap ?? 1,
+    totalLaps: link.lap ?? 1,
+    playing: false,
+    focus: { a: link.a, b: link.b },
+  });
+
+  const derived = useMemo(() => {
+    if (driversQ.status !== "ok" || lapsQ.status !== "ok") return null;
+    const laps = lapsQ.data;
+    const crossings = lapCrossings(laps);
+    const timeline = buildTimeline(crossings);
+    const finish = buildTower({ lap: timeline.totalLaps, crossings, laps, stints: [], pits: [] });
+    return { drivers: toDriverMap(driversQ.data), timeline, podium: finish.map((r) => r.driver) };
+  }, [driversQ, lapsQ]);
+
+  useEffect(() => {
+    if (!derived) return;
+    dispatch({ type: "load", totalLaps: derived.timeline.totalLaps });
+    if (link.lap === null) dispatch({ type: "seek", lap: derived.timeline.totalLaps });
+    if (link.a === null) dispatch({ type: "focus", focus: { a: derived.podium[0] ?? null, b: derived.podium[1] ?? null } });
+  }, [derived, link]);
+
+  useEffect(() => {
+    if (!state.playing) return;
+    const id = setInterval(() => dispatch({ type: "tick" }), TICK_MS);
+    return () => clearInterval(id);
+  }, [state.playing]);
+
+  useEffect(() => {
+    if (!derived) return;
+    const search = formatDeepLink({ session: session.sessionKey, lap: state.lap, a: state.focus.a, b: state.focus.b });
+    window.history.replaceState(null, "", `${window.location.pathname}${search}`);
+  }, [derived, session.sessionKey, state.lap, state.focus]);
+
+  const lapWindow = derived?.timeline.windows[state.lap - 1] ?? null;
+  const flag =
+    raceControlQ.status === "ok" && lapWindow
+      ? flagAt(raceControlQ.data, lapWindow.end ?? lapWindow.start, state.lap)
+      : null;
+
+  const props: PanelProps | null = derived && {
+    session,
+    lap: state.lap,
+    totalLaps: state.totalLaps,
+    playing: state.playing,
+    focus: state.focus,
+    drivers: derived.drivers,
+    lapWindow,
+    setFocus: (focus) => dispatch({ type: "focus", focus }),
+  };
+
+  return (
+    <div style={{ minWidth: 1600, padding: 10, display: "flex", flexDirection: "column", gap: 10 }}>
+      <header
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 22,
+          padding: "10px 16px",
+          background: color.panel,
+          border: `1px solid ${color.border}`,
+          borderRadius: 4,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+          <span style={{ fontWeight: 700, fontSize: 21, letterSpacing: ".16em" }}>PITWALL</span>
+          <span style={{ font: type.label, letterSpacing: ".1em", color: color.label }}>STRATEGY CONSOLE</span>
+        </div>
+        <div style={{ width: 1, alignSelf: "stretch", background: color.border }} />
+        <Stat label="Session">
+          <select
+            aria-label="Session"
+            value={session.sessionKey}
+            onChange={(e) => onSession(Number(e.target.value))}
+            style={{ fontSize: 15, fontWeight: 600, fontFamily: font.sans, background: "transparent", color: color.text, border: "none", padding: 0, cursor: "pointer" }}
+          >
+            {sessions.map((s) => (
+              <option key={s.sessionKey} value={s.sessionKey} style={{ background: color.panel }}>
+                {sessionTitle(s)}
+              </option>
+            ))}
+          </select>
+        </Stat>
+        <Stat label="Lap">
+          <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span aria-label="Current lap" style={{ font: type.big }}>
+              {state.lap}
+              <span style={{ color: color.dim }}>/{state.totalLaps}</span>
+            </span>
+            <button type="button" aria-label="Previous lap" onClick={() => dispatch({ type: "seek", lap: state.lap - 1 })} style={stepStyle}>
+              ‹
+            </button>
+            <input
+              type="range"
+              aria-label="Lap scrubber"
+              min={1}
+              max={state.totalLaps}
+              value={state.lap}
+              onChange={(e) => dispatch({ type: "seek", lap: Number(e.target.value) })}
+              style={{ width: 160, accentColor: color.predicted }}
+            />
+            <button type="button" aria-label="Next lap" onClick={() => dispatch({ type: "seek", lap: state.lap + 1 })} style={stepStyle}>
+              ›
+            </button>
+            <button type="button" aria-label={state.playing ? "Pause" : "Play"} onClick={() => dispatch({ type: "toggle" })} style={buttonStyle}>
+              {state.playing ? "❚❚ PAUSE" : "▶ PLAY"}
+            </button>
+          </span>
+        </Stat>
+        <Stat label="Race time">
+          <span style={{ font: `500 20px/1 ${font.mono}` }}>
+            {derived ? formatClock(raceClockAt(derived.timeline, state.lap)) : "—"}
+          </span>
+        </Stat>
+        {flag && <FlagPill kind={flag.kind} label={flag.label} />}
+        <div style={{ flex: 1 }} />
+        {props && <Slot slot="header" props={props} />}
+        <button type="button" onClick={() => setDrawerOpen(true)} style={buttonStyle}>
+          SEASON
+        </button>
+      </header>
+      {base.status === "error" && <Fullscreen tone={color.red}>OpenF1 failed · {base.error.message}</Fullscreen>}
+      {!props && base.status === "loading" && <Fullscreen>LOADING SESSION…</Fullscreen>}
+      {props && (
+        <>
+          <div style={{ display: "grid", gridTemplateColumns: "440px minmax(0,1fr) 420px", gap: 10 }}>
+            <Slot slot="top-left" props={props} />
+            <Slot slot="top-center" props={props} />
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, minWidth: 0 }}>
+              <Slot slot="top-right" props={props} />
+            </div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 10 }}>
+            <Slot slot="mid-left" props={props} />
+            <Slot slot="mid-right" props={props} />
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.25fr) minmax(0,1.15fr) minmax(0,.6fr)", gap: 10 }}>
+            <Slot slot="bottom-left" props={props} />
+            <Slot slot="bottom-center" props={props} />
+            <Slot slot="bottom-right" props={props} />
+          </div>
+        </>
+      )}
+      {drawerOpen && drawer(() => setDrawerOpen(false))}
+    </div>
+  );
+}
+
+function Slot({ slot, props }: { slot: PanelSlot; props: PanelProps }) {
+  return (
+    <>
+      {PANELS.filter((p) => p.slot === slot).map(({ num, component: Panel }) => (
+        <Suspense key={num} fallback={<Label tone={color.dim}>{num} loading…</Label>}>
+          <Panel {...props} />
+        </Suspense>
+      ))}
+    </>
+  );
+}
+
+function Stat({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <Label>{label}</Label>
+      {children}
+    </div>
+  );
+}
+
+const flagColors: Record<FlagKind, { bg: string; fg: string }> = {
+  green: { bg: "rgba(62,207,110,.14)", fg: color.personal },
+  yellow: { bg: color.yellow, fg: color.bg },
+  sc: { bg: color.yellow, fg: color.bg },
+  vsc: { bg: color.yellow, fg: color.bg },
+  red: { bg: color.red, fg: color.bg },
+  chequered: { bg: color.text, fg: color.bg },
+};
+
+function FlagPill({ kind, label }: { kind: FlagKind; label: string }) {
+  const c = flagColors[kind];
+  return (
+    <div
+      aria-label="Track status"
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        padding: "6px 10px",
+        background: c.bg,
+        color: c.fg,
+        borderRadius: 3,
+        font: `700 12px/1 ${font.mono}`,
+        letterSpacing: ".06em",
+        whiteSpace: "nowrap",
+        flexShrink: 0,
+      }}
+    >
+      <span style={{ width: 8, height: 8, background: c.fg, borderRadius: "50%" }} />
+      {label}
+    </div>
+  );
+}
+
+function Fullscreen({ children, tone = color.dim }: { children: ReactNode; tone?: string }) {
+  return <div style={{ padding: 40, font: type.label, letterSpacing: ".08em", color: tone }}>{children}</div>;
+}
+
+const stepStyle = { ...buttonStyle, padding: "4px 8px" } as const;

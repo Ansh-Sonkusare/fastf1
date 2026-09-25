@@ -17,16 +17,19 @@ export const color = {
   overall: "#b06cff",
   personal: "#3ecf6e",
   drs: "#3ecf6e",
+  /** Flag pill / SC. */
   yellow: "#f5d020",
+  /** Slower-than-personal sector. */
+  slower: "#e6c229",
   amber: "#ffb547",
   red: "#ff5a4f",
 } as const;
 
 export const tyre: Readonly<Record<string, { code: string; color: string }>> = {
-  SOFT: { code: "S", color: "#ff5a4f" },
-  MEDIUM: { code: "M", color: "#f5d020" },
-  HARD: { code: "H", color: "#e4e7eb" },
-  INTERMEDIATE: { code: "I", color: "#3ecf6e" },
+  SOFT: { code: "S", color: "#ee4a3f" },
+  MEDIUM: { code: "M", color: "#f2c230" },
+  HARD: { code: "H", color: "#e8e8e3" },
+  INTERMEDIATE: { code: "I", color: "#3fb56a" },
   WET: { code: "W", color: "#4a9eff" },
 };
 export const tyreOf = (compound: string | null | undefined) =>

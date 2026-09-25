@@ -50,3 +50,11 @@ export function useOpenF1<E extends OpenF1Endpoint>(
   const url = filters === null ? null : openF1Url(endpoint, { ...filters, session_key: sessionKey });
   return useAsync(url, () => gate.get(endpoint, sessionKey, filters ?? {}));
 }
+
+type OkData<T> = { [K in keyof T]: T[K] extends Async<infer D> ? D : never };
+
+/** First loading/error wins; otherwise all data as a tuple. */
+export function combine<T extends readonly Async<unknown>[]>(...states: T): Async<OkData<T>> {
+  for (const s of states) if (s.status !== "ok") return s;
+  return { status: "ok", data: states.map((s) => (s as { data: unknown }).data) as OkData<T> };
+}
