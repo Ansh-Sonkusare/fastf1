@@ -4,13 +4,16 @@ import { useEffect, useMemo, useReducer, useState, type ReactNode } from "react"
 import type { DemoInitialData } from "../data/initial";
 import { getRaceSessions, isLocked } from "../data/openf1";
 import { combine, useAsync, useOpenF1 } from "../data/useOpenF1";
-import { PANELS, type PanelSlot as Slot } from "../panels/registry";
+import { PANELS, type AnalysisTab } from "../panels/registry";
 import { buildTower } from "../panels/tower/shape";
 import { formatClock } from "../ui/format";
-import { Label, LockedNote, PanelFrame } from "../ui/primitives";
-import { PanelSlot } from "./PanelSlot";
+import { Label, LayoutModeProvider, LockedNote, PanelFrame, useHotkey, type LayoutMode } from "../ui/primitives";
 import { color, font, type } from "../ui/tokens";
+import { Analysis } from "./Analysis";
 import { formatDeepLink, parseDeepLink } from "./deepLink";
+import { Footer } from "./Footer";
+import { Header } from "./Header";
+import { PanelSlot } from "./PanelSlot";
 import { replayReducer, resolveFocus } from "./replay";
 import { SeasonDrawer, buttonStyle } from "./SeasonDrawer";
 import { classificationOrder, pickSession, sessionTitle, toConsoleSessions, toDriverMap } from "./session";
@@ -19,12 +22,15 @@ import {
   driverLapBlock,
   driverLapWindow,
   flagAt,
+  flagBands,
   lapAt,
   lapCrossings,
   ownLap,
+  pitLanePassLaps,
   raceClockAt,
-  type FlagKind,
+  realPitStops,
 } from "./timeline";
+import { TimelineBar } from "./TimelineBar";
 import type { ConsoleSession, PanelProps } from "./types";
 
 const YEAR = 2025;
@@ -115,10 +121,14 @@ function SessionConsole({
   drawer: (close: () => void) => ReactNode;
 }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [mode, setMode] = useState<LayoutMode>("desk");
+  const [atab, setAtab] = useState<AnalysisTab>("compare");
   const driversQ = useOpenF1("drivers", session.sessionKey);
   const lapsQ = useOpenF1("laps", session.sessionKey);
   const raceControlQ = useOpenF1("race_control", session.sessionKey);
   const resultQ = useOpenF1("session_result", session.sessionKey);
+  const pitQ = useOpenF1("pit", session.sessionKey);
+  const stintsQ = useOpenF1("stints", session.sessionKey);
   const base = combine(driversQ, lapsQ);
   const [state, dispatch] = useReducer(replayReducer, {
     lap: link.lap ?? 1,
@@ -126,6 +136,15 @@ function SessionConsole({
     playing: false,
     focus: { a: null, b: null },
   });
+
+  useHotkey(" ", () => dispatch({ type: "toggle" }));
+  useHotkey("ArrowLeft", () => dispatch({ type: "seek", lap: state.lap - 1 }));
+  useHotkey("ArrowRight", () => dispatch({ type: "seek", lap: state.lap + 1 }));
+  useHotkey("m", () => setMode((m) => (m === "desk" ? "wall" : "desk")));
+  useHotkey("6", () => setAtab("compare"));
+  useHotkey("7", () => setAtab("tyres"));
+  useHotkey("8", () => setAtab("sectors"));
+  useHotkey("9", () => setAtab("stops"));
 
   const derived = useMemo(() => {
     if (driversQ.status !== "ok" || lapsQ.status !== "ok") return null;
@@ -162,6 +181,14 @@ function SessionConsole({
     window.history.replaceState(null, "", `${window.location.pathname}${search}`);
   }, [derived, session.sessionKey, state.lap, state.focus]);
 
+  const scrub = useMemo(() => {
+    if (!derived || raceControlQ.status !== "ok" || pitQ.status !== "ok" || stintsQ.status !== "ok")
+      return { bands: [], pitLaps: [] };
+    const bands = flagBands(derived.timeline, raceControlQ.data, state.lap);
+    const stops = realPitStops(pitQ.data, stintsQ.data, pitLanePassLaps(raceControlQ.data));
+    return { bands, pitLaps: stops.filter((s) => s.lap <= state.lap).map((s) => s.lap) };
+  }, [derived, raceControlQ, pitQ, stintsQ, state.lap]);
+
   const lapWindow = derived?.timeline.windows[state.lap - 1] ?? null;
   const flag =
     raceControlQ.status === "ok" && lapWindow
@@ -185,91 +212,87 @@ function SessionConsole({
   };
 
   return (
-    <div style={{ minWidth: 1600, padding: 10, display: "flex", flexDirection: "column", gap: 10 }}>
-      <header style={headerStyle}>
-        <Wordmark />
-        <Stat label="Session">
-          <select
-            aria-label="Session"
-            value={session.sessionKey}
-            onChange={(e) => onSession(Number(e.target.value))}
-            style={selectStyle}
-          >
-            {sessions.map((s) => (
-              <option key={s.sessionKey} value={s.sessionKey} style={{ background: color.panel }}>
-                {sessionTitle(s)}
-              </option>
-            ))}
-          </select>
-        </Stat>
-        <Stat label="Lap">
-          <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span aria-label="Current lap" style={{ font: type.big }}>
-              {state.lap}
-              <span style={{ color: color.dim }}>/{state.totalLaps}</span>
-            </span>
-            <button type="button" aria-label="Previous lap" onClick={() => dispatch({ type: "seek", lap: state.lap - 1 })} style={stepStyle}>
-              ‹
-            </button>
-            <input
-              type="range"
-              aria-label="Lap scrubber"
-              min={1}
-              max={state.totalLaps}
-              value={state.lap}
-              onChange={(e) => dispatch({ type: "seek", lap: Number(e.target.value) })}
-              style={{ width: 160, accentColor: color.predicted }}
-            />
-            <button type="button" aria-label="Next lap" onClick={() => dispatch({ type: "seek", lap: state.lap + 1 })} style={stepStyle}>
-              ›
-            </button>
-            <button type="button" aria-label={state.playing ? "Pause" : "Play"} onClick={() => dispatch({ type: "toggle" })} style={buttonStyle}>
-              {state.playing ? "❚❚ PAUSE" : "▶ PLAY"}
-            </button>
-          </span>
-        </Stat>
-        <Stat label="Race time">
-          <span style={{ font: `500 20px/1 ${font.mono}` }}>
-            {derived ? formatClock(raceClockAt(derived.timeline, state.lap)) : "—"}
-          </span>
-        </Stat>
-        {flag && <FlagPill kind={flag.kind} label={flag.label} />}
-        <div style={{ flex: 1 }} />
-        {props && <SlotView slot="header" props={props} />}
-        <button type="button" onClick={() => setDrawerOpen(true)} style={buttonStyle}>
-          SEASON
-        </button>
-      </header>
-      {base.status === "error" && isLocked(base.error) && <LockedNote inferred={base.error.inferred} />}
-      {base.status === "error" && !isLocked(base.error) && (
-        <Fullscreen tone={color.red}>OpenF1 failed · {base.error.message}</Fullscreen>
-      )}
-      {!props && base.status === "loading" && <Fullscreen>LOADING SESSION…</Fullscreen>}
-      {props && <PanelGrid render={(slot) => <SlotView slot={slot} props={props} />} />}
+    <LayoutModeProvider value={mode}>
+      <div style={{ height: "100vh", minWidth: 1600, display: "flex", flexDirection: "column", gap: 1, background: color.border }}>
+        <Header
+          mode={mode}
+          onModeChange={setMode}
+          sessionSelect={
+            <select aria-label="Session" value={session.sessionKey} onChange={(e) => onSession(Number(e.target.value))} style={selectStyle}>
+              {sessions.map((s) => (
+                <option key={s.sessionKey} value={s.sessionKey} style={{ background: color.panel }}>
+                  {sessionTitle(s)}
+                </option>
+              ))}
+            </select>
+          }
+          lap={state.lap}
+          totalLaps={state.totalLaps}
+          onPrev={() => dispatch({ type: "seek", lap: state.lap - 1 })}
+          onNext={() => dispatch({ type: "seek", lap: state.lap + 1 })}
+          clock={derived ? formatClock(raceClockAt(derived.timeline, state.lap)) : "—"}
+          flag={flag}
+          weatherSlot={props && <PanelSlot def={PANELS.find((p) => p.slot === "header")!} props={props} />}
+          onSeason={() => setDrawerOpen(true)}
+        />
+        <TimelineBar
+          mode={mode}
+          label={<TimelineLabel lap={state.lap} totalLaps={state.totalLaps} />}
+          lap={state.lap}
+          totalLaps={state.totalLaps}
+          playing={state.playing}
+          onToggle={() => dispatch({ type: "toggle" })}
+          onSeek={(lap) => dispatch({ type: "seek", lap })}
+          bands={scrub.bands}
+          pitLaps={scrub.pitLaps}
+        />
+        <div style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateRows: mode === "desk" ? "minmax(0,1fr) 342px" : "1fr", gap: 1, background: color.border }}>
+          {base.status === "error" && isLocked(base.error) && <LockedNote inferred={base.error.inferred} />}
+          {base.status === "error" && !isLocked(base.error) && <Fullscreen tone={color.red}>OpenF1 failed · {base.error.message}</Fullscreen>}
+          {!props && base.status === "loading" && <Fullscreen>LOADING SESSION…</Fullscreen>}
+          {props && (mode === "desk" ? <DeskMain props={props} /> : <WallMain props={props} />)}
+          {props && mode === "desk" && <Analysis props={props} atab={atab} onTab={setAtab} />}
+        </div>
+        {mode === "desk" && <Footer onWall={() => setMode("wall")} />}
+      </div>
       {drawerOpen && drawer(() => setDrawerOpen(false))}
+    </LayoutModeProvider>
+  );
+}
+
+function TimelineLabel({ lap, totalLaps }: { lap: number; totalLaps: number }) {
+  return (
+    <span style={{ font: type.label, letterSpacing: ".06em", color: color.dim, width: 90, whiteSpace: "nowrap" }}>
+      LAP {lap}/{totalLaps}
+    </span>
+  );
+}
+
+/** Desk's 440px / 1fr / 520px main row: timing, strategy, and track above race control. */
+function DeskMain({ props }: { props: PanelProps }) {
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "440px minmax(0,1fr) 520px", gap: 1, minHeight: 0, background: color.border }}>
+      <SlotView slot="timing" props={props} />
+      <SlotView slot="strategy" props={props} />
+      <div style={{ display: "grid", gridTemplateRows: "370px minmax(0,1fr)", gap: 1, minHeight: 0, background: color.border }}>
+        <SlotView slot="track" props={props} />
+        <SlotView slot="race-control" props={props} />
+      </div>
     </div>
   );
 }
 
-/** The reference grid; `render` fills each slot. */
-function PanelGrid({ render }: { render: (slot: Slot) => ReactNode }) {
+/** Wall's 600px / 1fr / 640px row: running order, track above race control, and the strategy call. */
+function WallMain({ props }: { props: PanelProps }) {
   return (
-    <>
-      <div style={{ display: "grid", gridTemplateColumns: "440px minmax(0,1fr) 420px", gap: 10 }}>
-        {render("top-left")}
-        {render("top-center")}
-        <div style={{ display: "flex", flexDirection: "column", gap: 10, minWidth: 0 }}>{render("top-right")}</div>
+    <div style={{ display: "grid", gridTemplateColumns: "600px minmax(0,1fr) 640px", gap: 1, minHeight: 0, background: color.border }}>
+      <SlotView slot="timing" props={props} />
+      <div style={{ display: "grid", gridTemplateRows: "520px minmax(0,1fr)", gap: 1, minHeight: 0, background: color.border }}>
+        <SlotView slot="track" props={props} />
+        <SlotView slot="race-control" props={props} />
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 10 }}>
-        {render("mid-left")}
-        {render("mid-right")}
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.25fr) minmax(0,1.15fr) minmax(0,.6fr)", gap: 10 }}>
-        {render("bottom-left")}
-        {render("bottom-center")}
-        {render("bottom-right")}
-      </div>
-    </>
+      <SlotView slot="strategy" props={props} />
+    </div>
   );
 }
 
@@ -300,51 +323,47 @@ function LockedConsole({
   drawer: (round: number, close: () => void) => ReactNode;
 }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [mode, setMode] = useState<LayoutMode>("desk");
   return (
-    <div style={{ minWidth: 1600, padding: 10, display: "flex", flexDirection: "column", gap: 10 }}>
-      <header style={headerStyle}>
-        <Wordmark />
-        <Stat label="Session">
-          <select aria-label="Session" value={round} onChange={(e) => onRound(Number(e.target.value))} style={selectStyle}>
-            {races.map((r) => (
-              <option key={r.round} value={r.round} style={{ background: color.panel }}>
-                Round {r.round} · {r.raceName} · Race
-              </option>
-            ))}
-          </select>
-        </Stat>
-        <Stat label="Lap">
-          <span style={{ font: type.big, color: color.dim }}>—</span>
-        </Stat>
-        {status !== "connecting" && (
-          <div aria-label="Track status" style={{ ...pillStyle, background: color.amber, color: color.bg }}>
-            {status === "unreachable" ? "OPENF1 UNREACHABLE · RETRYING" : "OPENF1 LOCKED · LIVE SESSION"}
-          </div>
-        )}
-        <div style={{ flex: 1 }} />
-        <button type="button" onClick={() => setDrawerOpen(true)} style={buttonStyle}>
-          SEASON
-        </button>
-      </header>
-      <PanelGrid
-        render={(slot) =>
-          PANELS.filter((p) => p.slot === slot).map((p) => (
-            <PanelFrame key={p.num} num={p.num} title={p.title}>
-              {status === "connecting" ? (
-                <Label tone={color.dim}>Connecting to OpenF1…</Label>
-              ) : (
-                <LockedNote inferred={status === "unreachable"} />
-              )}
+    <LayoutModeProvider value={mode}>
+      <div style={{ minHeight: "100vh", minWidth: 1600, display: "flex", flexDirection: "column", gap: 1, background: color.border }}>
+        <Header
+          mode={mode}
+          onModeChange={setMode}
+          sessionSelect={
+            <select aria-label="Session" value={round} onChange={(e) => onRound(Number(e.target.value))} style={selectStyle}>
+              {races.map((r) => (
+                <option key={r.round} value={r.round} style={{ background: color.panel }}>
+                  Round {r.round} · {r.raceName} · Race
+                </option>
+              ))}
+            </select>
+          }
+          lap={null}
+          totalLaps={null}
+          statusPill={
+            status !== "connecting" && (
+              <div aria-label="Track status" style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 14px", background: color.amber, color: color.bg, font: `700 12px/1 ${type.label}` }}>
+                {status === "unreachable" ? "OPENF1 UNREACHABLE · RETRYING" : "OPENF1 LOCKED · LIVE SESSION"}
+              </div>
+            )
+          }
+          onSeason={() => setDrawerOpen(true)}
+        />
+        <div style={{ flex: 1, minHeight: 0, display: "flex", flexWrap: "wrap", gap: 1, background: color.border, padding: 1 }}>
+          {PANELS.filter((p) => p.slot !== "header").map((p) => (
+            <PanelFrame key={p.num} num={p.num} title={p.title} style={{ flex: "1 1 420px", minHeight: 240 }}>
+              {status === "connecting" ? <Label tone={color.dim}>Connecting to OpenF1…</Label> : <LockedNote inferred={status === "unreachable"} />}
             </PanelFrame>
-          ))
-        }
-      />
+          ))}
+        </div>
+      </div>
       {drawerOpen && drawer(round, () => setDrawerOpen(false))}
-    </div>
+    </LayoutModeProvider>
   );
 }
 
-function SlotView({ slot, props }: { slot: Slot; props: PanelProps }) {
+function SlotView({ slot, props }: { slot: (typeof PANELS)[number]["slot"]; props: PanelProps }) {
   return (
     <>
       {PANELS.filter((p) => p.slot === slot).map((def) => (
@@ -354,81 +373,17 @@ function SlotView({ slot, props }: { slot: Slot; props: PanelProps }) {
   );
 }
 
-function Stat({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-      <Label>{label}</Label>
-      {children}
-    </div>
-  );
-}
-
-const flagColors: Record<FlagKind, { bg: string; fg: string }> = {
-  green: { bg: "rgba(62,207,110,.14)", fg: color.personal },
-  yellow: { bg: color.yellow, fg: color.bg },
-  sc: { bg: color.yellow, fg: color.bg },
-  vsc: { bg: color.yellow, fg: color.bg },
-  red: { bg: color.red, fg: color.bg },
-  chequered: { bg: color.text, fg: color.bg },
-};
-
-function FlagPill({ kind, label }: { kind: FlagKind; label: string }) {
-  const c = flagColors[kind];
-  return (
-    <div aria-label="Track status" style={{ ...pillStyle, background: c.bg, color: c.fg }}>
-      <span style={{ width: 8, height: 8, background: c.fg, borderRadius: "50%" }} />
-      {label}
-    </div>
-  );
-}
-
 function Fullscreen({ children, tone = color.dim }: { children: ReactNode; tone?: string }) {
   return <div style={{ padding: 40, font: type.label, letterSpacing: ".08em", color: tone }}>{children}</div>;
 }
 
-const stepStyle = { ...buttonStyle, padding: "4px 8px" } as const;
-
-const headerStyle = {
-  display: "flex",
-  alignItems: "center",
-  gap: 22,
-  padding: "10px 16px",
-  background: color.panel,
-  border: `1px solid ${color.border}`,
-  borderRadius: 4,
-} as const;
-
 const selectStyle = {
-  fontSize: 15,
-  fontWeight: 600,
-  fontFamily: font.sans,
+  fontSize: 13,
+  fontWeight: 500,
+  fontFamily: font.mono,
   background: "transparent",
   color: color.text,
   border: "none",
   padding: 0,
   cursor: "pointer",
 } as const;
-
-const pillStyle = {
-  display: "flex",
-  alignItems: "center",
-  gap: 8,
-  padding: "6px 10px",
-  borderRadius: 3,
-  font: `700 12px/1 ${font.mono}`,
-  letterSpacing: ".06em",
-  whiteSpace: "nowrap",
-  flexShrink: 0,
-} as const;
-
-function Wordmark() {
-  return (
-    <>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-        <span style={{ fontWeight: 700, fontSize: 21, letterSpacing: ".16em" }}>PITWALL</span>
-        <span style={{ font: type.label, letterSpacing: ".1em", color: color.label }}>STRATEGY CONSOLE</span>
-      </div>
-      <div style={{ width: 1, alignSelf: "stretch", background: color.border }} />
-    </>
-  );
-}

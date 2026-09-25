@@ -38,7 +38,7 @@ describe("PanelSlot", () => {
     const el = await mount({
       num: "04",
       title: "Lap times",
-      slot: "mid-right",
+      slot: "analysis",
       load: async () => ({ default: (p: PanelProps) => (crash ? <Boom /> : <Ok {...p} />) }),
     });
     await settle();
@@ -56,7 +56,7 @@ describe("PanelSlot", () => {
       .fn<PanelDef["load"]>()
       .mockRejectedValueOnce(new Error("Failed to fetch dynamically imported module"))
       .mockResolvedValue({ default: Ok });
-    const el = await mount({ num: "02", title: "Track map", slot: "top-right", load });
+    const el = await mount({ num: "02", title: "Track map", slot: "track", load });
     await settle();
     expect(el.textContent).toContain("02 TRACK MAP FAILED · Failed to fetch dynamically imported module");
     await clickRetry(el);

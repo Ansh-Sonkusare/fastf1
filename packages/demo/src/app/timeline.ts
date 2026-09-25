@@ -204,6 +204,42 @@ export function flagAt(
   return { kind: "green", label: "GREEN" };
 }
 
+export interface FlagBand {
+  readonly kind: "sc" | "yellow";
+  readonly fromLap: number;
+  readonly toLap: number;
+}
+
+/**
+ * Contiguous SC/VSC and yellow-flag lap ranges through `throughLap`, for the timeline scrubber's
+ * bands. Groups `flagAt`'s per-lap state so each neutralisation in the race gets its own band.
+ */
+export function flagBands(timeline: LapTimeline, rows: readonly RaceControl[], throughLap: number): readonly FlagBand[] {
+  const bands: FlagBand[] = [];
+  let openKind: FlagBand["kind"] | null = null;
+  let openFrom = 0;
+  const closeAt = (toLap: number) => {
+    if (openKind) bands.push({ kind: openKind, fromLap: openFrom, toLap });
+    openKind = null;
+  };
+  const last = Math.min(throughLap, timeline.totalLaps);
+  for (let lap = 1; lap <= last; lap++) {
+    const w = timeline.windows[lap - 1];
+    const at = w.end ?? w.start;
+    const kind = flagAt(rows, at, lap, (ms) => lapAt(timeline, ms)).kind;
+    const bandKind: FlagBand["kind"] | null = kind === "sc" || kind === "vsc" ? "sc" : kind === "yellow" ? "yellow" : null;
+    if (bandKind !== openKind) {
+      closeAt(lap - 1);
+      if (bandKind) {
+        openKind = bandKind;
+        openFrom = lap;
+      }
+    }
+  }
+  closeAt(last);
+  return bands;
+}
+
 /**
  * Laps on which the safety car led the field through the pit lane. OpenF1 records every car's pass
  * as a pit row and a new stint, but nobody stopped. From "SAFETY CAR THROUGH THE PIT LANE" until
