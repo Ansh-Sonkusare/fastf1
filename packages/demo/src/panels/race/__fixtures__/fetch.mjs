@@ -37,15 +37,53 @@ function sleep(ms) {
 
 function writeJson(name, rows) {
   const file = join(OUT_DIR, `${name}.json`);
-  writeFileSync(file, `${JSON.stringify(rows, null, 2)}\n`);
+  // Minified: these are fixtures, not something anyone hand-edits, and the
+  // shaping functions only read a handful of fields per row.
+  writeFileSync(file, `${JSON.stringify(rows)}\n`);
   console.log(`wrote ${file} (${rows.length} rows)`);
+}
+
+// LapTimeViewModel never reads segments_sector_*; OpenF1's per-metre segment
+// arrays are the single biggest field on a lap row and none of panel 04's
+// shaping logic touches them.
+function pickLapFields(l) {
+  const {
+    session_key,
+    meeting_key,
+    driver_number,
+    lap_number,
+    date_start,
+    lap_duration,
+    duration_sector_1,
+    duration_sector_2,
+    duration_sector_3,
+    i1_speed,
+    i2_speed,
+    st_speed,
+    is_pit_out_lap,
+  } = l;
+  return {
+    session_key,
+    meeting_key,
+    driver_number,
+    lap_number,
+    date_start,
+    lap_duration,
+    duration_sector_1,
+    duration_sector_2,
+    duration_sector_3,
+    i1_speed,
+    i2_speed,
+    st_speed,
+    is_pit_out_lap,
+  };
 }
 
 async function fetchSession({ key, name }) {
   const laps = await fetchJson(`/laps?session_key=${key}`);
-  const lapsTrimmed = laps.filter((l) =>
-    LAP_DRIVER_NUMBERS.includes(l.driver_number)
-  );
+  const lapsTrimmed = laps
+    .filter((l) => LAP_DRIVER_NUMBERS.includes(l.driver_number))
+    .map(pickLapFields);
   writeJson(`${name}Laps`, lapsTrimmed);
   await sleep(PACE_MS);
 
