@@ -65,34 +65,3 @@ export function TelemetryView({ view, colorA, colorB, hover, onHover }: Telemetr
     </svg>
   );
 }
-
-const LEGEND = {
-  display: "flex",
-  alignItems: "center",
-  gap: 6,
-  fontWeight: 700,
-  fontSize: 13,
-} as const;
-
-interface TelemetryHeaderProps {
-  readonly codeA: string;
-  readonly codeB: string;
-  readonly colorA: string;
-  readonly colorB: string;
-  readonly text: string;
-}
-
-export function TelemetryHeader({ codeA, codeB, colorA, colorB, text }: TelemetryHeaderProps) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-      <span style={LEGEND}>
-        <span style={{ width: "16px", height: "2px", background: colorA }} />A {codeA}
-      </span>
-      <span style={LEGEND}>
-        <span style={{ width: "16px", height: 0, borderTop: `2px dashed ${colorB}` }} />B {codeB}
-      </span>
-      <div style={{ flex: 1 }} />
-      <span style={{ font: `500 11px/1 ${font.mono}`, color: color.textMuted }}>{text}</span>
-    </div>
-  );
-}

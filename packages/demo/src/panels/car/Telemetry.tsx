@@ -1,11 +1,11 @@
 import { useState } from "react";
 import type { PanelProps } from "../../app/types";
 import { combine, useOpenF1 } from "../../data/useOpenF1";
-import { AsyncView, PanelFrame } from "../../ui/primitives";
-import { color, type } from "../../ui/tokens";
+import { AsyncView } from "../../ui/primitives";
+import { color, font, type } from "../../ui/tokens";
 import { blockFilter } from "./data";
 import { buildTrace, readout, telemetryView } from "./telemetry";
-import { TelemetryHeader, TelemetryView } from "./TelemetryView";
+import { TelemetryView } from "./TelemetryView";
 
 const note = (text: string) => <div style={{ padding: 16, font: type.label, color: color.dim }}>{text}</div>;
 
@@ -30,29 +30,42 @@ export default function Telemetry(props: PanelProps) {
   const tb = all.status === "ok" && lapB ? buildTrace(lapB, all.data[1]) : null;
 
   return (
-    <PanelFrame
-      num="03"
-      title={`Telemetry compare · lap ${lap}`}
-      right={
-        a &&
-        b && <TelemetryHeader codeA={a.code} codeB={b.code} colorA={colorA} colorB={colorB} text={ta && tb ? readout(ta, tb, hover) : ""} />
-      }
-    >
-      {!a || !b ? (
-        note("CLICK A DRIVER FOR A · SHIFT-CLICK FOR B")
-      ) : (
-        <AsyncView state={combine(laps, all)}>
-          {() =>
-            ta && tb && lapA ? (
-              <div style={{ padding: "8px 10px 10px" }}>
-                <TelemetryView view={telemetryView(ta, tb, lapA)} colorA={colorA} colorB={colorB} hover={hover} onHover={setHover} />
-              </div>
-            ) : (
-              note(`NO TIMED LAP ${lap} FOR ${!ta ? a.code : b.code}`)
-            )
-          }
-        </AsyncView>
-      )}
-    </PanelFrame>
+    <section data-panel="03" style={{ background: color.panel, display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0 }}>
+      <div
+        style={{
+          flexShrink: 0,
+          display: "flex",
+          alignItems: "center",
+          padding: "10px 16px 0",
+          font: `500 11px/1 ${font.sans}`,
+          letterSpacing: ".07em",
+          textTransform: "uppercase",
+          color: color.label,
+        }}
+      >
+        <span>Telemetry · lap {lap}</span>
+        <div style={{ flex: 1 }} />
+        <span style={{ color: color.textSoft, textTransform: "none", letterSpacing: 0 }}>
+          {ta && tb ? readout(ta, tb, hover) : ""}
+        </span>
+      </div>
+      <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "auto" }}>
+        {!a || !b ? (
+          note("CLICK A DRIVER FOR A · SHIFT-CLICK FOR B")
+        ) : (
+          <AsyncView state={combine(laps, all)}>
+            {() =>
+              ta && tb && lapA ? (
+                <div style={{ padding: "8px 10px 10px" }}>
+                  <TelemetryView view={telemetryView(ta, tb, lapA)} colorA={colorA} colorB={colorB} hover={hover} onHover={setHover} />
+                </div>
+              ) : (
+                note(`NO TIMED LAP ${lap} FOR ${!ta ? a.code : b.code}`)
+              )
+            }
+          </AsyncView>
+        )}
+      </div>
+    </section>
   );
 }

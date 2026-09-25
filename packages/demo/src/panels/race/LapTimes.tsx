@@ -1,8 +1,8 @@
 import type { PanelProps } from "../../app/types";
 import { pitLanePassLaps, realPitStops } from "../../app/timeline";
 import { combine, useOpenF1 } from "../../data/useOpenF1";
-import { AsyncView, MeasuredLegend, PanelFrame, Swatch } from "../../ui/primitives";
-import { color } from "../../ui/tokens";
+import { AsyncView, MeasuredLegend, Swatch } from "../../ui/primitives";
+import { color, font } from "../../ui/tokens";
 import { filterChartLaps, shapeLapTimes, type LapTimeViewModel } from "./lapTimes";
 
 export default function LapTimes({ session, lap, focus, drivers }: PanelProps) {
@@ -13,17 +13,35 @@ export default function LapTimes({ session, lap, focus, drivers }: PanelProps) {
   const combined = combine(laps, pits, stints, raceControl);
 
   return (
-    <PanelFrame num="04" title="Lap times" right={<MeasuredLegend />}>
-      <AsyncView state={combined} isEmpty={([rows]) => rows.length === 0}>
-        {([lapRows, pitRows, stintRows, rcRows]) => {
-          const pitStops = realPitStops(pitRows, stintRows, pitLanePassLaps(rcRows));
-          const viewModels = shapeLapTimes(lapRows, session.sessionKey, pitStops, rcRows).filter(
-            (v) => v.lapNumber <= lap,
-          );
-          return <LapTimesChart viewModels={viewModels} focus={focus} drivers={drivers} />;
+    <section data-panel="04" style={{ background: color.panel, display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0 }}>
+      <div
+        style={{
+          flexShrink: 0,
+          display: "flex",
+          alignItems: "center",
+          padding: "10px 16px 0",
+          font: `500 11px/1 ${font.sans}`,
+          letterSpacing: ".07em",
+          textTransform: "uppercase",
+          color: color.label,
         }}
-      </AsyncView>
-    </PanelFrame>
+      >
+        <span>Lap times</span>
+        <div style={{ flex: 1 }} />
+        <MeasuredLegend />
+      </div>
+      <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "auto" }}>
+        <AsyncView state={combined} isEmpty={([rows]) => rows.length === 0}>
+          {([lapRows, pitRows, stintRows, rcRows]) => {
+            const pitStops = realPitStops(pitRows, stintRows, pitLanePassLaps(rcRows));
+            const viewModels = shapeLapTimes(lapRows, session.sessionKey, pitStops, rcRows).filter(
+              (v) => v.lapNumber <= lap,
+            );
+            return <LapTimesChart viewModels={viewModels} focus={focus} drivers={drivers} lap={lap} />;
+          }}
+        </AsyncView>
+      </div>
+    </section>
   );
 }
 
@@ -31,14 +49,16 @@ function LapTimesChart({
   viewModels,
   focus,
   drivers,
+  lap,
 }: {
   viewModels: LapTimeViewModel[];
   focus: PanelProps["focus"];
   drivers: PanelProps["drivers"];
+  lap: number;
 }) {
-  const width = 700;
-  const height = 260;
-  const padding = { top: 12, right: 16, bottom: 24, left: 40 };
+  const width = 900;
+  const height = 350;
+  const padding = { top: 16, right: 16, bottom: 24, left: 44 };
   const plotW = width - padding.left - padding.right;
   const plotH = height - padding.top - padding.bottom;
 
@@ -50,7 +70,7 @@ function LapTimesChart({
   const durations = chartLaps.map((v) => v.duration as number);
   const minD = Math.min(...durations);
   const maxD = Math.max(...durations);
-  const maxLap = Math.max(...viewModels.map((v) => v.lapNumber));
+  const maxLap = Math.max(lap, ...viewModels.map((v) => v.lapNumber));
   const x = (lapNumber: number) => padding.left + (lapNumber / maxLap) * plotW;
   const y = (duration: number) =>
     padding.top + plotH - ((duration - minD) / (maxD - minD || 1)) * plotH;
@@ -75,8 +95,8 @@ function LapTimesChart({
   const bColor = focus.a != null && colorOf(focus.b) === colorOf(focus.a) ? color.text : colorOf(focus.b);
 
   return (
-    <div style={{ padding: 12 }}>
-      <svg width={width} height={height} role="img" aria-label="Lap times chart">
+    <div style={{ padding: 12, flex: 1, minHeight: 0, display: "flex" }}>
+      <svg viewBox="0 0 900 350" style={{ width: "100%", height: "100%", display: "block" }} role="img" aria-label="Lap times chart">
         {scBands && (
           <rect x={scBands.start} y={padding.top} width={scBands.end - scBands.start} height={plotH} fill={color.yellow} opacity={0.15} />
         )}
@@ -95,6 +115,10 @@ function LapTimesChart({
               transform={`rotate(45 ${x(v.lapNumber)} ${y(v.duration as number)})`}
             />
           ))}
+        <line x1={x(lap)} x2={x(lap)} y1={padding.top} y2={padding.top + plotH} stroke={color.accent} />
+        <text x={x(lap)} y={padding.top - 4} textAnchor="middle" style={{ fill: color.accent, font: `600 10px/1 ${font.mono}` }}>
+          NOW
+        </text>
       </svg>
       <div style={{ display: "flex", gap: 12, paddingTop: 4 }}>
         {codeOf(focus.a) && <Swatch tone={colorOf(focus.a)}>{codeOf(focus.a)}</Swatch>}
