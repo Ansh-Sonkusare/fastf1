@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { pick } from "../../app/replay";
-import { lapCrossings, pitLanePassLaps } from "../../app/timeline";
+import { lapCrossings, pitLanePassLaps, realPitStops } from "../../app/timeline";
 import type { PanelProps } from "../../app/types";
 import { combine, useOpenF1 } from "../../data/useOpenF1";
 import { formatGap, formatLapTime } from "../../ui/format";
@@ -52,7 +52,7 @@ export default function TimingTower({ session, lap, focus, drivers, setFocus }: 
       <AsyncView state={data}>
         {([laps, stints, raceControl, pits]) => {
           if (!crossings) return null;
-          const rows = buildTower({ lap, crossings, laps, stints, pits, passLaps: pitLanePassLaps(raceControl), retired });
+          const rows = buildTower({ lap, crossings, laps, stints, stops: realPitStops(pits, stints, pitLanePassLaps(raceControl)), retired });
           return (
             <div role="list" style={{ display: "flex", flexDirection: "column", padding: "0 6px 8px" }}>
               {rows.map((r) => (

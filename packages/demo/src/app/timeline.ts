@@ -1,4 +1,4 @@
-import type { OpenF1Lap, RaceControl } from "@f1/core";
+import type { OpenF1Lap, OpenF1Pit, RaceControl, Stint } from "@f1/core";
 import type { DriverNumber, LapWindow } from "./types";
 
 /**
@@ -223,4 +223,44 @@ export function pitLanePassLaps(rows: readonly RaceControl[]): ReadonlySet<numbe
     }
   }
   return laps;
+}
+
+export interface PitStop {
+  readonly driver: DriverNumber;
+  /** The lap the car came in on (OpenF1 pit row lap_number). */
+  readonly lap: number;
+  /** Seconds stationary; null when OpenF1 didn't time it (common, even for real stops). */
+  readonly stationary: number | null;
+  /** Seconds in the pit lane; null when unknown. */
+  readonly lane: number | null;
+}
+
+/**
+ * The one definition of a real pit stop. Every OpenF1 pit row with a lap counts, except
+ * safety-car pit-lane drive-throughs: rows on a pitLanePassLaps lap with no stop_duration
+ * and no compound change (the pass itself opens a same-compound, age-0 stint).
+ * A null stop_duration alone never disqualifies a row.
+ */
+export function realPitStops(
+  pits: readonly OpenF1Pit[],
+  stints: readonly Stint[],
+  passLaps: ReadonlySet<number>,
+): PitStop[] {
+  const newCompoundOn = (driver: DriverNumber, lap: number) => {
+    const next = stints.find((x) => x.driver_number === driver && x.lap_start === lap);
+    const prev = next && stints.find((x) => x.driver_number === driver && x.stint_number === next.stint_number - 1);
+    return !!next && !!prev && next.compound !== prev.compound;
+  };
+  return pits
+    .filter(
+      (p): p is OpenF1Pit & { lap_number: number } =>
+        p.lap_number != null &&
+        !(passLaps.has(p.lap_number) && p.stop_duration == null && !newCompoundOn(p.driver_number, p.lap_number)),
+    )
+    .map((p) => ({
+      driver: p.driver_number,
+      lap: p.lap_number,
+      stationary: p.stop_duration ?? null,
+      lane: p.lane_duration ?? p.pit_duration ?? null,
+    }));
 }
