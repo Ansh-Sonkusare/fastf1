@@ -1,4 +1,52 @@
-import type { RaceControl, TeamRadio } from "@f1/core";
+/**
+ * Raw OpenF1 race control row shape, as actually returned by
+ * GET https://api.openf1.org/v1/race_control?session_key=... (verified
+ * live 2026-09-25 against session_key 9839 and 9912 — see
+ * packages/demo/src/panels/conditions/__fixtures__/fetch.mjs).
+ *
+ * Note: this deliberately does NOT reuse @f1/core's `RaceControl` type.
+ * That type's field values are correct, but its optional fields are typed
+ * as `T | undefined` (the post-schema-decode shape) whereas the raw wire
+ * JSON — and therefore these fixtures — uses literal `null` for absent
+ * fields, which doesn't structurally match. Using the real wire shape
+ * here keeps the fixture casts honest instead of silently widening them
+ * through `unknown`.
+ */
+export interface OpenF1RaceControlRow {
+  session_key: number;
+  meeting_key: number;
+  date: string;
+  category: string;
+  flag: string | null;
+  scope: string | null;
+  sector: number | null;
+  lap_number: number | null;
+  driver_number: number | null;
+  message: string;
+  qualifying_phase: string | null;
+}
+
+/**
+ * Raw OpenF1 team radio row shape, as actually returned by
+ * GET https://api.openf1.org/v1/team_radio?session_key=... (verified live
+ * 2026-09-25 against session_key 9839 and 9912 — see
+ * packages/demo/src/panels/conditions/__fixtures__/fetch.mjs).
+ *
+ * Note: this deliberately does NOT reuse @f1/core's `TeamRadio` type. That
+ * schema (packages/core/src/schemas/openf1.ts) declares required
+ * `message` and `driver_id` string fields that the live API never sends —
+ * the real payload only ever has `recording_url`, `driver_number` and
+ * `date`, with no transcript text at all. Using the real shape here keeps
+ * this panel's fixtures and assertions honest; the mismatch should be
+ * fixed in @f1/core separately (flagged to the lane B/root owners).
+ */
+export interface OpenF1TeamRadioRow {
+  session_key: number;
+  meeting_key: number;
+  driver_number: number;
+  date: string;
+  recording_url: string;
+}
 
 /**
  * Event type for race control and radio events.
@@ -17,36 +65,42 @@ export interface RaceEvent {
   type: RaceEventType;
   /** ISO timestamp of the event */
   date: string;
-  /** Event message text */
-  message: string;
+  /**
+   * Event message text. Race control events always have one; team radio
+   * events never do (OpenF1 doesn't provide a transcript, only the audio
+   * clip URL), so this is undefined for radio events.
+   */
+  message?: string;
   /** Category of the event (Flag, Drs, CarEvent, Other, SessionStatus for race control; always "radio" for radio) */
   category: string;
-  /** Flag type if applicable (e.g., "YELLOW", "RED", "CHEQUERED") */
+  /** Flag type if applicable (e.g., "YELLOW", "DOUBLE YELLOW", "CHEQUERED") */
   flag?: string;
   /** Driver number if applicable (race control for specific driver, or team radio sender) */
   driverNumber?: number;
   /** Lap number if applicable */
   lapNumber?: number;
-  /** Sector if applicable (1, 2, or 3) */
+  /** Sector if applicable */
   sector?: number;
-  /** Scope of the flag (e.g., "Track", "Pit lane") */
+  /** Scope of the flag (e.g., "Track", "Sector") */
   scope?: string;
   /** Recording URL for team radio audio playback */
   recordingUrl?: string;
 }
 
 /**
- * Categories to filter race control events by.
- * These come from the RaceControl category field.
+ * Categories to filter race control events by. These come from the
+ * real OpenF1 `race_control.category` field. "Other" and "SessionStatus"
+ * cover most non-flag messages (pit lane open/closed, session status,
+ * DRS enabled, investigations); real 2025 data does not carry a distinct
+ * "Penalty" or "SafetyCar" category — those show up as "Other" with a
+ * descriptive message instead.
  */
 export type RaceControlCategory =
   | "Flag"
   | "Drs"
   | "CarEvent"
   | "Other"
-  | "SessionStatus"
-  | "Penalty"
-  | "SafetyCar";
+  | "SessionStatus";
 
 /**
  * Filter options for race events.
@@ -60,19 +114,23 @@ export interface RaceEventFilterOptions {
   categories?: RaceControlCategory[];
 }
 
+function nullToUndefined<T>(value: T | null | undefined): T | undefined {
+  return value === null ? undefined : value;
+}
+
 /**
  * Shapes raw OpenF1 RaceControl and TeamRadio data into merged, time-ordered view models.
  * Returns events up to and including the given cutoff time.
  *
  * @param raceControl Array of raw RaceControl data from OpenF1
- * @param teamRadio Array of raw TeamRadio data from OpenF1
+ * @param teamRadio Array of raw team radio rows from OpenF1 (`GET /v1/team_radio`)
  * @param cutoffTime ISO timestamp to filter events (inclusive)
  * @param filterOptions Options to filter events by type and category
  * @returns Array of RaceEvent objects, sorted by date
  */
 export function shapeRaceEvents(
-  raceControl: readonly RaceControl[],
-  teamRadio: readonly TeamRadio[],
+  raceControl: readonly OpenF1RaceControlRow[],
+  teamRadio: readonly OpenF1TeamRadioRow[],
   cutoffTime: string,
   filterOptions: RaceEventFilterOptions = {
     includeRaceControl: true,
@@ -96,11 +154,11 @@ export function shapeRaceEvents(
             date: rc.date,
             message: rc.message,
             category: rc.category,
-            flag: rc.flag,
-            driverNumber: rc.driver_number,
-            lapNumber: rc.lap_number,
-            sector: rc.sector,
-            scope: rc.scope,
+            flag: nullToUndefined(rc.flag),
+            driverNumber: nullToUndefined(rc.driver_number),
+            lapNumber: nullToUndefined(rc.lap_number),
+            sector: nullToUndefined(rc.sector),
+            scope: nullToUndefined(rc.scope),
           });
         }
       }
@@ -114,10 +172,9 @@ export function shapeRaceEvents(
         events.push({
           type: "radio",
           date: tr.date,
-          message: tr.message,
           category: "radio",
           driverNumber: tr.driver_number,
-          recordingUrl: (tr as any).recording_url,
+          recordingUrl: tr.recording_url,
         });
       }
     });

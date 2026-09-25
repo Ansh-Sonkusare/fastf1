@@ -12,7 +12,7 @@ export interface WeatherProps {
 
 /**
  * Weather panel component.
- * Displays current weather conditions (temperature, humidity, wind, precipitation)
+ * Displays current weather conditions (temperature, humidity, wind, rainfall)
  * with sparkline visualizations showing trends over time.
  *
  * Matches reference panel-08.png layout:
@@ -65,12 +65,13 @@ export const Weather: React.FC<WeatherProps> = ({ weather }) => {
           color="#e4e7eb"
         />
       )}
-      {latest.precipitation !== undefined && (
+      {latest.rainfall !== undefined && (
         <WeatherMetric
           label="Rain"
-          value={latest.precipitation}
-          unit="%"
-          data={weather.map((w) => w.precipitation ?? 0)}
+          value={latest.rainfall}
+          // OpenF1's `rainfall` is a 0/1 flag, not a percentage or mm figure.
+          unit=""
+          data={weather.map((w) => w.rainfall ?? 0)}
           color="#6fd3e8"
         />
       )}
