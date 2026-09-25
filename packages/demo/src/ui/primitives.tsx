@@ -128,7 +128,7 @@ export function TabStrip({ tabs, right }: { tabs: readonly Tab[]; right?: ReactN
  * Global hotkey, ignoring form inputs and modified keys (mirrors the reference's `onKey`).
  * `key` is a single character (case-insensitive) or a named key ("ArrowLeft", " ").
  */
-export function useHotkey(key: string, handler: () => void): void {
+export function useHotkey(key: string, handler: (e: KeyboardEvent) => void): void {
   const ref = useRef(handler);
   ref.current = handler;
   useEffect(() => {
@@ -138,7 +138,7 @@ export function useHotkey(key: string, handler: () => void): void {
       const pressed = e.key.length === 1 ? e.key.toLowerCase() : e.key;
       if (pressed !== key) return;
       e.preventDefault();
-      ref.current();
+      ref.current(e);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);

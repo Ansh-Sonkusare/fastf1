@@ -2,7 +2,9 @@ import type { Race } from "@f1/core";
 import { useF1Schedule } from "@f1/react";
 import { useEffect, useMemo, useReducer, useState, type ReactNode } from "react";
 import type { DemoInitialData } from "../data/initial";
+import { cut, OMNISCIENT } from "../data/cutoff";
 import { getRaceSessions, isLocked } from "../data/openf1";
+import { CursorContext, RaceSourceContext, replaySource } from "../data/source";
 import { combine, useAsync, useOpenF1 } from "../data/useOpenF1";
 import { PANELS, type AnalysisTab } from "../panels/registry";
 import { buildTower } from "../panels/tower/shape";
@@ -27,14 +29,16 @@ import {
   lapCrossings,
   ownLap,
   pitLanePassLaps,
-  raceClockAt,
+  cursorAt,
+  lapFraction,
   realPitStops,
 } from "./timeline";
 import { TimelineBar } from "./TimelineBar";
 import type { ConsoleSession, PanelProps } from "./types";
 
 const YEAR = 2025;
-const TICK_MS = 1500;
+/** Panels re-render at 4 Hz while playing; the track map paints between ticks from its own clock. */
+const TICK_MS = 250;
 const NO_LINK = parseDeepLink("");
 
 export function Console({ initialData }: { initialData?: DemoInitialData }) {
@@ -48,6 +52,7 @@ export function Console({ initialData }: { initialData?: DemoInitialData }) {
   const [sessionKey, setSessionKey] = useState<number | null>(link.session);
   const [pickedRound, setPickedRound] = useState<number | null>(null);
   const session = pickSession(sessions, sessionKey, pickedRound);
+  const source = useMemo(() => session && replaySource(session.sessionKey), [session]);
 
   const drawer = (round: number, close: () => void, pick?: (round: number) => void) => (
     <SeasonDrawer
@@ -89,8 +94,9 @@ export function Console({ initialData }: { initialData?: DemoInitialData }) {
         </button>
       </Fullscreen>
     );
-  if (!session) return <Fullscreen>LOADING SESSIONS…</Fullscreen>;
+  if (!session || !source) return <Fullscreen>LOADING SESSIONS…</Fullscreen>;
   return (
+    <RaceSourceContext value={source}>
     <SessionConsole
       key={session.sessionKey}
       session={session}
@@ -104,6 +110,7 @@ export function Console({ initialData }: { initialData?: DemoInitialData }) {
         })
       }
     />
+    </RaceSourceContext>
   );
 }
 
@@ -131,20 +138,13 @@ function SessionConsole({
   const stintsQ = useOpenF1("stints", session.sessionKey);
   const base = combine(driversQ, lapsQ);
   const [state, dispatch] = useReducer(replayReducer, {
-    lap: link.lap ?? 1,
-    totalLaps: link.lap ?? 1,
+    at: 0,
+    start: 0,
+    end: 0,
+    speed: 1,
     playing: false,
     focus: { a: null, b: null },
   });
-
-  useHotkey(" ", () => dispatch({ type: "toggle" }));
-  useHotkey("ArrowLeft", () => dispatch({ type: "seek", lap: state.lap - 1 }));
-  useHotkey("ArrowRight", () => dispatch({ type: "seek", lap: state.lap + 1 }));
-  useHotkey("m", () => setMode((m) => (m === "desk" ? "wall" : "desk")));
-  useHotkey("6", () => setAtab("compare"));
-  useHotkey("7", () => setAtab("tyres"));
-  useHotkey("8", () => setAtab("sectors"));
-  useHotkey("9", () => setAtab("stops"));
 
   const derived = useMemo(() => {
     if (driversQ.status !== "ok" || lapsQ.status !== "ok") return null;
@@ -154,6 +154,24 @@ function SessionConsole({
     return { drivers: toDriverMap(driversQ.data), crossings, timeline, laps };
   }, [driversQ, lapsQ]);
 
+  const lap = derived ? lapAt(derived.timeline, state.at) : 1;
+  const totalLaps = derived?.timeline.totalLaps ?? 1;
+  const lapStart = (n: number) => {
+    const w = derived?.timeline.windows[Math.min(Math.max(n, 1), totalLaps) - 1];
+    return w ? Date.parse(w.start) : state.at;
+  };
+  const nudge = (e: KeyboardEvent, sign: number) => dispatch({ type: "seek", at: state.at + sign * (e.shiftKey ? 60_000 : 10_000) });
+
+  useHotkey(" ", () => dispatch({ type: "toggle" }));
+  useHotkey("ArrowLeft", (e) => nudge(e, -1));
+  useHotkey("ArrowRight", (e) => nudge(e, 1));
+  useHotkey("l", () => dispatch({ type: "seek", at: state.end }));
+  useHotkey("m", () => setMode((m) => (m === "desk" ? "wall" : "desk")));
+  useHotkey("6", () => setAtab("compare"));
+  useHotkey("7", () => setAtab("tyres"));
+  useHotkey("8", () => setAtab("sectors"));
+  useHotkey("9", () => setAtab("stops"));
+
   const classified = useMemo(
     () => (resultQ.status === "loading" ? null : resultQ.status === "ok" ? resultQ.data : []),
     [resultQ],
@@ -161,46 +179,60 @@ function SessionConsole({
   useEffect(() => {
     if (!derived || classified === null) return;
     const { crossings, timeline, laps, drivers } = derived;
-    const order = classified.length
-      ? classificationOrder(classified)
-      : buildTower({ lap: timeline.totalLaps, crossings, laps, stints: [], stops: [], retired: null }).map((r) => r.driver);
-    dispatch({ type: "load", totalLaps: timeline.totalLaps });
-    if (link.lap === null) dispatch({ type: "seek", lap: timeline.totalLaps });
+    const start = timeline.raceStart ?? 0;
+    const end = Date.parse(timeline.windows.at(-1)?.end ?? timeline.windows.at(-1)?.start ?? new Date(start).toISOString());
+    const linkedLap = link.lap === null ? null : timeline.windows[Math.min(link.lap, timeline.totalLaps) - 1];
+    const at = link.t !== null ? start + link.t * 1000 : linkedLap ? Date.parse(linkedLap.start) : end;
+    dispatch({ type: "load", start, end, at });
+    const order =
+      at >= end && classified.length
+        ? classificationOrder(classified)
+        : buildTower({ lap: lapAt(timeline, at), crossings, laps, stints: [], stops: [], retired: null }).map((r) => r.driver);
     dispatch({ type: "focus", focus: resolveFocus(link, new Set(drivers.keys()), order) });
   }, [derived, classified, link]);
 
   useEffect(() => {
     if (!state.playing) return;
-    const id = setInterval(() => dispatch({ type: "tick" }), TICK_MS);
+    let last = performance.now();
+    const id = setInterval(() => {
+      const now = performance.now();
+      dispatch({ type: "tick", elapsedMs: now - last });
+      last = now;
+    }, TICK_MS);
     return () => clearInterval(id);
   }, [state.playing]);
 
+  const raceStart = derived?.timeline.raceStart ?? null;
   useEffect(() => {
-    if (!derived) return;
-    const search = formatDeepLink({ session: session.sessionKey, lap: state.lap, a: state.focus.a, b: state.focus.b });
+    if (raceStart === null || state.end === 0) return;
+    const t = (state.at - raceStart) / 1000;
+    const search = formatDeepLink({ session: session.sessionKey, lap: null, t, a: state.focus.a, b: state.focus.b });
     window.history.replaceState(null, "", `${window.location.pathname}${search}`);
-  }, [derived, session.sessionKey, state.lap, state.focus]);
+  }, [raceStart, session.sessionKey, state.at, state.end, state.focus]);
+
+  const cursor = useMemo(() => (derived ? cursorAt(derived.crossings, derived.timeline, state.at) : null), [derived, state.at]);
 
   const scrub = useMemo(() => {
-    if (!derived || raceControlQ.status !== "ok" || pitQ.status !== "ok" || stintsQ.status !== "ok")
+    if (!derived || !cursor || raceControlQ.status !== "ok" || pitQ.status !== "ok" || stintsQ.status !== "ok")
       return { bands: [], pitLaps: [] };
-    const bands = flagBands(derived.timeline, raceControlQ.data, state.lap);
-    const stops = realPitStops(pitQ.data, stintsQ.data, pitLanePassLaps(raceControlQ.data));
-    return { bands, pitLaps: stops.filter((s) => s.lap <= state.lap).map((s) => s.lap) };
-  }, [derived, raceControlQ, pitQ, stintsQ, state.lap]);
+    const bands = flagBands(derived.timeline, raceControlQ.data, cursor.at);
+    const stops = realPitStops(cut("pit", pitQ.data, cursor), cut("stints", stintsQ.data, cursor), pitLanePassLaps(raceControlQ.data));
+    return { bands, pitLaps: stops.map((s) => s.lap) };
+  }, [derived, cursor, raceControlQ, pitQ, stintsQ]);
 
-  const lapWindow = derived?.timeline.windows[state.lap - 1] ?? null;
+  const lapWindow = derived?.timeline.windows[lap - 1] ?? null;
   const flag =
-    raceControlQ.status === "ok" && lapWindow
-      ? flagAt(raceControlQ.data, lapWindow.end ?? lapWindow.start, state.lap, (at) =>
-          derived ? lapAt(derived.timeline, at) : state.lap,
-        )
+    raceControlQ.status === "ok" && derived && cursor
+      ? flagAt(cut("race_control", raceControlQ.data, cursor), new Date(state.at).toISOString(), lap, (at) => lapAt(derived.timeline, at))
       : null;
+  const position = lapWindow ? lap - 1 + lapFraction(lapWindow, state.at) : 0;
 
   const props: PanelProps | null = derived && {
     session,
-    lap: state.lap,
-    totalLaps: state.totalLaps,
+    at: state.at,
+    lap,
+    completedLap: cursor?.finished ? lap : lap - 1,
+    totalLaps,
     playing: state.playing,
     focus: state.focus,
     drivers: derived.drivers,
@@ -210,8 +242,25 @@ function SessionConsole({
     lapBlockOf: (driver, lap) => driverLapBlock(derived.crossings, driver, lap),
     setFocus: (focus) => dispatch({ type: "focus", focus }),
   };
+  const timelineBar = (label: ReactNode) => (
+    <TimelineBar
+      mode={mode}
+      label={label}
+      lap={lap}
+      position={position}
+      totalLaps={totalLaps}
+      playing={state.playing}
+      speed={state.speed}
+      onToggle={() => dispatch({ type: "toggle" })}
+      onSeek={(n) => dispatch({ type: "seek", at: lapStart(n) })}
+      onSpeed={(speed) => dispatch({ type: "speed", speed })}
+      bands={scrub.bands}
+      pitLaps={scrub.pitLaps}
+    />
+  );
 
   return (
+    <CursorContext value={cursor ?? OMNISCIENT}>
     <LayoutModeProvider value={mode}>
       <div style={{ height: "100vh", minWidth: 1600, display: "flex", flexDirection: "column", gap: 1, background: color.border }}>
         <Header
@@ -226,28 +275,16 @@ function SessionConsole({
               ))}
             </select>
           }
-          lap={state.lap}
-          totalLaps={state.totalLaps}
-          onPrev={() => dispatch({ type: "seek", lap: state.lap - 1 })}
-          onNext={() => dispatch({ type: "seek", lap: state.lap + 1 })}
-          clock={derived ? formatClock(raceClockAt(derived.timeline, state.lap)) : "—"}
+          lap={lap}
+          totalLaps={totalLaps}
+          onPrev={() => dispatch({ type: "seek", at: lapStart(lap - 1) })}
+          onNext={() => dispatch({ type: "seek", at: lapStart(lap + 1) })}
+          clock={raceStart !== null ? formatClock(Math.max(0, state.at - raceStart) / 1000) : "—"}
           flag={flag}
           weatherSlot={props && <PanelSlot def={PANELS.find((p) => p.slot === "header")!} props={props} />}
           onSeason={() => setDrawerOpen(true)}
         />
-        {mode === "desk" && (
-          <TimelineBar
-            mode={mode}
-            label={<TimelineLabel lap={state.lap} totalLaps={state.totalLaps} />}
-            lap={state.lap}
-            totalLaps={state.totalLaps}
-            playing={state.playing}
-            onToggle={() => dispatch({ type: "toggle" })}
-            onSeek={(lap) => dispatch({ type: "seek", lap })}
-            bands={scrub.bands}
-            pitLaps={scrub.pitLaps}
-          />
-        )}
+        {mode === "desk" && timelineBar(<TimelineLabel lap={lap} totalLaps={totalLaps} />)}
         <div style={{ flex: 1, minHeight: 0, display: "grid", gridTemplateRows: mode === "desk" ? "minmax(0,1fr) 342px" : "1fr", gap: 1, background: color.border }}>
           {base.status === "error" && isLocked(base.error) && <LockedNote inferred={base.error.inferred} />}
           {base.status === "error" && !isLocked(base.error) && <Fullscreen tone={color.red}>OpenF1 failed · {base.error.message}</Fullscreen>}
@@ -258,21 +295,12 @@ function SessionConsole({
         {mode === "desk" ? (
           <Footer onWall={() => setMode("wall")} />
         ) : (
-          <TimelineBar
-            mode={mode}
-            label={<RaceLabel />}
-            lap={state.lap}
-            totalLaps={state.totalLaps}
-            playing={state.playing}
-            onToggle={() => dispatch({ type: "toggle" })}
-            onSeek={(lap) => dispatch({ type: "seek", lap })}
-            bands={scrub.bands}
-            pitLaps={scrub.pitLaps}
-          />
+          timelineBar(<RaceLabel />)
         )}
       </div>
       {drawerOpen && drawer(() => setDrawerOpen(false))}
     </LayoutModeProvider>
+    </CursorContext>
   );
 }
 

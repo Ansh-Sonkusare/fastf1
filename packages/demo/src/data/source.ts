@@ -36,3 +36,5 @@ export function useRaceSource(): RaceSource {
   if (!source) throw new Error("useRaceSource outside a RaceSourceContext provider");
   return source;
 }
+
+export const useCursor = (): Cursor => useContext(CursorContext);

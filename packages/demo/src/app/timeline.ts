@@ -135,6 +135,13 @@ export function driverLapBlock(crossings: Crossings, driver: DriverNumber, curso
   };
 }
 
+/** How far through `window` epoch ms `at` is, 0..1; 0 for a lap that never finished. */
+export function lapFraction(window: LapWindow, at: number): number {
+  if (window.end === null) return 0;
+  const start = Date.parse(window.start);
+  return Math.min(1, Math.max(0, (at - start) / (Date.parse(window.end) - start)));
+}
+
 /** Elapsed race seconds once the leader completes `lap`. */
 export function raceClockAt(timeline: LapTimeline, lap: number): number {
   const w = timeline.windows[lap - 1];
@@ -212,10 +219,10 @@ export interface FlagBand {
 }
 
 /**
- * Contiguous SC/VSC and yellow-flag lap ranges through `throughLap`, for the timeline scrubber's
- * bands. Groups `flagAt`'s per-lap state so each neutralisation in the race gets its own band.
+ * Contiguous SC/VSC and yellow-flag lap ranges up to epoch ms `at`, for the timeline scrubber's bands.
+ * Groups `flagAt`'s per-lap state so each neutralisation gets its own band; the lap in progress is judged at `at`.
  */
-export function flagBands(timeline: LapTimeline, rows: readonly RaceControl[], throughLap: number): readonly FlagBand[] {
+export function flagBands(timeline: LapTimeline, rows: readonly RaceControl[], at: number): readonly FlagBand[] {
   const bands: FlagBand[] = [];
   let openKind: FlagBand["kind"] | null = null;
   let openFrom = 0;
@@ -223,11 +230,12 @@ export function flagBands(timeline: LapTimeline, rows: readonly RaceControl[], t
     if (openKind) bands.push({ kind: openKind, fromLap: openFrom, toLap });
     openKind = null;
   };
-  const last = Math.min(throughLap, timeline.totalLaps);
+  const known = rows.filter((r) => Date.parse(r.date) <= at);
+  const last = lapAt(timeline, at);
   for (let lap = 1; lap <= last; lap++) {
-    const w = timeline.windows[lap - 1];
-    const at = w.end ?? w.start;
-    const kind = flagAt(rows, at, lap, (ms) => lapAt(timeline, ms)).kind;
+    const w = timeline.windows[lap - 1]!;
+    const judged = new Date(Math.min(Date.parse(w.end ?? w.start), at)).toISOString();
+    const kind = flagAt(known, judged, lap, (ms) => lapAt(timeline, ms)).kind;
     const bandKind: FlagBand["kind"] | null = kind === "sc" || kind === "vsc" ? "sc" : kind === "yellow" ? "yellow" : null;
     if (bandKind !== openKind) {
       closeAt(lap - 1);

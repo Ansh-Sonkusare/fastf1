@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { pick, replayReducer, resolveFocus, type ReplayState } from "./replay";
 
-const base: ReplayState = { lap: 10, totalLaps: 58, playing: false, focus: { a: 1, b: 4 } };
+const base: ReplayState = { at: 5_000, start: 1_000, end: 9_000, speed: 1, playing: false, focus: { a: 1, b: 4 } };
 
 describe("pick", () => {
   it("click focuses A and keeps B", () => expect(pick({ a: 1, b: 4 }, 16, false)).toEqual({ a: 16, b: 4 }));
@@ -11,20 +11,27 @@ describe("pick", () => {
 });
 
 describe("replayReducer", () => {
-  it("clamps seeks into 1..totalLaps", () => {
-    expect(replayReducer(base, { type: "seek", lap: 99 }).lap).toBe(58);
-    expect(replayReducer(base, { type: "seek", lap: -3 }).lap).toBe(1);
+  it("clamps seeks into lights out..flag", () => {
+    expect(replayReducer(base, { type: "seek", at: 99_000 }).at).toBe(9_000);
+    expect(replayReducer(base, { type: "seek", at: -3 }).at).toBe(1_000);
   });
-  it("ticks only while playing and stops at the flag", () => {
-    expect(replayReducer(base, { type: "tick" })).toBe(base);
-    const end = replayReducer({ ...base, lap: 57, playing: true }, { type: "tick" });
-    expect(end).toMatchObject({ lap: 58, playing: false });
+  it("ticks only while playing, by elapsed time times speed", () => {
+    expect(replayReducer(base, { type: "tick", elapsedMs: 250 })).toBe(base);
+    expect(replayReducer({ ...base, playing: true }, { type: "tick", elapsedMs: 250 }).at).toBe(5_250);
+    expect(replayReducer({ ...base, playing: true, speed: 8 }, { type: "tick", elapsedMs: 250 }).at).toBe(7_000);
   });
-  it("play from the last lap restarts at lap 1", () => {
-    expect(replayReducer({ ...base, lap: 58 }, { type: "toggle" })).toMatchObject({ lap: 1, playing: true });
+  it("stops at the flag", () => {
+    expect(replayReducer({ ...base, at: 8_900, playing: true }, { type: "tick", elapsedMs: 250 })).toMatchObject({ at: 9_000, playing: false });
   });
-  it("load clamps a deep-linked lap to the session length", () => {
-    expect(replayReducer({ ...base, lap: 70, totalLaps: 1 }, { type: "load", totalLaps: 53 }).lap).toBe(53);
+  it("play from the flag restarts at lights out", () => {
+    expect(replayReducer({ ...base, at: 9_000 }, { type: "toggle" })).toMatchObject({ at: 1_000, playing: true });
+  });
+  it("load clamps a deep-linked instant to the race", () => {
+    expect(replayReducer(base, { type: "load", start: 2_000, end: 3_000, at: 70_000 })).toMatchObject({ at: 3_000, start: 2_000, end: 3_000 });
+  });
+  it("keeps speed across pause and play", () => {
+    const fast = replayReducer(base, { type: "speed", speed: 4 });
+    expect(replayReducer(replayReducer(fast, { type: "toggle" }), { type: "toggle" }).speed).toBe(4);
   });
 });
 
