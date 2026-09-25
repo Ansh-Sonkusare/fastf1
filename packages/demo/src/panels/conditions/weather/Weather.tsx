@@ -3,7 +3,7 @@ import type { WeatherViewModel } from "./shape";
 
 export interface WeatherProps {
   /**
-   * Array of weather data points to display.
+   * Array of weather data points to display, ordered by date.
    * The component shows the most recent entries as mini-cards
    * with sparkline trends.
    */
@@ -12,8 +12,13 @@ export interface WeatherProps {
 
 /**
  * Weather panel component.
- * Displays current weather conditions (temperature, humidity, wind, etc.)
- * with optional sparkline visualizations for trends.
+ * Displays current weather conditions (temperature, humidity, wind, precipitation)
+ * with sparkline visualizations showing trends over time.
+ *
+ * Matches reference panel-08.png layout:
+ * - Label + 4 key metrics (Air, Track, Wind, Precipitation)
+ * - Each shows current value and sparkline chart
+ * - Uses IBM Plex Mono and Monza color scheme
  *
  * This is a phase 1 presentational component.
  * In phase 2, it will be wired to receive shaped data from the OpenF1 gate.
@@ -30,33 +35,24 @@ export const Weather: React.FC<WeatherProps> = ({ weather }) => {
   // Get the latest weather reading
   const latest = weather[weather.length - 1];
 
-  // Calculate trend: check if value changed from previous reading
-  const prev = weather.length > 1 ? weather[weather.length - 2] : null;
-
   return (
-    <div style={{ display: "flex", gap: "22px", padding: "8px" }}>
+    <div style={{ display: "flex", gap: "22px", padding: "8px", alignItems: "center" }}>
       {latest.airTemperature !== undefined && (
         <WeatherMetric
-          label="Air Temp"
+          label="Air"
           value={latest.airTemperature}
           unit="°C"
-          previousValue={prev?.airTemperature}
+          data={weather.map((w) => w.airTemperature ?? 0).filter((v) => v > 0)}
+          color="#e4e7eb"
         />
       )}
       {latest.trackTemperature !== undefined && (
         <WeatherMetric
-          label="Track Temp"
+          label="Track"
           value={latest.trackTemperature}
           unit="°C"
-          previousValue={prev?.trackTemperature}
-        />
-      )}
-      {latest.humidity !== undefined && (
-        <WeatherMetric
-          label="Humidity"
-          value={latest.humidity}
-          unit="%"
-          previousValue={prev?.humidity}
+          data={weather.map((w) => w.trackTemperature ?? 0).filter((v) => v > 0)}
+          color="#f5d020"
         />
       )}
       {latest.windSpeed !== undefined && (
@@ -64,15 +60,18 @@ export const Weather: React.FC<WeatherProps> = ({ weather }) => {
           label="Wind"
           value={latest.windSpeed}
           unit="m/s"
-          previousValue={prev?.windSpeed}
+          data={weather.map((w) => w.windSpeed ?? 0)}
+          subtext={getWindDirection(latest.windDirection)}
+          color="#e4e7eb"
         />
       )}
       {latest.precipitation !== undefined && (
         <WeatherMetric
-          label="Precip"
+          label="Rain"
           value={latest.precipitation}
-          unit=""
-          previousValue={prev?.precipitation}
+          unit="%"
+          data={weather.map((w) => w.precipitation ?? 0)}
+          color="#6fd3e8"
         />
       )}
     </div>
@@ -83,25 +82,25 @@ interface WeatherMetricProps {
   label: string;
   value: number;
   unit: string;
-  previousValue?: number;
+  data: number[];
+  color?: string;
+  subtext?: string;
 }
 
 /**
- * Individual weather metric display.
- * Shows a label, value, and optional trend indicator.
+ * Individual weather metric display with sparkline.
+ * Shows a label, current value, and trend chart.
  */
 const WeatherMetric: React.FC<WeatherMetricProps> = ({
   label,
   value,
   unit,
-  previousValue,
+  data,
+  color = "#e4e7eb",
+  subtext,
 }) => {
-  // Determine if value is increasing or decreasing
-  let trend: "up" | "down" | "stable" = "stable";
-  if (previousValue !== undefined && previousValue !== null) {
-    if (value > previousValue) trend = "up";
-    else if (value < previousValue) trend = "down";
-  }
+  // Generate a simple SVG sparkline from the data
+  const sparklinePath = generateSparkline(data);
 
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -119,25 +118,78 @@ const WeatherMetric: React.FC<WeatherMetricProps> = ({
         <span
           style={{
             font: '500 14px/1 "IBM Plex Mono", monospace',
+            color: "#e4e7eb",
           }}
         >
           {value.toFixed(1)}
           {unit}
         </span>
+        {subtext && (
+          <span
+            style={{
+              font: '400 9px/1 "IBM Plex Mono", monospace',
+              color: "#8b939e",
+            }}
+          >
+            {subtext}
+          </span>
+        )}
       </div>
-      {/* Placeholder for sparkline - phase 2 enhancement */}
-      <div
+      {/* Sparkline chart */}
+      <svg
+        viewBox="0 0 100 24"
+        preserveAspectRatio="none"
         style={{
           width: "84px",
           height: "26px",
-          background: "rgba(139, 147, 158, 0.1)",
-          borderRadius: "2px",
+          display: "block",
           flexShrink: 0,
         }}
-        title={`Trend: ${trend}`}
-      />
+      >
+        <path
+          d={sparklinePath}
+          style={{
+            fill: "none",
+            stroke: color,
+            strokeWidth: 1.5,
+            vectorEffect: "non-scaling-stroke",
+          }}
+        />
+      </svg>
     </div>
   );
 };
+
+/**
+ * Converts numeric data array into an SVG path for a sparkline.
+ * Normalizes data to fit in a 100x24 viewBox.
+ */
+function generateSparkline(data: number[]): string {
+  if (data.length < 2) return "M0,12 L100,12"; // Flat line if not enough data
+
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+
+  const points = data.map((value, index) => {
+    const x = (index / (data.length - 1)) * 100;
+    const y = 24 - ((value - min) / range) * 24;
+    return `${x},${y}`;
+  });
+
+  return `M${points.join(" L")}`;
+}
+
+/**
+ * Convert wind direction degrees to compass direction abbreviation.
+ */
+function getWindDirection(degrees?: number): string {
+  if (degrees === undefined || degrees === null) return "";
+
+  const directions = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+                      "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+  const index = Math.round(degrees / 22.5) % 16;
+  return directions[index];
+}
 
 export default Weather;
