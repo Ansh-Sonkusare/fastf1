@@ -16,39 +16,30 @@ export interface LapTimeViewModel {
 
 /**
  * Identify Safety Car / VSC periods: [lapStart, lapEnd] ranges where the
- * whole field was slowed. A field-wide period is a `scope: "Track"` yellow
- * (not a local `scope: "Sector"` double-yellow) that later clears with a
- * `scope: "Track"` green, or an explicit "SAFETY CAR" message. Neither 2025
- * Abu Dhabi (9839) nor Monza (9912) had one in their real race_control feed
- * (see lapTimes.test.ts).
+ * whole field was slowed. Mirrors `app/timeline.ts`'s `flagAt`, the shell's
+ * proven parser: OpenF1 marks SC/VSC with `category: "SafetyCar"`, a
+ * "DEPLOYED" message to start, and "... IN THIS LAP" / "... ENDING" to end
+ * (never a plain track GREEN). Neither 2025 Abu Dhabi (9839) nor Monza
+ * (9912) had a `SafetyCar` row at all (see lapTimes.test.ts).
  */
 export function identifySCPeriods(
   raceControl: RaceControl[],
   sessionKey: number
 ): Array<[number, number]> {
   const periods: Array<[number, number]> = [];
-  let scStartLap: number | null = null;
+  let startLap: number | null = null;
 
   const events = raceControl
-    .filter((rc) => rc.session_key === sessionKey && rc.category === "Flag")
+    .filter((rc) => rc.session_key === sessionKey && rc.category === "SafetyCar")
     .sort((a, b) => a.date.localeCompare(b.date));
 
   for (const event of events) {
-    const lap = event.lap_number;
-    if (!lap) continue;
-
-    const isTrackWide = event.scope === "Track" || event.scope == null;
-    const isSCMessage = event.message.toUpperCase().includes("SAFETY CAR");
-    const isYellow = event.flag === "YELLOW" || event.flag === "DOUBLE YELLOW";
-    const isClear = event.flag === "GREEN" || event.flag === "CHEQUERED";
-
-    if (scStartLap === null && isSCMessage) {
-      scStartLap = lap;
-    } else if (scStartLap === null && isTrackWide && isYellow) {
-      scStartLap = lap;
-    } else if (scStartLap !== null && isTrackWide && isClear) {
-      periods.push([scStartLap, lap]);
-      scStartLap = null;
+    const msg = event.message.toUpperCase();
+    if (msg.includes("DEPLOYED")) {
+      startLap ??= event.lap_number ?? null;
+    } else if (startLap !== null && (msg.includes("IN THIS LAP") || msg.includes("ENDING"))) {
+      periods.push([startLap, event.lap_number ?? startLap]);
+      startLap = null;
     }
   }
 
