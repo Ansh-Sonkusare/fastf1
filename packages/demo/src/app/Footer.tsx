@@ -2,8 +2,7 @@ import { TabStrip } from "../ui/primitives";
 import { color, font } from "../ui/tokens";
 
 /**
- * Desk mode's key-hint bar. D/H/L are placeholders for tower detail, race-control history and
- * "go live" — later PRs wire their state; only M (wall/desk) is functional here.
+ * Desk mode's key-hint bar. D and H belong to the tower and race control panels; L jumps to the flag.
  */
 export function Footer({ onWall }: { onWall: () => void }) {
   return (
@@ -19,7 +18,7 @@ export function Footer({ onWall }: { onWall: () => void }) {
           <span>1–5 EVIDENCE</span>
           <span>6–9 ANALYSIS</span>
           <span>SPACE PLAY/PAUSE</span>
-          <span>←/→ PREV/NEXT LAP</span>
+          <span>←/→ 10S · SHIFT 60S</span>
         </span>
       }
     />

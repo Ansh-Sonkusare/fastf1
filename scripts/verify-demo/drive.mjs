@@ -125,6 +125,14 @@ async function run(step) {
     case "wait":
       await page.waitForTimeout(Number(arg));
       return;
+    case "key":
+      await page.keyboard.press(arg);
+      return;
+    case "assert-url": {
+      const now = page.url();
+      if (!now.includes(arg)) throw new Error(`url ${now} lacks ${arg}`);
+      return;
+    }
     case "goto":
       await page.goto(new URL(arg, url).href, { waitUntil: "domcontentloaded" });
       return;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildTimeline, driverLapBlock, driverLapWindow, flagAt, lapAt, lapCrossings, ownLap, raceClockAt } from "./timeline";
+import { buildTimeline, driverLapBlock, driverLapWindow, flagAt, flagBands, lapAt, lapCrossings, ownLap, raceClockAt } from "./timeline";
 import vegas from "../panels/tower/__fixtures__/vegas.json";
 import zandvoort from "../panels/tower/__fixtures__/zandvoort.json";
 import australia from "../panels/tower/__fixtures__/australia.json";
@@ -91,5 +91,21 @@ describe("one lap rule for tower and helpers", () => {
     const w = driverLapWindow(ac, 30, 50)!;
     expect([Date.parse(w.start), Date.parse(w.end!)]).toEqual([ac.get(30)![45], ac.get(30)![46]]);
     expect(driverLapWindow(ac, 55, 10)).toBeNull();
+  });
+});
+
+describe("flagBands", () => {
+  const tl = buildTimeline(lapCrossings(laps));
+  const rows = [
+    rc(100, { category: "SafetyCar", message: "SAFETY CAR DEPLOYED", lap_number: 2 }),
+    rc(200, { category: "SafetyCar", message: "SAFETY CAR IN THIS LAP", lap_number: 3 }),
+  ];
+  const at = (s: number) => Date.parse(iso(s));
+
+  it("shows no band for a safety car deployed after the cursor", () => {
+    expect(flagBands(tl, rows, at(95))).toEqual([]);
+  });
+  it("opens the band on the lap in progress once the safety car is out", () => {
+    expect(flagBands(tl, rows, at(120))).toEqual([{ kind: "sc", fromLap: 2, toLap: 2 }]);
   });
 });

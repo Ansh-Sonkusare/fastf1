@@ -1,38 +1,49 @@
 import type { DriverNumber, Focus } from "./types";
 
+export const SPEEDS = [1, 2, 4, 8, 16] as const;
+export type Speed = (typeof SPEEDS)[number];
+
+/** The replay cursor. `at` is epoch ms inside [start, end]: lights out to the flag. */
 export interface ReplayState {
-  readonly lap: number;
-  readonly totalLaps: number;
+  readonly at: number;
+  readonly start: number;
+  readonly end: number;
+  readonly speed: Speed;
   readonly playing: boolean;
   readonly focus: Focus;
 }
 
 export type ReplayAction =
-  | { readonly type: "load"; readonly totalLaps: number }
-  | { readonly type: "seek"; readonly lap: number }
-  | { readonly type: "tick" }
+  | { readonly type: "load"; readonly start: number; readonly end: number; readonly at: number }
+  | { readonly type: "seek"; readonly at: number }
+  | { readonly type: "tick"; readonly elapsedMs: number }
   | { readonly type: "toggle" }
+  | { readonly type: "speed"; readonly speed: Speed }
   | { readonly type: "focus"; readonly focus: Focus };
 
-const clampLap = (lap: number, total: number) => Math.min(Math.max(1, Math.round(lap)), Math.max(1, total));
+const clamp = (at: number, s: ReplayState) => Math.min(Math.max(s.start, at), s.end);
 
 export function replayReducer(state: ReplayState, action: ReplayAction): ReplayState {
   switch (action.type) {
-    case "load":
-      return { ...state, totalLaps: action.totalLaps, lap: clampLap(state.lap, action.totalLaps) };
+    case "load": {
+      const loaded = { ...state, start: action.start, end: action.end };
+      return { ...loaded, at: clamp(action.at, loaded) };
+    }
     case "seek":
-      return { ...state, lap: clampLap(action.lap, state.totalLaps) };
+      return { ...state, at: clamp(action.at, state) };
     case "tick": {
       if (!state.playing) return state;
-      const lap = clampLap(state.lap + 1, state.totalLaps);
-      return { ...state, lap, playing: lap < state.totalLaps };
+      const at = clamp(state.at + action.elapsedMs * state.speed, state);
+      return { ...state, at, playing: at < state.end };
     }
     case "toggle":
       return {
         ...state,
         playing: !state.playing,
-        lap: !state.playing && state.lap >= state.totalLaps ? 1 : state.lap,
+        at: !state.playing && state.at >= state.end ? state.start : state.at,
       };
+    case "speed":
+      return { ...state, speed: action.speed };
     case "focus":
       return { ...state, focus: action.focus };
   }

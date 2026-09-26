@@ -42,8 +42,12 @@ export interface LapWindow {
 /** Everything a panel gets. The shell renders panels only once the session is loaded. */
 export interface PanelProps {
   readonly session: ConsoleSession;
-  /** Replay cursor, 1..totalLaps. */
+  /** The replay instant, epoch ms. Rows from useOpenF1 are already cut here; nothing later is visible. */
+  readonly at: number;
+  /** The race lap in progress at `at` (lapAt), 1..totalLaps. */
   readonly lap: number;
+  /** The latest race lap the leader has finished at `at`: lap - 1 mid-lap, lap once the flag falls. */
+  readonly completedLap: number;
   readonly totalLaps: number;
   readonly playing: boolean;
   readonly focus: Focus;

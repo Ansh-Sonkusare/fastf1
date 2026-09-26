@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
+import { SPEEDS, type Speed } from "./replay";
 import type { FlagBand } from "./timeline";
 import { color, font, futureHatch } from "../ui/tokens";
 import type { LayoutMode } from "../ui/primitives";
@@ -26,27 +27,34 @@ export function TimelineBar({
   mode,
   label,
   lap,
+  position,
   totalLaps,
   playing,
+  speed,
   onToggle,
   onSeek,
+  onSpeed,
   bands,
   pitLaps,
 }: {
   mode: LayoutMode;
   label: ReactNode;
   lap: number;
+  /** Laps elapsed since lights out, fractional: the playhead moves within a lap. */
+  position: number;
   totalLaps: number;
   playing: boolean;
+  speed: Speed;
   onToggle: () => void;
   onSeek: (lap: number) => void;
+  onSpeed: (speed: Speed) => void;
   bands: readonly FlagBand[];
   pitLaps: readonly number[];
 }) {
   const big = mode === "wall";
   const pct = (l: number) => (totalLaps <= 1 ? 0 : ((l - 1) / (totalLaps - 1)) * 100);
   const cell = totalLaps > 1 ? 100 / (totalLaps - 1) : 100;
-  const head = pct(lap);
+  const head = Math.min(100, pct(1 + position));
   const trackHeight = big ? 50 : 34;
 
   return (
@@ -63,6 +71,20 @@ export function TimelineBar({
         {playing ? "❚❚" : "▶"}
       </button>
       {label}
+      <span style={{ display: "flex", gap: 2 }}>
+        {SPEEDS.map((x) => (
+          <button
+            key={x}
+            type="button"
+            aria-label={`Speed ${x}x`}
+            aria-pressed={x === speed}
+            onClick={() => onSpeed(x)}
+            style={{ ...speedStyle, background: x === speed ? color.accent : "transparent", color: x === speed ? color.bg : color.label }}
+          >
+            {x}×
+          </button>
+        ))}
+      </span>
       <div style={{ position: "relative", flex: 1, height: trackHeight, marginTop: 4 }}>
         <div style={{ position: "absolute", left: 0, right: 0, top: trackHeight / 2 - 1, height: 2, background: color.border }} />
         <div style={{ position: "absolute", left: 0, top: trackHeight / 2 - 1, height: 2, width: `${head}%`, background: color.label }} />
@@ -148,6 +170,14 @@ const playButtonStyle = {
   border: `1px solid ${color.borderMuted}`,
   background: "transparent",
   color: color.text,
+  font: `700 10px/1 ${font.mono}`,
+  cursor: "pointer",
+} as const;
+
+const speedStyle = {
+  height: 22,
+  padding: "0 6px",
+  border: `1px solid ${color.borderMuted}`,
   font: `700 10px/1 ${font.mono}`,
   cursor: "pointer",
 } as const;
