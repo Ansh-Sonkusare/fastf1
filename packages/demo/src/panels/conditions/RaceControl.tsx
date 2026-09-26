@@ -18,9 +18,8 @@ import { RaceControl as RaceControlView } from "./racecontrol/RaceControl";
  *
  * - Fetches `race_control` and `team_radio` whole-session (never per-lap,
  *   per CONTRACT.md) through B's gate via `useOpenF1`.
- * - Cuts both feeds off at `lapWindow` (the replay's current lap as the
- *   leader ran it) in the pure `shapeRaceEvents` function, so nothing from
- *   a future lap ever renders.
+ * - Cuts both feeds off at the replay cursor `at` in the pure
+ *   `shapeRaceEvents` function, so no message dated after it ever renders.
  * - Radio clips play through the `<audio>` element in
  *   `racecontrol/RaceControl.tsx`; its `recording_url` points at F1's
  *   livetiming CDN, not the OpenF1 API, so it isn't subject to the gate's
@@ -35,7 +34,7 @@ import { RaceControl as RaceControlView } from "./racecontrol/RaceControl";
  * The casts below route the raw rows into the locally-defined types that
  * do match.
  */
-export default function RaceControl({ session, lapWindow, focus, drivers }: PanelProps) {
+export default function RaceControl({ session, at, focus, drivers }: PanelProps) {
   const mode = useLayoutMode();
   const [historyOpen, setHistoryOpen] = useState(false);
   useHotkey("h", () => setHistoryOpen((v) => !v));
@@ -43,7 +42,7 @@ export default function RaceControl({ session, lapWindow, focus, drivers }: Pane
   const raceControl = useOpenF1("race_control", session.sessionKey);
   const teamRadio = useOpenF1("team_radio", session.sessionKey);
   const combined = combine(raceControl, teamRadio);
-  const cutoff = lapWindow?.end ?? lapWindow?.start ?? session.dateStart;
+  const cutoff = new Date(at).toISOString();
   const events =
     combined.status === "ok"
       ? shapeRaceEvents(

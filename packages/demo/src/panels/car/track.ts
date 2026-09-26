@@ -173,25 +173,39 @@ export interface CarPosition {
   readonly index: number;
 }
 
+/**
+ * Each car's index along the reference line at `at`, from lap start and sector times. The lap in progress has
+ * no duration yet (the cursor hides it), so it runs at the pace of the car's latest completed lap, anchored on any sector
+ * lines already crossed, and waits just short of the line if the car is slower than that.
+ */
 export function carPositions(laps: readonly OpenF1Lap[], at: string, geometry: TrackGeometry): CarPosition[] {
   const t = ms(at);
   const n = geometry.points.length;
   const [s2, s3] = geometry.sectorStarts;
+  const completed = laps.filter((l) => l.lap_duration != null);
+  const paceBefore = (l: OpenF1Lap) =>
+    completed.reduce<OpenF1Lap | undefined>(
+      (best, c) => (c.driver_number === l.driver_number && c.lap_number < l.lap_number && c.lap_number > (best?.lap_number ?? 0) ? c : best),
+      undefined,
+    );
   const out = new Map<number, CarPosition & { lap: number }>();
   for (const l of laps) {
-    if (l.date_start == null || l.lap_duration == null) continue;
-    const into = (t - ms(l.date_start)) / 1000;
-    if (into < 0 || into >= l.lap_duration) continue;
-    const d1 = l.duration_sector_1;
-    const d2 = l.duration_sector_2;
+    const running = l.lap_duration == null;
+    const prev = running ? paceBefore(l) : undefined;
+    const lapDuration = l.lap_duration ?? prev?.lap_duration;
+    if (l.date_start == null || lapDuration == null) continue;
+    const into = Math.min((t - ms(l.date_start)) / 1000, running ? lapDuration * 0.999 : Number.POSITIVE_INFINITY);
+    if (into < 0 || into >= lapDuration) continue;
+    const d1 = l.duration_sector_1 ?? prev?.duration_sector_1;
+    const d2 = l.duration_sector_2 ?? prev?.duration_sector_2;
     const spans: [number, number, number][] =
-      d1 != null && d2 != null
+      d1 != null && d2 != null && d1 + d2 < lapDuration
         ? [
             [0, d1, s2],
             [d1, d1 + d2, s3],
-            [d1 + d2, l.lap_duration, n],
+            [d1 + d2, lapDuration, n],
           ]
-        : [[0, l.lap_duration, n]];
+        : [[0, lapDuration, n]];
     let from = 0;
     for (const [t0, t1, to] of spans) {
       if (into < t1) {

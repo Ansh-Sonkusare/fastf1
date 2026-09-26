@@ -1,12 +1,13 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { pick } from "../../app/replay";
 import { lapCrossings, pitLanePassLaps, realPitStops } from "../../app/timeline";
+import { standingsAt, timingLines } from "../../app/timing";
 import type { PanelProps } from "../../app/types";
 import { combine, useOpenF1 } from "../../data/useOpenF1";
 import { formatGap, formatLapTime } from "../../ui/format";
 import { AsyncView, PanelFrame, useHotkey, useLayoutMode } from "../../ui/primitives";
 import { color, font, tyreOf, type } from "../../ui/tokens";
-import { buildTower, type LapTone, type TowerRow } from "./shape";
+import { atInstant, buildTower, type LapTone, type TowerRow } from "./shape";
 
 const DETAIL_COLUMNS = "20px 3px 52px 62px 52px 64px 64px 44px 16px";
 const DESK_COMPACT_COLUMNS = "28px 3px minmax(0,1fr) 90px 62px";
@@ -18,7 +19,7 @@ const HINT_KEY = "undercut.towerHint";
 
 type Mark = "A" | "B" | null;
 
-export default function TimingTower({ session, lap, focus, drivers, setFocus }: PanelProps) {
+export default function TimingTower({ session, at, lap, focus, drivers, setFocus }: PanelProps) {
   const mode = useLayoutMode();
   const big = mode === "wall";
 
@@ -57,6 +58,7 @@ export default function TimingTower({ session, lap, focus, drivers, setFocus }: 
   );
   const laps = data.status === "ok" ? data.data[0] : null;
   const crossings = useMemo(() => (laps ? lapCrossings(laps) : null), [laps]);
+  const lines = useMemo(() => (laps && crossings ? timingLines(crossings, laps) : null), [laps, crossings]);
   const onPick = (driver: number, compare: boolean) => setFocus(pick(focus, driver, compare));
 
   const showDetail = !big && detail;
@@ -78,8 +80,11 @@ export default function TimingTower({ session, lap, focus, drivers, setFocus }: 
     >
       <AsyncView state={data}>
         {([laps, stints, raceControl, pits]) => {
-          if (!crossings) return null;
-          const rows = buildTower({ lap, crossings, laps, stints, stops: realPitStops(pits, stints, pitLanePassLaps(raceControl)), retired });
+          if (!crossings || !lines) return null;
+          const rows = atInstant(
+            buildTower({ lap, crossings, laps, stints, stops: realPitStops(pits, stints, pitLanePassLaps(raceControl)), retired }),
+            standingsAt(lines, at),
+          );
           return (
             <>
               {!big &&

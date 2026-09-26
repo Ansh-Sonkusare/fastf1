@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { pitLanePassLaps, realPitStops } from "../../app/timeline";
 import type { PanelProps } from "../../app/types";
 import { combine, useOpenF1 } from "../../data/useOpenF1";
+import { useCursor } from "../../data/source";
 import {
   AsyncView,
   PanelFrame,
@@ -24,7 +25,8 @@ export const DEFAULT_PIT_LOSS = 21.4;
 
 type TabKey = "plans" | "ghost" | "window" | "degradation" | "threats";
 
-export default function StrategyPredictor({ session, lap, focus, drivers, ownLapOf }: PanelProps) {
+export default function StrategyPredictor({ session, completedLap, totalLaps, focus, drivers, ownLapOf }: PanelProps) {
+  const cursor = useCursor();
   const data = combine(
     useOpenF1("laps", session.sessionKey),
     useOpenF1("stints", session.sessionKey),
@@ -41,10 +43,10 @@ export default function StrategyPredictor({ session, lap, focus, drivers, ownLap
       team_colour: d.color.replace("#", ""),
     }));
     const stops = realPitStops(pit, stints, pitLanePassLaps(raceControl));
-    return parseRace({ laps, stints, stops, drivers: driverRows });
-  }, [data, drivers]);
-  // A lapped car is a lap behind the cursor; plan from the lap it last completed, never a later one.
-  const ownLap = focus.a == null ? lap : ownLapOf(focus.a, lap);
+    return parseRace({ laps, stints, stops, drivers: driverRows, totalLaps });
+  }, [data, drivers, totalLaps]);
+  // Plan from the lap the car last finished at the cursor; a lapped car is a lap behind the leader.
+  const ownLap = focus.a == null ? completedLap : Math.min(ownLapOf(focus.a, completedLap), cursor.lapOf(focus.a) - 1);
   const strategy = useMemo(
     () =>
       race && focus.a != null

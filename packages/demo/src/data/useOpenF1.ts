@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import { cut } from "./cutoff";
 import {
-  gate,
   isLocked,
   openF1Url,
   type OpenF1Endpoint,
@@ -8,6 +8,7 @@ import {
   type OpenF1Rows,
   type SessionKey,
 } from "./openf1";
+import { CursorContext, useRaceSource } from "./source";
 
 export type Async<T> =
   | { readonly status: "loading" }
@@ -55,7 +56,8 @@ export function useAsync<T>(key: string | null, load: (signal: AbortSignal) => P
 }
 
 /**
- * Fetch one OpenF1 endpoint for the console's session through the shared gate.
+ * One OpenF1 endpoint for the console's session, read through the RaceSource and cut at the cursor, so a panel
+ * never sees a row from after `at`. The result keeps its identity while the visible rows are unchanged.
  * Pass `filters === null` to hold the request (e.g. no driver focused yet).
  */
 export function useOpenF1<E extends OpenF1Endpoint>(
@@ -63,8 +65,24 @@ export function useOpenF1<E extends OpenF1Endpoint>(
   sessionKey: SessionKey,
   filters: OpenF1Filters | null = {},
 ): Async<OpenF1Rows[E][]> {
+  const source = useRaceSource();
+  const cursor = useContext(CursorContext);
   const url = filters === null ? null : openF1Url(endpoint, { ...filters, session_key: sessionKey });
-  return useAsync(url, (signal) => gate.get(endpoint, sessionKey, filters ?? {}, signal));
+  const raw = useAsync(url, (signal) => source.rows(endpoint, filters ?? {}, signal));
+  const rows = raw.status === "ok" ? raw.data : null;
+  const visible = useStable(useMemo(() => (rows ? cut(endpoint, rows, cursor) : null), [endpoint, rows, cursor]));
+  return useMemo(
+    () => (raw.status === "ok" && visible ? { status: "ok", data: visible as OpenF1Rows[E][] } : raw),
+    [raw, visible],
+  );
+}
+
+/** The previous array while its elements are the same objects, so downstream memos don't rerun each tick. */
+function useStable<T>(next: readonly T[] | null): readonly T[] | null {
+  const prev = useRef(next);
+  const same = prev.current !== null && next !== null && prev.current.length === next.length && next.every((x, i) => x === prev.current![i]);
+  if (!same) prev.current = next;
+  return prev.current;
 }
 
 type OkData<T> = { [K in keyof T]: T[K] extends Async<infer D> ? D : never };

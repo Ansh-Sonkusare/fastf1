@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { abuRace, abuRows, monzaRace } from "./__fixtures__/races";
+import { computeStrategy } from "./model";
 import { parseRace, standingsAt } from "./race";
 import type { RaceDriver } from "./types";
 
@@ -14,6 +15,12 @@ describe("parseRace", () => {
   it("takes the race distance from the lap rows", () => {
     expect(abuRace.totalLaps).toBe(58);
     expect(monzaRace.totalLaps).toBe(53);
+  });
+
+  it("keeps the scheduled distance when the rows are cut mid-race", () => {
+    const cut = parseRace({ ...abuRows, laps: abuRows.laps.filter((l) => l.lap_number <= 20) });
+    expect(cut.totalLaps).toBe(58);
+    expect(computeStrategy(cut, { lap: 19, focus: 1, pitLoss: 21.4, safetyCar: false })?.lap).toBe(19);
   });
 
   it("tracks compound, tyre age and pit laps through a stop", () => {

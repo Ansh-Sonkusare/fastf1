@@ -10,7 +10,8 @@ import { TelemetryView } from "./TelemetryView";
 const note = (text: string) => <div style={{ padding: 16, font: type.label, color: color.dim }}>{text}</div>;
 
 export default function Telemetry(props: PanelProps) {
-  const { session, lap, focus, drivers } = props;
+  const { session, completedLap, focus, drivers, ownLapOf } = props;
+  const lap = Math.max(1, completedLap);
   const sk = session.sessionKey;
   const [hover, setHover] = useState<number | null>(null);
   const laps = useOpenF1("laps", sk);
@@ -22,7 +23,7 @@ export default function Telemetry(props: PanelProps) {
   const colorA = a?.color ?? color.text;
   const colorB = !b || b.color === colorA ? color.text : b.color;
   const lapOf = (rows: typeof laps, n: number | null) =>
-    rows.status === "ok" ? rows.data.find((l) => l.lap_number === lap && l.driver_number === n) : undefined;
+    rows.status === "ok" ? rows.data.find((l) => n != null && l.lap_number === ownLapOf(n, lap) && l.driver_number === n) : undefined;
   const lapA = lapOf(laps, focus.a);
   const lapB = lapOf(laps, focus.b);
   const all = combine(carA, carB);

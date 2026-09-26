@@ -26,7 +26,7 @@ export default function TrackMap(props: PanelProps) {
     [ref, refLocation, refCar],
   );
   const info = circuit.status === "ok" ? circuit.data : null;
-  const at = lapWindow ? (lapWindow.end ?? lapWindow.start) : null;
+  const at = lapWindow ? new Date(props.at).toISOString() : null;
   const yellows =
     raceControl.status === "ok" && lapWindow && at ? yellowsDuring(raceControl.data, lapWindow.start, at) : new Map<number, never>();
 
