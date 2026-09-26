@@ -176,7 +176,8 @@ export interface CarPosition {
 /**
  * Each car's index along the reference line at `at`, from lap start and sector times. The lap in progress has
  * no duration yet (the cursor hides it), so it runs at the pace of the car's latest completed lap, anchored on any sector
- * lines already crossed, and waits just short of the line if the car is slower than that.
+ * lines already crossed, and waits just short of the line if the car is slower than that. A lap still running at twice
+ * that pace means the car stopped, so it has no position. Under a red flag that empties the map until the restart.
  */
 export function carPositions(laps: readonly OpenF1Lap[], at: string, geometry: TrackGeometry): CarPosition[] {
   const t = ms(at);
@@ -194,7 +195,9 @@ export function carPositions(laps: readonly OpenF1Lap[], at: string, geometry: T
     const prev = running ? paceBefore(l) : undefined;
     const lapDuration = l.lap_duration ?? prev?.lap_duration;
     if (l.date_start == null || lapDuration == null) continue;
-    const into = Math.min((t - ms(l.date_start)) / 1000, running ? lapDuration * 0.999 : Number.POSITIVE_INFINITY);
+    const elapsed = (t - ms(l.date_start)) / 1000;
+    if (running && elapsed > lapDuration * 2) continue;
+    const into = Math.min(elapsed, running ? lapDuration * 0.999 : Number.POSITIVE_INFINITY);
     if (into < 0 || into >= lapDuration) continue;
     const d1 = l.duration_sector_1 ?? prev?.duration_sector_1;
     const d2 = l.duration_sector_2 ?? prev?.duration_sector_2;
@@ -222,6 +225,41 @@ export function carPositions(laps: readonly OpenF1Lap[], at: string, geometry: T
     }
   }
   return [...out.values()].map(({ number, index }) => ({ number, index })).sort((a, b) => a.number - b.number);
+}
+
+/** Fractional index along the closed reference line of the point nearest `p`, projected onto its segment. */
+export function indexNear(points: readonly Point[], [px, py]: Point): number {
+  let best = 0;
+  let bestD = Number.POSITIVE_INFINITY;
+  for (let i = 0; i < points.length; i++) {
+    const [ax, ay] = points[i]!;
+    const [bx, by] = points[(i + 1) % points.length]!;
+    const dx = bx - ax;
+    const dy = by - ay;
+    const len2 = dx * dx + dy * dy;
+    const f = len2 === 0 ? 0 : Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / len2));
+    const d = (ax + f * dx - px) ** 2 + (ay + f * dy - py) ** 2;
+    if (d < bestD) {
+      bestD = d;
+      best = i + f;
+    }
+  }
+  return best % points.length;
+}
+
+/**
+ * Simulated positions with each car that has a real location moved onto the line where it really was.
+ * Only running cars move: a retired car still reports a location from the garage or wherever it stopped.
+ */
+export function withRealPositions(
+  simulated: readonly CarPosition[],
+  real: ReadonlyMap<number, Point>,
+  points: readonly Point[],
+): CarPosition[] {
+  return simulated.map((s) => {
+    const p = real.get(s.number);
+    return p ? { number: s.number, index: indexNear(points, p) } : s;
+  });
 }
 
 export function pointAt(points: readonly Point[], index: number): Point {

@@ -1,7 +1,8 @@
+import type { OpenF1Lap } from "@f1/core";
 import { describe, expect, it } from "vitest";
 import { ABU_DHABI, MONZA, type RaceFixture } from "./__fixtures__";
 import { cut } from "../../data/cutoff";
-import { activeYellows, buildTrackGeometry, carPositions, pointAt, yellowsDuring, fitToView, pickReferenceLap, trackView } from "./track";
+import { activeYellows, buildTrackGeometry, carPositions, indexNear, pointAt, withRealPositions, yellowsDuring, fitToView, pickReferenceLap, trackView } from "./track";
 
 const geometry = (race: RaceFixture) => buildTrackGeometry(pickReferenceLap(race.laps)!, race.refLap.location, race.refLap.carData);
 
@@ -188,5 +189,39 @@ describe("trackView", () => {
     expect(Math.min(...xs) >= 0 && Math.max(...xs) <= 460 && Math.min(...ys) >= 0 && Math.max(...ys) <= 300).toBe(true);
     expect(view.sectors.map((s) => s.label)).toEqual(["S1", "S2", "S3"]);
     expect(view.drs).toHaveLength(2);
+  });
+});
+
+describe("carPositions for a car that stopped", () => {
+  const T0 = Date.parse("2025-01-01T00:00:00Z");
+  const iso = (s: number) => new Date(T0 + s * 1000).toISOString();
+  const square: [number, number][] = [[0, 0], [100, 0], [100, 100], [0, 100]];
+  const g = { points: square, sectorStarts: [1, 2] as const, drs: [] };
+  const laps = [
+    { session_key: 1, meeting_key: 1, driver_number: 44, lap_number: 1, date_start: iso(0), lap_duration: 80 },
+    { session_key: 1, meeting_key: 1, driver_number: 44, lap_number: 2, date_start: iso(80) },
+  ] as OpenF1Lap[];
+
+  it("waits short of the line while slower than its pace, then has no position", () => {
+    expect(carPositions(laps, iso(80 + 100), g).map((p) => p.number)).toEqual([44]);
+    expect(carPositions(laps, iso(80 + 161), g)).toEqual([]);
+  });
+});
+
+describe("real positions on the reference line", () => {
+  const square: [number, number][] = [[0, 0], [100, 0], [100, 100], [0, 100]];
+
+  it("projects a point onto the nearest segment as a fractional index", () => {
+    expect(indexNear(square, [25, 3])).toBe(0.25);
+    expect(indexNear(square, [104, 50])).toBe(1.5);
+    expect(indexNear(square, [-2, 60])).toBeCloseTo(3.4);
+  });
+
+  it("moves running cars with a real location and never adds a car the simulation dropped", () => {
+    const simulated = [{ number: 1, index: 0.5 }, { number: 4, index: 2 }];
+    expect(withRealPositions(simulated, new Map([[4, [50, 101] as const], [44, [0, 50] as const]]), square)).toEqual([
+      { number: 1, index: 0.5 },
+      { number: 4, index: 2.5 },
+    ]);
   });
 });

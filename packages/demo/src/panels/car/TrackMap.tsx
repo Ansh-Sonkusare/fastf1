@@ -1,11 +1,12 @@
 import { useMemo } from "react";
 import type { PanelProps } from "../../app/types";
 import { combine, useAsync, useOpenF1 } from "../../data/useOpenF1";
+import { indexLocations, LOCATION_LAG_MS, positionAt, useWindowedRows } from "../../data/windows";
 import { AsyncView, PanelFrame, useLayoutMode } from "../../ui/primitives";
 import { color, type } from "../../ui/tokens";
 import { blockFilter, getCircuit } from "./data";
 import { runningOrder } from "./order";
-import { buildTrackGeometry, carPositions, pickReferenceLap, trackView, yellowsDuring } from "./track";
+import { buildTrackGeometry, carPositions, pickReferenceLap, trackView, withRealPositions, yellowsDuring, type Point } from "./track";
 import { TrackMapLegend, TrackMapView } from "./TrackMapView";
 
 export default function TrackMap(props: PanelProps) {
@@ -25,6 +26,14 @@ export default function TrackMap(props: PanelProps) {
     () => (ref && refLocation.status === "ok" && refCar.status === "ok" ? buildTrackGeometry(ref, refLocation.data, refCar.data) : null),
     [ref, refLocation, refCar],
   );
+  const now = props.at;
+  const location = useWindowedRows("location", { from: now - LOCATION_LAG_MS - 1_000, to: now }, playing);
+  const tracks = useMemo(() => (location.status === "ok" ? indexLocations(location.data) : null), [location]);
+  const real = new Map<number, Point>();
+  for (const [driver, track] of tracks ?? []) {
+    const p = positionAt(track, now - LOCATION_LAG_MS, now);
+    if (p) real.set(driver, p);
+  }
   const info = circuit.status === "ok" ? circuit.data : null;
   const at = lapWindow ? new Date(props.at).toISOString() : null;
   const yellows =
@@ -53,7 +62,7 @@ export default function TrackMap(props: PanelProps) {
                   rotationDeg: info?.rotation ?? 0,
                   marshalSectors: info?.marshalSectors ?? [],
                   yellows,
-                  positions: at ? carPositions(allLaps, at, geometry) : [],
+                  positions: at ? withRealPositions(carPositions(allLaps, at, geometry), real, geometry.points) : [],
                   focus,
                   order: runningOrder(allLaps, lap),
                 })}
@@ -65,7 +74,7 @@ export default function TrackMap(props: PanelProps) {
         </AsyncView>
       )}
       <div style={{ padding: "0 12px 10px", font: type.label, color: color.dim }}>
-        CAR POSITIONS ≈ FROM SECTOR TIMES · ±70 M VS LOCATION DATA
+        {real.size ? "CAR POSITIONS · LOCATION DATA" : "CAR POSITIONS ≈ FROM SECTOR TIMES · ±70 M VS LOCATION DATA"}
       </div>
       {circuit.status === "ok" && !info && (
         <div

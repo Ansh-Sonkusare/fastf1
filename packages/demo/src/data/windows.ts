@@ -1,5 +1,5 @@
 import type { OpenF1Location } from "@f1/core";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import type { OpenF1Rows } from "./openf1";
 import { useRaceSource } from "./source";
 import { useAsync, type Async } from "./useOpenF1";
@@ -42,14 +42,18 @@ export function useWindowedRows<E extends Sampled>(
     source.rows(endpoint, filterOf({ start: next, end: next + WINDOW_MS }), controller.signal).catch(() => {});
     return () => controller.abort();
   }, [prefetch, next, endpoint, source]);
-  return useAsync(key, (signal) =>
+  const state = useAsync(key, (signal) =>
     Promise.all(windows.map((w) => source.rows(endpoint, filterOf(w), signal))).then((parts) => parts.flat()),
   );
+  // Crossing a window boundary changes the key; keep drawing from the previous rows until the next ones land.
+  const last = useRef(state);
+  if (state.status !== "loading" || key === null) last.current = state;
+  return last.current;
 }
 
 /** Real positions trail the cursor by this much, so both ends of every interpolation are known at `at`. */
 export const LOCATION_LAG_MS = 500;
-/** A car with no sample this close to the drawn instant has no real position (pit garage, dropout). */
+/** (0, 0) is OpenF1 for "no fix" and is dropped. A car with no sample this close to the drawn instant has no real position (pit garage, dropout). */
 const MAX_GAP_MS = 2_000;
 
 export interface Track {
@@ -61,6 +65,7 @@ export interface Track {
 export function indexLocations(rows: readonly OpenF1Location[]): ReadonlyMap<number, Track> {
   const by = new Map<number, OpenF1Location[]>();
   for (const r of rows) {
+    if (r.x === 0 && r.y === 0) continue;
     let list = by.get(r.driver_number);
     if (!list) by.set(r.driver_number, (list = []));
     list.push(r);
