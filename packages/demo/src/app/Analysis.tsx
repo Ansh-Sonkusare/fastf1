@@ -18,14 +18,12 @@ export function Analysis({ props, atab, onTab }: { props: PanelProps; atab: Anal
       <TabStrip
         tabs={ANALYSIS_TABS.map((t) => ({ key: t.key, label: t.label, active: t.id === atab, onClick: () => onTab(t.id) }))}
         right={
-          atab === "compare" ? (
-            <span style={{ display: "flex", alignItems: "center", gap: 16, padding: "0 12px", font: `500 11px/1 ${font.mono}`, color: color.label }}>
-              <LineSwatch tone={a?.color ?? color.dim}>A {a?.code ?? "—"}</LineSwatch>
-              <LineSwatch tone={b?.color ?? color.dim} dashed>
-                B {b?.code ?? "—"}
-              </LineSwatch>
-            </span>
-          ) : undefined
+          <span style={{ display: "flex", alignItems: "center", gap: 16, padding: "0 12px", font: `500 11px/1 ${font.mono}`, color: color.label }}>
+            <LineSwatch tone={a?.color ?? color.dim}>A {a?.code ?? "—"}</LineSwatch>
+            <LineSwatch tone={b?.color ?? color.dim} dashed>
+              B {b?.code ?? "—"}
+            </LineSwatch>
+          </span>
         }
       />
       <div

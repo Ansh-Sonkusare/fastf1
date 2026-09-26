@@ -1,8 +1,8 @@
 import type { PanelProps } from "../../app/types";
 import { useOpenF1 } from "../../data/useOpenF1";
 import { AsyncView, Label, PanelFrame, Swatch } from "../../ui/primitives";
-import { color, tyreOf } from "../../ui/tokens";
-import { getUniqueCompounds, shapeTyreStints, type TyreStintViewModel } from "./tyreStrategy";
+import { color, font, futureHatch, tyreOf } from "../../ui/tokens";
+import { getUniqueCompounds, lapAxisTicks, shapeTyreStints, type TyreStintViewModel } from "./tyreStrategy";
 
 export default function TyreStrategy({ session, lap, totalLaps, drivers }: PanelProps) {
   const stints = useOpenF1("stints", session.sessionKey);
@@ -58,6 +58,8 @@ function Gantt({
   }
   // Includes any compound this race used that isn't SOFT/MEDIUM/HARD (e.g. rain).
   const rest = extraCompounds.filter((c) => !["SOFT", "MEDIUM", "HARD"].includes(c));
+  // Percentage-of-track position for lap l, shared by the tick row and the stint bars below.
+  const gp = (l: number) => ((l - 1) / totalLaps) * 100;
 
   return (
     <div style={{ padding: "8px 12px", overflowY: "auto", flex: 1 }}>
@@ -70,18 +72,40 @@ function Gantt({
           ))}
         </div>
       )}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, height: 14 }}>
+        <div style={{ width: 44 }} />
+        <div style={{ position: "relative", flex: 1 }}>
+          {lapAxisTicks(totalLaps).map((tick) => (
+            <span
+              key={tick}
+              style={{
+                position: "absolute",
+                left: `${gp(tick)}%`,
+                transform: "translateX(-50%)",
+                font: `400 9px/1 ${font.mono}`,
+                color: color.dim,
+              }}
+            >
+              {tick}
+            </span>
+          ))}
+        </div>
+      </div>
       {[...drivers.values()].map((driver) => {
         const stints = byDriver.get(driver.number) ?? [];
         return (
           <div key={driver.number} style={{ display: "flex", alignItems: "center", gap: 8, height: 21 }}>
-            <Label>{driver.code}</Label>
+            <div style={{ width: 44 }}>
+              <Label>{driver.code}</Label>
+            </div>
             <div style={{ position: "relative", flex: 1, height: 12, background: color.rowDivider, borderRadius: 2 }}>
               {stints
                 .filter((s) => s.lapStart <= lap)
                 .map((s) => {
                   const end = Math.min(s.lapEnd, lap);
-                  const leftPct = (s.lapStart / totalLaps) * 100;
-                  const widthPct = ((end - s.lapStart + 1) / totalLaps) * 100;
+                  const duration = end - s.lapStart + 1;
+                  const leftPct = gp(s.lapStart);
+                  const widthPct = (duration / totalLaps) * 100;
                   return (
                     <div
                       key={s.stintNumber}
@@ -94,10 +118,34 @@ function Gantt({
                         bottom: 0,
                         background: tyreOf(s.compound).color,
                         borderRadius: 2,
+                        display: "flex",
+                        alignItems: "center",
+                        overflow: "hidden",
                       }}
-                    />
+                    >
+                      {duration >= 4 && (
+                        <span style={{ paddingLeft: 4, font: `700 9px/1 ${font.mono}`, color: "#000000" }}>
+                          {tyreOf(s.compound).code} {duration}
+                        </span>
+                      )}
+                    </div>
                   );
                 })}
+              {/* Laps after the replay cursor are real (this is historical data fetched whole), but
+                  showing the driver's actual future compound/stop would spoil a live-feeling replay
+                  (same rule as RaceControl's lapWindow cutoff) — one generic hatch, no detail. */}
+              {lap < totalLaps && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    bottom: 0,
+                    left: `${gp(lap + 1)}%`,
+                    right: 0,
+                    background: futureHatch,
+                  }}
+                />
+              )}
             </div>
           </div>
         );
