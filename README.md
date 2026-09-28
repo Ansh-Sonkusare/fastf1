@@ -4,9 +4,9 @@ TypeScript package for accessing F1 race data from OpenF1 API.
 
 ## Built with it: Undercut
 
-[**Undercut**](https://github.com/Ansh-Sonkusare/undercut) is a race-strategy terminal built on this package. It replays any session lap by lap from real OpenF1 data, recommends a pit call with its confidence, and ties every chart to one replay cursor.
+[**Undercut**](https://undercut-lime.vercel.app) is a race-strategy terminal built on this package. It replays any session lap by lap from real OpenF1 data, recommends a pit call with its confidence, and ties every chart to one replay cursor. Try it live at [undercut-lime.vercel.app](https://undercut-lime.vercel.app).
 
-[![Undercut desk view: timing tower, pit call, track map and lap compare](docs/screenshots/lap-compare.png)](https://github.com/Ansh-Sonkusare/undercut)
+[![Undercut desk view: timing tower, pit call, track map and lap compare](docs/screenshots/lap-compare.png)](https://undercut-lime.vercel.app)
 
 ## Install
 
