@@ -2,6 +2,23 @@
 
 TypeScript package for accessing F1 race data from OpenF1 API.
 
+## Demo: Undercut strategy terminal
+
+`packages/demo` is a race-strategy console built on the package. It replays any session lap by lap from real OpenF1 data, recommends a pit call, and ties every chart to one replay cursor. Run it with `pnpm demo`.
+
+![Desk view comparing VER's and NOR's fastest laps on a metre axis](docs/screenshots/lap-compare.png)
+*Desk view, Abu Dhabi 2025, lap 45. Timing tower, pit-call recommendation, live car map and race control across the top. Below, VER's and NOR's fastest laps overlaid on a metre axis with corner numbers: speed, throttle, brake and gear.*
+
+| | |
+|---|---|
+| ![Race pace ranking and gap-to-leader chart](docs/screenshots/race-pace.png) | ![Tyre strategy and tyre wear by team](docs/screenshots/tyre-strategy.png) |
+| **Race pace.** Clean-lap pace ranking with consistency and laps in traffic, plus the gap to the leader. Click the chart to jump the replay to that lap. | **Tyres.** Stints per driver (used sets marked, e.g. `M (3)`) and fuel-corrected wear rate by compound and team. |
+| ![Australia under the safety car](docs/screenshots/safety-car.png) | ![Monza pit stops and a pit-next-lap call](docs/screenshots/monza.png) |
+| **Safety car.** Australia 2025, lap 35: the call flips to "Pit next lap", neutralised laps are shaded and retirements drop out. | **Monza.** A pit-next-lap call for LEC with its rejoin risk, and pit-stop times ranked. |
+
+![Wall mode for a second screen](docs/screenshots/wall-mode.png)
+*Wall mode (`M`): large type for a second screen or the pit wall.*
+
 ## Install
 
 ```bash
