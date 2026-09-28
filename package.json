@@ -8,8 +8,7 @@
     "lint": "turbo lint",
     "lint:fix": "turbo lint:fix",
     "prepare": "./scripts/prepare-effect.sh",
-    "demo": "tsx examples/cli.ts",
-    "demo:web": "pnpm --filter @f1/demo dev"
+    "demo": "tsx examples/cli.ts"
   },
   "dependencies": {
     "@effect/platform": "^0.96.2",

@@ -2,22 +2,11 @@
 
 TypeScript package for accessing F1 race data from OpenF1 API.
 
-## Demo: Undercut strategy terminal
+## Built with it: Undercut
 
-`packages/demo` is a race-strategy console built on the package. It replays any session lap by lap from real OpenF1 data, recommends a pit call, and ties every chart to one replay cursor. Run it with `pnpm demo`.
+[**Undercut**](https://github.com/Ansh-Sonkusare/undercut) is a race-strategy terminal built on this package. It replays any session lap by lap from real OpenF1 data, recommends a pit call with its confidence, and ties every chart to one replay cursor.
 
-![Desk view comparing VER's and NOR's fastest laps on a metre axis](docs/screenshots/lap-compare.png)
-*Desk view, Abu Dhabi 2025, lap 45. Timing tower, pit-call recommendation, live car map and race control across the top. Below, VER's and NOR's fastest laps overlaid on a metre axis with corner numbers: speed, throttle, brake and gear.*
-
-| | |
-|---|---|
-| ![Race pace ranking and gap-to-leader chart](docs/screenshots/race-pace.png) | ![Tyre strategy and tyre wear by team](docs/screenshots/tyre-strategy.png) |
-| **Race pace.** Clean-lap pace ranking with consistency and laps in traffic, plus the gap to the leader. Click the chart to jump the replay to that lap. | **Tyres.** Stints per driver (used sets marked, e.g. `M (3)`) and fuel-corrected wear rate by compound and team. |
-| ![Australia under the safety car](docs/screenshots/safety-car.png) | ![Monza pit stops and a pit-next-lap call](docs/screenshots/monza.png) |
-| **Safety car.** Australia 2025, lap 35: the call flips to "Pit next lap", neutralised laps are shaded and retirements drop out. | **Monza.** A pit-next-lap call for LEC with its rejoin risk, and pit-stop times ranked. |
-
-![Wall mode for a second screen](docs/screenshots/wall-mode.png)
-*Wall mode (`M`): large type for a second screen or the pit wall.*
+[![Undercut desk view: timing tower, pit call, track map and lap compare](docs/screenshots/lap-compare.png)](https://github.com/Ansh-Sonkusare/undercut)
 
 ## Install
 
@@ -25,6 +14,24 @@ TypeScript package for accessing F1 race data from OpenF1 API.
 pnpm install
 pnpm build
 ```
+
+## Use it in your project
+
+The packages are not on npm yet. Install them from this repo with pnpm, which clones it and builds each package on install:
+
+```json
+{
+  "dependencies": {
+    "@f1/core": "github:Ansh-Sonkusare/fastf1#path:/packages/core",
+    "@f1/react": "github:Ansh-Sonkusare/fastf1#path:/packages/react"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["@f1/core", "@f1/react"]
+  }
+}
+```
+
+`onlyBuiltDependencies` lets pnpm run the build for these two packages. `@f1/react` needs `react` 18 or 19 and `@f1/core` alongside it.
 
 ## Quick Start (Friendly API)
 
