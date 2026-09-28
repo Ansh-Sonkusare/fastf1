@@ -34,6 +34,6 @@ Every hook returns `{ data, isLoading, error }` and refetches when its arguments
 
 Pass `{ initialData }` to hydrate from a server-side fetch.
 
-[Undercut](https://github.com/Ansh-Sonkusare/undercut), a race-strategy terminal, is built on these hooks.
+[Undercut](https://undercut-lime.vercel.app), a race-strategy terminal, is built on these hooks.
 
 Unofficial and not associated with Formula 1. MIT licensed.

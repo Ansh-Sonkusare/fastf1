@@ -44,6 +44,6 @@ Each takes `year` plus `raceName` or `round`. `session` defaults to the race.
 
 `getTyreDegradation`, `getStintPace`, `getDriverConsistency`, `getRaceDeltas`, `getPitStopAnalysis`, `getPositionChanges`, `compareDrivers` and `compareStints` work on the rows the API returns.
 
-React hooks live in [`@teakmirror113/f1-react`](https://www.npmjs.com/package/@teakmirror113/f1-react). [Undercut](https://github.com/Ansh-Sonkusare/undercut), a race-strategy terminal, is built on both.
+React hooks live in [`@teakmirror113/f1-react`](https://www.npmjs.com/package/@teakmirror113/f1-react). [Undercut](https://undercut-lime.vercel.app), a race-strategy terminal, is built on both.
 
 Unofficial and not associated with Formula 1. MIT licensed.
