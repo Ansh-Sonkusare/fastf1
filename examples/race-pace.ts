@@ -7,7 +7,7 @@ import {
   getOpenF1PitStops as getPitStops,
   getWeather,
   getCarData,
-} from "@f1/core";
+} from "@teakmirror113/f1-core";
 
 const YEAR = 2026;
 const RACE_NAME = "Miami";

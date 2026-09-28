@@ -4,7 +4,7 @@ import {
   getDrivers,
   getOpenF1Laps,
   getCarData,
-} from "@f1/core";
+} from "@teakmirror113/f1-core";
 
 const YEAR = 2026;
 const DRIVER_NUMBER = 3; // Max Verstappen

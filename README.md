@@ -11,57 +11,40 @@ TypeScript package for accessing F1 race data from OpenF1 API.
 ## Install
 
 ```bash
-pnpm install
-pnpm build
+npm install @teakmirror113/f1-core    # the data client
+npm install @teakmirror113/f1-react   # React hooks, for React 18 or 19
 ```
 
-## Use it in your project
-
-The packages are not on npm yet. Install them from this repo with pnpm, which clones it and builds each package on install:
-
-```json
-{
-  "dependencies": {
-    "@f1/core": "github:Ansh-Sonkusare/fastf1#path:/packages/core",
-    "@f1/react": "github:Ansh-Sonkusare/fastf1#path:/packages/react"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": ["@f1/core", "@f1/react"]
-  }
-}
-```
-
-`onlyBuiltDependencies` lets pnpm run the build for these two packages. `@f1/react` needs `react` 18 or 19 and `@f1/core` alongside it.
+On npm: [`@teakmirror113/f1-core`](https://www.npmjs.com/package/@teakmirror113/f1-core) · [`@teakmirror113/f1-react`](https://www.npmjs.com/package/@teakmirror113/f1-react)
 
 ## Quick Start (Friendly API)
 
-Use year + race name + driver code - no session keys needed:
+Use year + race name + driver code, no session keys needed. Every call is an [Effect](https://effect.website); `toPromise` runs one as a plain promise.
 
 ```typescript
-import { 
+import {
   getRace,
   getSession,
-  getLaps,
+  getSessionLaps,
   getRaceStints,
   getRacePitStops,
   getRaceWeather,
   getRaceTelemetry,
-} from "@f1/core";
+  toPromise,
+} from "@teakmirror113/f1-core";
 
-// Get race by name
-const race = await getRace({ year: 2026, name: "Miami" });
+// Race and session by name (the session defaults to the race)
+const race = await toPromise(getRace({ year: 2025, name: "Abu Dhabi" }));
+const session = await toPromise(getSession({ year: 2025, raceName: "Abu Dhabi" }));
 
-// Get session (defaults to first session)
-const session = await getSession({ year: 2026, raceName: "Miami" });
+// Laps for a driver
+const laps = await toPromise(getSessionLaps({ year: 2025, raceName: "Abu Dhabi", driver: "VER" }));
 
-// Get laps for a driver
-const laps = await getLaps({ year: 2026, raceName: "Miami", driver: "VER" });
-
-// Get stints, pit stops, weather, telemetry
-const stints = await getRaceStints({ year: 2026, raceName: "Miami", driver: "VER" });
-const pits = await getRacePitStops({ year: 2026, raceName: "Miami", driver: "VER" });
-const weather = await getRaceWeather({ year: 2026, raceName: "Miami" });
-const telemetry = await getRaceTelemetry({ year: 2026, raceName: "Miami", driver: "VER" });
+// Stints, pit stops, weather, telemetry
+const stints = await toPromise(getRaceStints({ year: 2025, raceName: "Abu Dhabi", driver: "VER" }));
+const pits = await toPromise(getRacePitStops({ year: 2025, raceName: "Abu Dhabi", driver: "VER" }));
+const weather = await toPromise(getRaceWeather({ year: 2025, raceName: "Abu Dhabi" }));
+const telemetry = await toPromise(getRaceTelemetry({ year: 2025, raceName: "Abu Dhabi", driver: "VER" }));
 ```
 
 ## Available APIs
@@ -72,7 +55,7 @@ Pass year + one of (raceName OR round) OR sessionKey:
 
 - `getRace({ year, name?, round? })` - Find race by year + name or round
 - `getSession({ year, raceName?, round?, session? })` - Find session (pass sessionKey to skip lookup)
-- `getLaps({ year, raceName?, sessionKey?, driver?, lap? })` - Lap times
+- `getSessionLaps({ year, raceName?, sessionKey?, driver?, lap? })` - Lap times
 - `getRaceStints({ year, raceName?, sessionKey?, driver? })` - Tyre stint data
 - `getRacePitStops({ year, raceName?, sessionKey?, driver? })` - Pit stop data
 - `getRaceWeather({ year, raceName?, sessionKey? })` - Weather conditions
@@ -84,7 +67,7 @@ Pass year + one of (raceName OR round) OR sessionKey:
 - `getDrivers(sessionKey)` - Drivers in a session
 - `getOpenF1Laps(sessionKey, driverNumber)` - Lap times
 - `getStints(sessionKey, driverNumber)` - Stint data
-- `getPitStops(sessionKey, driverNumber)` - Pit stop data
+- `getOpenF1PitStops(sessionKey, driverNumber)` - Pit stop data
 - `getCarData(sessionKey, driverNumber)` - Speed, throttle, brake, RPM, gear
 - `getPosition(sessionKey, driverNumber)` - Position data
 - `getLocation(sessionKey, driverNumber)` - X, Y, Z coordinates
@@ -104,7 +87,7 @@ import {
   useRacePitStops,
   useRaceWeather,
   useRaceTelemetry,
-} from "@f1/react";
+} from "@teakmirror113/f1-react";
 
 // Friendly hooks - no session keys needed
 const { data: stints, isLoading } = useRaceStints(2026, "Miami", "VER");
@@ -118,6 +101,14 @@ const { data: telemetry } = useRaceTelemetry(2026, "Miami", "VER");
 ```bash
 # Race pace analysis
 pnpm demo
+```
+
+## Develop
+
+```bash
+pnpm install
+pnpm build
+pnpm test
 ```
 
 ## Architecture

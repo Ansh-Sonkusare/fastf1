@@ -2,12 +2,12 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useF1Results } from "./useF1Results";
 
-vi.mock("@f1/core", () => ({
+vi.mock("@teakmirror113/f1-core", () => ({
   getRaceResults: vi.fn(),
   toPromise: (x: unknown) => x,
 }));
 
-import { getRaceResults } from "@f1/core";
+import { getRaceResults } from "@teakmirror113/f1-core";
 
 const mockGetRaceResults = getRaceResults as ReturnType<typeof vi.fn>;
 

@@ -1,26 +1,29 @@
 {
-  "name": "@f1/core",
-  "version": "0.0.1",
-  "type": "module",
-  "description": "F1 data client with OpenF1 API integration",
+  "name": "@teakmirror113/f1-core",
+  "version": "0.1.0",
+  "description": "TypeScript client for Formula 1 data from OpenF1: laps, stints, pit stops, telemetry and race control.",
+  "keywords": ["formula1", "f1", "openf1", "telemetry", "motorsport", "effect"],
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Ansh-Sonkusare/fastf1.git"
+    "url": "git+https://github.com/Ansh-Sonkusare/fastf1.git",
+    "directory": "packages/core"
   },
   "bugs": {
     "url": "https://github.com/Ansh-Sonkusare/fastf1/issues"
   },
-  "homepage": "https://github.com/Ansh-Sonkusare/fastf1#readme",
+  "homepage": "https://github.com/Ansh-Sonkusare/fastf1/tree/main/packages/core#readme",
+  "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "default": "./dist/index.js"
     }
   },
+  "files": ["dist"],
   "scripts": {
     "build": "vite build",
     "test": "vitest run",
@@ -39,5 +42,7 @@
     "typescript": "^5.6.0",
     "vite": "^6.0.0"
   },
-  "files": ["dist"]
+  "publishConfig": {
+    "access": "public"
+  }
 }

@@ -1,4 +1,4 @@
-import { getCarData, getOpenF1Laps } from "@f1/core";
+import { getCarData, getOpenF1Laps } from "@teakmirror113/f1-core";
 
 const sessionKey = 11280;
 const driverNumber = 3;

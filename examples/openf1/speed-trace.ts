@@ -1,4 +1,4 @@
-import { getCarData, getOpenF1Laps, toPromise } from "@f1/core";
+import { getCarData, getOpenF1Laps, toPromise } from "@teakmirror113/f1-core";
 
 const SESSION_KEY = 9472; // 2024 Bahrain Grand Prix, Race
 const DRIVER = 1;

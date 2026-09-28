@@ -1,4 +1,4 @@
-import { clearOpenF1Cache, getStints, setOpenF1CacheEnabled, toPromise } from "@f1/core";
+import { clearOpenF1Cache, getStints, setOpenF1CacheEnabled, toPromise } from "@teakmirror113/f1-core";
 
 const SESSION_KEY = 9472; // 2024 Bahrain Grand Prix, Race
 

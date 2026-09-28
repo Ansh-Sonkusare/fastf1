@@ -1,6 +1,6 @@
 # OpenF1 API reference
 
-`@f1/core` wraps the [OpenF1 API](https://openf1.org) (`https://api.openf1.org/v1`). This page documents every exported OpenF1 function as it exists in `packages/core/src/api/endpoints/`. Runnable scripts live in `examples/openf1/`.
+`@teakmirror113/f1-core` wraps the [OpenF1 API](https://openf1.org) (`https://api.openf1.org/v1`). This page documents every exported OpenF1 function as it exists in `packages/core/src/api/endpoints/`. Runnable scripts live in `examples/openf1/`.
 
 ## Call a function
 
@@ -13,7 +13,7 @@ Effect.Effect<readonly T[], ClientError, F1ClientService>
 To get a Promise, wrap the Effect in `toPromise`. It provides `F1ClientServiceLive` (the `fetch`-based HTTP client) and runs the Effect.
 
 ```ts
-import { getMeetings, toPromise } from "@f1/core";
+import { getMeetings, toPromise } from "@teakmirror113/f1-core";
 
 const meetings = await toPromise(getMeetings(2024));
 ```
@@ -22,7 +22,7 @@ To stay in Effect, provide the layer yourself:
 
 ```ts
 import { Effect } from "effect";
-import { F1ClientServiceLive, getMeetings } from "@f1/core";
+import { F1ClientServiceLive, getMeetings } from "@teakmirror113/f1-core";
 
 const meetings = await Effect.runPromise(Effect.provide(getMeetings(2024), F1ClientServiceLive));
 ```
@@ -53,7 +53,7 @@ Each function decodes every row with an Effect Schema from `packages/core/src/sc
 Two functions named `cleanNulls` exist, and neither removes nulls from OpenF1 responses:
 
 - The internal `cleanNulls` in `packages/core/src/api/endpoints/_shared.ts` runs on every response. It copies objects and arrays recursively and keeps `null` values.
-- The exported `cleanNulls` from `@f1/core` (`packages/core/src/utils.ts`) drops `null` and `undefined` keys from one object, shallowly. The OpenF1 functions do not call it.
+- The exported `cleanNulls` from `@teakmirror113/f1-core` (`packages/core/src/utils.ts`) drops `null` and `undefined` keys from one object, shallowly. The OpenF1 functions do not call it.
 
 The schemas do the null removal. The PRD's recursive `cleanNulls`, which also filters `null` items out of arrays before Zod validation, does not exist.
 
@@ -141,7 +141,7 @@ const verStints = await toPromise(getStints(9472, 1));
 getOpenF1PitStops(sessionKey: number, driverNumber?: number): Effect<readonly OpenF1Pit[], ClientError, F1ClientService>
 ```
 
-`packages/core/src/api/openf1.ts` exports this function as `getPitStops`. `@f1/core` re-exports it as `getOpenF1PitStops`, because `getPitStops` is already the Ergast pit-stop function.
+`packages/core/src/api/openf1.ts` exports this function as `getPitStops`. `@teakmirror113/f1-core` re-exports it as `getOpenF1PitStops`, because `getPitStops` is already the Ergast pit-stop function.
 
 Sends `GET /pit` with `session_key`, and `driver_number` when given.
 
@@ -342,7 +342,7 @@ setOpenF1CacheEnabled(enabled: boolean): void
 
 The cache lives in `packages/core/src/api/endpoints/cache.ts`. `fetchOpenF1` in `_shared.ts` is the only reader and writer.
 
-- **Scope.** One module-level `QuickLRU` shared by every caller in the JavaScript process. `toPromise` builds a fresh `F1ClientServiceLive` layer per call, so a layer-scoped cache would never hit. The module-level cache hits across `toPromise` calls and across `@f1/react` hooks.
+- **Scope.** One module-level `QuickLRU` shared by every caller in the JavaScript process. `toPromise` builds a fresh `F1ClientServiceLive` layer per call, so a layer-scoped cache would never hit. The module-level cache hits across `toPromise` calls and across `@teakmirror113/f1-react` hooks.
 - **Key.** The full request URL, including the base URL and the query string, for example `https://api.openf1.org/v1/stints?session_key=9472&driver_number=1`. Argument order is fixed per function, so equal arguments give equal keys.
 - **Lifetime.** Each entry expires 1 hour after it is written (`maxAge`). `maxSize` is 100. quick-lru keeps two generations of up to 100 entries each, so it holds up to about 200 entries. It drops the older generation as a whole, which approximates least-recently-used eviction.
 - **What is stored.** The response JSON before schema decoding. Every call decodes again. A decoding failure does not evict the entry.
@@ -371,7 +371,7 @@ beforeEach(() => {
 });
 ```
 
-To test code outside `@f1/core` that calls these functions, add the same `beforeEach` to your own setup file. Before a test ends, await or interrupt every request it started. A request still in flight when the next test clears the cache can overwrite or delete that test's entries.
+To test code outside `@teakmirror113/f1-core` that calls these functions, add the same `beforeEach` to your own setup file. Before a test ends, await or interrupt every request it started. A request still in flight when the next test clears the cache can overwrite or delete that test's entries.
 
 ## Data availability
 
@@ -412,10 +412,10 @@ These are cache bugs in `packages/core/src/api/endpoints/`, found by reading the
 
 ## Run the examples
 
-`@f1/core` resolves to `packages/core/dist`, so build it first. Then run a script from the repository root:
+`@teakmirror113/f1-core` resolves to `packages/core/dist`, so build it first. Then run a script from the repository root:
 
 ```bash
-pnpm --filter @f1/core build
+pnpm --filter @teakmirror113/f1-core build
 npx tsx examples/openf1/session-results.ts
 ```
 

@@ -4,7 +4,9 @@ import { defineConfig } from "vite";
 import dts from "vite-plugin-dts";
 
 export default defineConfig({
-  plugins: [dts({ insertTypesEntry: true })],
+  plugins: [
+    dts({ insertTypesEntry: true, exclude: ["**/*.test.ts", "**/*.test.tsx", "src/test/**"] }),
+  ],
   build: {
     lib: {
       entry: resolve(__dirname, "src/index.ts"),
@@ -13,7 +15,7 @@ export default defineConfig({
       formats: ["es"],
     },
     rollupOptions: {
-      external: ["react", "@f1/core", "effect", "@effect/platform"],
+      external: ["react", "@teakmirror113/f1-core", "effect", "@effect/platform"],
     },
   },
   test: {

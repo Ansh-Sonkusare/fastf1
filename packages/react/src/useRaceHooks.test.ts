@@ -8,7 +8,7 @@ import {
   useRaceWeather,
 } from "./useRaceHooks";
 
-vi.mock("@f1/core", () => ({
+vi.mock("@teakmirror113/f1-core", () => ({
   getRacePitStops: vi.fn(),
   getRaceStints: vi.fn(),
   getRaceTelemetry: vi.fn(),
@@ -23,7 +23,7 @@ import {
   getRaceStints,
   getRaceTelemetry,
   getRaceWeather,
-} from "@f1/core";
+} from "@teakmirror113/f1-core";
 
 const mockGetRaceStints = getRaceStints as ReturnType<typeof vi.fn>;
 const mockGetRacePitStops = getRacePitStops as ReturnType<typeof vi.fn>;

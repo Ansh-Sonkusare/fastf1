@@ -2,12 +2,12 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useF1Schedule } from "./useF1Schedule";
 
-vi.mock("@f1/core", () => ({
+vi.mock("@teakmirror113/f1-core", () => ({
   getSchedule: vi.fn(),
   toPromise: (x: unknown) => x,
 }));
 
-import { getSchedule } from "@f1/core";
+import { getSchedule } from "@teakmirror113/f1-core";
 
 const mockGetSchedule = getSchedule as ReturnType<typeof vi.fn>;
 

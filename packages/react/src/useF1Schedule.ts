@@ -1,4 +1,4 @@
-import { type RaceTable, getSchedule, toPromise } from "@f1/core";
+import { type RaceTable, getSchedule, toPromise } from "@teakmirror113/f1-core";
 import { useCallback } from "react";
 import { useAsyncResource } from "./hooks";
 

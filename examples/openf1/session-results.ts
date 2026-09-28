@@ -5,7 +5,7 @@ import {
   getSessions,
   getStartingGrid,
   toPromise,
-} from "@f1/core";
+} from "@teakmirror113/f1-core";
 
 async function main() {
   const meetings = await toPromise(getMeetings(2024));

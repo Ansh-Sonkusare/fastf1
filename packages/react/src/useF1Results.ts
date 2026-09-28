@@ -1,4 +1,4 @@
-import { type ResultType, getRaceResults, toPromise } from "@f1/core";
+import { type ResultType, getRaceResults, toPromise } from "@teakmirror113/f1-core";
 import { useCallback } from "react";
 import { useAsyncResource } from "./hooks";
 

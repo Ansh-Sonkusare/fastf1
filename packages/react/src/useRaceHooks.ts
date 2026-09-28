@@ -8,7 +8,7 @@ import type {
   OpenF1Pit,
   Stint,
   Weather,
-} from "@f1/core";
+} from "@teakmirror113/f1-core";
 import {
   getFastestLap,
   getRacePitStops,
@@ -16,7 +16,7 @@ import {
   getRaceTelemetry,
   getRaceWeather,
   toPromise,
-} from "@f1/core";
+} from "@teakmirror113/f1-core";
 import { useCallback } from "react";
 import { useAsyncResource } from "./hooks";
 
