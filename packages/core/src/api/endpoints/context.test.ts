@@ -9,35 +9,38 @@ beforeEach(() => {
 });
 
 describe("getWeather", () => {
-  it("parses weather data and null-cleans nullable fields", async () => {
+  it("decodes a live weather row (2025 Abu Dhabi race, session 9839)", async () => {
     mockFetch([
       {
-        session_key: 9693,
-        meeting_key: 1254,
-        date: "2024-03-01T12:00:00Z",
-        air_temperature: 25.5,
-        track_temperature: 45.0,
-        humidity: 65,
-        pressure: 1013.25,
-        wind_speed: 12.5,
-        wind_direction: 270,
-        precipitation: 0,
-        track_surface_temperature: 50.2,
+        date: "2025-12-07T12:06:07.170000+00:00",
+        session_key: 9839,
+        pressure: 1016.4,
+        air_temperature: 27.4,
+        rainfall: 0,
+        wind_speed: 3.0,
+        meeting_key: 1276,
+        humidity: 55.0,
+        track_temperature: 34.6,
+        wind_direction: 67,
       },
     ]);
 
-    const result = await run(getWeather(9693));
+    const result = await run(getWeather(9839));
 
-    expect(result).toHaveLength(1);
-    expect(result[0].session_key).toBe(9693);
-    expect(result[0].air_temperature).toBe(25.5);
-    expect(result[0].track_temperature).toBe(45.0);
-    expect(result[0].humidity).toBe(65);
-    expect(result[0].pressure).toBe(1013.25);
-    expect(result[0].wind_speed).toBe(12.5);
-    expect(result[0].wind_direction).toBe(270);
-    expect(result[0].precipitation).toBe(0);
-    expect(result[0].track_surface_temperature).toBe(50.2);
+    expect(result).toEqual([
+      {
+        session_key: 9839,
+        meeting_key: 1276,
+        date: "2025-12-07T12:06:07.170000+00:00",
+        air_temperature: 27.4,
+        track_temperature: 34.6,
+        humidity: 55,
+        pressure: 1016.4,
+        wind_speed: 3,
+        wind_direction: 67,
+        rainfall: 0,
+      },
+    ]);
   });
 
   it("removes null values from nullable fields", async () => {
@@ -52,8 +55,7 @@ describe("getWeather", () => {
         pressure: null,
         wind_speed: null,
         wind_direction: null,
-        precipitation: null,
-        track_surface_temperature: null,
+        rainfall: null,
       },
     ]);
 
@@ -67,8 +69,7 @@ describe("getWeather", () => {
     expect(result[0].pressure).toBeUndefined();
     expect(result[0].wind_speed).toBeUndefined();
     expect(result[0].wind_direction).toBeUndefined();
-    expect(result[0].precipitation).toBeUndefined();
-    expect(result[0].track_surface_temperature).toBeUndefined();
+    expect(result[0].rainfall).toBeUndefined();
   });
 
   it("passes session_key query param in full URL", async () => {
@@ -155,36 +156,20 @@ describe("getRaceControl", () => {
 });
 
 describe("getTeamRadio", () => {
-  it("parses team radio data with literal values", async () => {
-    mockFetch([
-      {
-        session_key: 9693,
-        meeting_key: 1254,
-        driver_number: 1,
-        date: "2024-03-01T12:10:00Z",
-        message: "Good pace, maintain the gap",
-        driver_id: "max_verstappen",
-      },
-      {
-        session_key: 9693,
-        meeting_key: 1254,
-        driver_number: 44,
-        date: "2024-03-01T12:11:00Z",
-        message: "Box box, box box",
-        driver_id: "lewis_hamilton",
-      },
-    ]);
+  it("decodes a live team radio row (2025 Abu Dhabi race, session 9839)", async () => {
+    const row = {
+      meeting_key: 1276,
+      session_key: 9839,
+      driver_number: 63,
+      date: "2025-12-07T12:24:28.178000+00:00",
+      recording_url:
+        "https://livetiming.formula1.com/static/2025/2025-12-07_Abu_Dhabi_Grand_Prix/2025-12-07_Race/TeamRadio/GEORUS01_63_20251207_162402.mp3",
+    };
+    mockFetch([row]);
 
-    const result = await run(getTeamRadio(9693));
+    const result = await run(getTeamRadio(9839));
 
-    expect(result).toHaveLength(2);
-    expect(result[0].session_key).toBe(9693);
-    expect(result[0].driver_number).toBe(1);
-    expect(result[0].message).toBe("Good pace, maintain the gap");
-    expect(result[0].driver_id).toBe("max_verstappen");
-    expect(result[1].driver_number).toBe(44);
-    expect(result[1].message).toBe("Box box, box box");
-    expect(result[1].driver_id).toBe("lewis_hamilton");
+    expect(result).toEqual([row]);
   });
 
   it("passes session_key query param in full URL", async () => {
