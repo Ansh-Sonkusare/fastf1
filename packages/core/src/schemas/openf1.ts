@@ -147,8 +147,7 @@ export const WeatherSchema = Schema.Struct({
   pressure: nullish(Schema.Number),
   wind_speed: nullish(Schema.Number),
   wind_direction: nullish(Schema.Number),
-  precipitation: nullish(Schema.Number),
-  track_surface_temperature: nullish(Schema.Number),
+  rainfall: nullish(Schema.Number),
 });
 export type Weather = Schema.Schema.Type<typeof WeatherSchema>;
 
@@ -172,8 +171,7 @@ export const TeamRadioSchema = Schema.Struct({
   meeting_key: Schema.Number,
   driver_number: Schema.Number,
   date: Schema.String,
-  message: Schema.String,
-  driver_id: Schema.String,
+  recording_url: Schema.String,
 });
 export type TeamRadio = Schema.Schema.Type<typeof TeamRadioSchema>;
 

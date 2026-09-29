@@ -211,7 +211,7 @@ getWeather(sessionKey: number): Effect<readonly Weather[], ClientError, F1Client
 
 Sends `GET /weather?session_key={sessionKey}`. Returns about one row per minute.
 
-Fields are `date` and the optional `air_temperature`, `track_temperature` (°C), `humidity` (percent), `pressure` (mbar), `wind_speed` (m/s), `wind_direction` (degrees), `precipitation`, and `track_surface_temperature`.
+Fields are `date` and the optional `air_temperature`, `track_temperature` (°C), `humidity` (percent), `pressure` (mbar), `wind_speed` (m/s), `wind_direction` (degrees), and `rainfall` (0 or 1).
 
 ```ts
 const weather = await toPromise(getWeather(9472));
@@ -239,7 +239,7 @@ getTeamRadio(sessionKey: number): Effect<readonly TeamRadio[], ClientError, F1Cl
 
 Sends `GET /team_radio?session_key={sessionKey}`.
 
-The schema requires `driver_number`, `date`, `message`, and `driver_id`. OpenF1 sends `recording_url` and no `message` or `driver_id`, so this function currently dies on decoding. See [Known issues](#known-issues).
+Fields are `driver_number`, `date`, and `recording_url`, a link to the clip's MP3. OpenF1 sends no transcript.
 
 ```ts
 const radio = await toPromise(getTeamRadio(9472));
@@ -390,7 +390,6 @@ These are schema mismatches in `packages/core/src/schemas/openf1.ts` against liv
 | `getSessionResult` | `duration: [90.031, 89.374, 89.179]` in qualifying (session `9468`) | `number` or `null` |
 | `getSessionResult` | `gap_to_leader: [0.122, 0.209, 0.0]` in qualifying, in all 20 rows (session `9468`) | `number` or `null` |
 | `getSessionResult` | `position: null` for drivers with `dnf: true` (session `9506`) | `number` |
-| `getTeamRadio` | `recording_url`, no `message` or `driver_id` (session `9472`) | `message` and `driver_id` required |
 
 These are cache bugs in `packages/core/src/api/endpoints/`, found by reading the source:
 
