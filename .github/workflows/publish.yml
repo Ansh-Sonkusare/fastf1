@@ -1,0 +1,64 @@
+name: Publish
+
+# Publishes @teakmirror113/f1-core and @teakmirror113/f1-react to npm
+# via npm Trusted Publishing (OIDC) — no NPM_TOKEN needed.
+# Bump the version in packages/*/package.json, then publish a GitHub release
+# (or run this workflow manually). Versions already on npm are skipped.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # required for npm trusted publishing + provenance
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      # Trusted publishing needs npm >= 11.5.1
+      - name: Update npm
+        run: npm install -g npm@latest
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm -r build
+
+      - name: Test
+        run: pnpm -r test
+
+      # Order matters: f1-react depends on f1-core.
+      # `pnpm pack` rewrites workspace:^ to a real version; `npm publish` does the OIDC auth.
+      - name: Publish packages
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/tarballs"
+          for dir in packages/core packages/react; do
+            name=$(node -p "require('./$dir/package.json').name")
+            version=$(node -p "require('./$dir/package.json').version")
+            if npm view "$name@$version" version >/dev/null 2>&1; then
+              echo "::notice::$name@$version already on npm, skipping"
+              continue
+            fi
+            tarball=$(cd "$dir" && pnpm pack --pack-destination "$RUNNER_TEMP/tarballs" | tail -n1)
+            echo "Publishing $name@$version from $tarball"
+            npm publish "$tarball" --access public --provenance
+          done
